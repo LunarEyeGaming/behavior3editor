@@ -16,14 +16,36 @@ module.exports = function(grunt) {
     cssmin: {
       dist: {src  : [], dest : ''}
     },
+    copy : {
+      dist: {cwd : '', src : [], dest : ''}
+    }
   });
 
   // Load the plugin that provides the "uglify" task.
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-cssmin');
+  grunt.loadNpmTasks('grunt-contrib-copy');
 
-  // APP AND EDITOR
+  // APP HTML
+  grunt.registerTask('_apphtml', function() {
+    grunt.config.set('copy.dist.cwd', '../src/');
+    grunt.config.set('copy.dist.src', ['app/**/*.html']);
+    grunt.config.set('copy.dist.dest', '../dist/');
+    grunt.config.set('copy.dist.expand', true);
+  });
+  grunt.registerTask('apphtml', ['_apphtml', 'copy']);
+
+  // APP
+  grunt.registerTask('_appjs', function() {
+    grunt.config.set('concat.dist.src', files['appjs']);
+    grunt.config.set('concat.dist.dest', '../dist/app/build.js');
+    grunt.config.set('uglify.dist.src', '../dist/app/build.js');
+    grunt.config.set('uglify.dist.dest', '../dist/app/build.js');
+  });
+  grunt.registerTask('appjs', ['_appjs', 'concat']);
+
+  // EDITOR
   grunt.registerTask('_js', function() {
     grunt.config.set('concat.dist.src', files['js']);
     grunt.config.set('concat.dist.dest', '../dist/build.js');
@@ -49,5 +71,5 @@ module.exports = function(grunt) {
   grunt.registerTask('css', ['_css', 'cssmin']);
 
   // TOTAL BUILD
-  grunt.registerTask('build', ['js', 'libs', 'css']);
+  grunt.registerTask('build', ['appjs', 'apphtml', 'js', 'libs', 'css']);
 };

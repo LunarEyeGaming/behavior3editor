@@ -1,4 +1,18 @@
-{
+{  
+  "appjs":  [
+    "../src/app/app.js",
+    "../src/app/common/sidebar/sidebar.js",
+    "../src/app/common/tabs/tabs.js",
+    "../src/app/common/modal/modal.js",
+    "../src/app/common/notification/notification.js",
+    "../src/app/common/scrollable/scrollable.js",
+    "../src/app/menu/menu.js",
+    "../src/app/node/node.js",
+    "../src/app/node/directives.js",
+    "../src/app/tree/tree.js",
+    "../src/app/tree/directives.js",
+    "../src/app/property/property.js"
+  ],
   "js": [
     "../src/editor/data/options.js",
     "../src/editor/data/shortcuts.js",
