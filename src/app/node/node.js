@@ -7,7 +7,7 @@ angular.module('app.node', ['app.modal'])
   var this_ = this;
 
   // SCOPE --------------------------------------------------------------------
-  $scope.categories = ['composite', 'decorator', 'condition', 'action'];
+  $scope.categories = ['composite', 'decorator', 'action'];
   $scope.nodes = {};
   
   $scope.showAddNodeModal = function() {
@@ -46,7 +46,6 @@ angular.module('app.node', ['app.modal'])
     var guiNodes = {
       'composite' : [],
       'decorator' : [],
-      'condition' : [],
       'action'    : []
     };
     var editorNodes = $window.app.editor.nodes;
@@ -96,10 +95,7 @@ angular.module('app.node', ['app.modal'])
       <td><input id="title" type="text" placeholder="title" /></td>\
       <td>\
         <select id="category">\
-          <option value="composite">Composite</option>\
-          <option value="decorator">Decorator</option>\
-          <option value="condition">Condition</option>\
-          <option value="action" selected>Action</option>\
+            <option ng-repeat="category in categories" value="{{category}}">{{category}}</option>\
         </select>\
       </td>\
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
@@ -107,6 +103,7 @@ angular.module('app.node', ['app.modal'])
   ';
 
   var this_ = this;
+  $scope.categories = ['composite', 'decorator', 'action'];
   $scope.addRow = function() {
     if (typeof key == 'undefined') key = '';
     if (typeof value == 'undefined') value = '';
