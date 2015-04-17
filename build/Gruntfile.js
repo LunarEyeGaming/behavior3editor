@@ -27,6 +27,15 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-cssmin');
   grunt.loadNpmTasks('grunt-contrib-copy');
 
+  // ASSETS
+  grunt.registerTask('_assets', function() {
+    grunt.config.set('copy.dist.cwd', '../src/');
+    grunt.config.set('copy.dist.src', ['assets/img/**', '*', 'app/**/*.html', 'assets/js/*']);
+    grunt.config.set('copy.dist.dest', '../dist/');
+    grunt.config.set('copy.dist.expand', true);
+  });
+  grunt.registerTask('assets', ['_assets', 'copy']);
+
   // APP HTML
   grunt.registerTask('_apphtml', function() {
     grunt.config.set('copy.dist.cwd', '../src/');
@@ -60,8 +69,12 @@ module.exports = function(grunt) {
     grunt.config.set('concat.dist.dest', '../dist/libs.js');
     grunt.config.set('uglify.dist.src', '../dist/libs.js');
     grunt.config.set('uglify.dist.dest', '../dist/libs.js');
+    grunt.config.set('copy.dist.cwd', '../src/');
+    grunt.config.set('copy.dist.src', ['libs/**/*.html']);
+    grunt.config.set('copy.dist.dest', '../dist/');
+    grunt.config.set('copy.dist.expand', true);
   });
-  grunt.registerTask('libs', ['_libs', 'concat', 'uglify']);
+  grunt.registerTask('libs', ['_libs', 'concat']);
 
   // CSS
   grunt.registerTask('_css', function() {
@@ -71,5 +84,5 @@ module.exports = function(grunt) {
   grunt.registerTask('css', ['_css', 'cssmin']);
 
   // TOTAL BUILD
-  grunt.registerTask('build', ['appjs', 'apphtml', 'js', 'libs', 'css']);
+  grunt.registerTask('build', ['assets', 'appjs', 'apphtml', 'js', 'libs', 'css']);
 };

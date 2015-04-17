@@ -1,4 +1,4 @@
-{  
+{
   "appjs":  [
     "../src/app/app.js",
     "../src/app/common/sidebar/sidebar.js",
@@ -46,6 +46,8 @@
     "../src/assets/libs/behavior3-0.2.0dev.min.js"
   ],
   "css": [
+    "../src/assets/css/normalize-3.0.1.min.css",
+    "../src/assets/css/preload.css",
     "../src/assets/css/editor.css"
   ]
 }
