@@ -69,7 +69,7 @@ this.b3editor = this.b3editor || {};
       var block = this.editor.getBlockUnder(x, y);
 
       // if not entity or entity but no block
-      if (!block || block === this.entity.inBlock || block.category === 'root') {
+      if (!block || block === this.entity.inBlock || block.type === 'root') {
           this.editor.removeConnection(this.entity);
       } else {
           // if double parent on node
@@ -78,7 +78,7 @@ this.b3editor = this.b3editor || {};
           }
 
           // if double children on root
-          if ((this.entity.inBlock.category === 'root' || this.entity.inBlock.category === 'decorator') &&
+          if ((this.entity.inBlock.type === 'root' || this.entity.inBlock.type === 'decorator') &&
                   this.entity.inBlock.outConnections.length > 1) {
               this.editor.removeConnection(this.entity.inBlock.outConnections[0]);
           }

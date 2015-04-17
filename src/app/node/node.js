@@ -7,7 +7,7 @@ angular.module('app.node', ['app.modal'])
   var this_ = this;
 
   // SCOPE --------------------------------------------------------------------
-  $scope.categories = ['composite', 'decorator', 'action'];
+  $scope.types = ['composite', 'decorator', 'action'];
   $scope.nodes = {};
   
   $scope.showAddNodeModal = function() {
@@ -53,7 +53,8 @@ angular.module('app.node', ['app.modal'])
     for (key in guiNodes) {
       for (nodeName in editorNodes) {
         var node = editorNodes[nodeName];
-        if (node.prototype.category === key) {
+        console.log(node.prototype)
+        if (node.prototype.type === key) {
           guiNodes[key].push(node);
         }
       }
@@ -94,8 +95,8 @@ angular.module('app.node', ['app.modal'])
       <td><input id="name" type="text" placeholder="name" /></td>\
       <td><input id="title" type="text" placeholder="title" /></td>\
       <td>\
-        <select id="category">\
-            <option ng-repeat="category in categories" value="{{category}}">{{category}}</option>\
+        <select id="type">\
+            <option ng-repeat="type in types" value="{{type}}">{{type}}</option>\
         </select>\
       </td>\
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
@@ -103,7 +104,7 @@ angular.module('app.node', ['app.modal'])
   ';
 
   var this_ = this;
-  $scope.categories = ['composite', 'decorator', 'action'];
+  $scope.types = ['composite', 'decorator', 'action'];
   $scope.addRow = function() {
     if (typeof key == 'undefined') key = '';
     if (typeof value == 'undefined') value = '';
@@ -116,15 +117,15 @@ angular.module('app.node', ['app.modal'])
   $scope.addNodes = function() {
     var domNames = document.querySelectorAll('#addnode-properties-table #name');
     var domTitles = document.querySelectorAll('#addnode-properties-table #title');
-    var domCategories = document.querySelectorAll('#addnode-properties-table #category');
+    var domTypes = document.querySelectorAll('#addnode-properties-table #type');
     
     for (var i=0; i<domNames.length; i++) {
       var name = domNames[i].value;
       var title = domTitles[i].value;
-      var category = domCategories[i].value;
+      var type = domTypes[i].value;
 
       if (name) {
-        $window.app.editor.addNode(name, title, category)
+        $window.app.editor.addNode(name, title, type)
       }
     }
   }

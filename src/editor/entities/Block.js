@@ -16,7 +16,7 @@ this.b3editor = this.b3editor || {};
     this.id             = b3.createUUID();
     this.node           = node;
     this.name           = dict.name;
-    this.category       = dict.category;
+    this.type       = dict.type;
     this.title          = dict.title || this.name;
     this.description    = dict.description || '';
     this.properties     = b3editor.extend({}, dict.parameters, dict.properties);
@@ -55,7 +55,7 @@ this.b3editor = this.b3editor || {};
     block._width          = this._width;
     block._height         = this._height;
     block.anchorXOffset   = this.anchorXOffset;
-    block.category        = this.category;
+    block.type        = this.type;
     block.title           = this.title;
     block.description     = this.description;
 
@@ -66,12 +66,12 @@ this.b3editor = this.b3editor || {};
     // Set variables
     var settings = this.settings;
     var name = this.name;
-    var category = this.category.toLowerCase();
-    var shape = app.editor.shapes[category];
+    var type = this.type.toLowerCase();
+    var shape = app.editor.shapes[type];
     var symbol = app.editor.symbols[name] || b3editor.draw.textSymbol;
 
-    this._width  = settings.get('block_'+category+'_width');
-    this._height = settings.get('block_'+category+'_height');
+    this._width  = settings.get('block_'+type+'_width');
+    this._height = settings.get('block_'+type+'_height');
 
     this.displayObject.removeAllChildren();
 

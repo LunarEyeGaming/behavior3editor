@@ -6,7 +6,7 @@ this.b3editor = this.b3editor || {};
   var Root = b3.Class();
   var p = Root.prototype;
   p.name = 'Root';
-  p.category = 'root';
+  p.type = 'root';
   p.title = 'A Behavior Tree';
 
   b3editor.Root = Root;

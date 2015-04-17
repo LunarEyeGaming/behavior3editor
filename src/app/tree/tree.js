@@ -81,7 +81,7 @@ angular.module('app.tree', ['app.modal'])
     }, 0, false);
   }
   this.onBlockChanged = function(e) {
-    if (e._target.category === 'root' && e.oldValues.title !== e.newValues.title) {
+    if (e._target.type === 'root' && e.oldValues.title !== e.newValues.title) {
       this.updateTrees(e, e._target.id);
     }
   }

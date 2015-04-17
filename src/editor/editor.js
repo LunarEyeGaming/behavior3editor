@@ -40,25 +40,7 @@ this.b3editor = this.b3editor || {};
 
     // TEMP
     this.selectionBox     = new b3editor.SelectionBox();
-    
-    this.defaultNodes     = [
-        b3editor.Root,
-        b3.Sequence,
-        b3.Priority,
-        b3.MemSequence,
-        b3.MemPriority,
-        b3.Repeater,
-        b3.RepeatUntilFailure,
-        b3.RepeatUntilSuccess,
-        b3.MaxTime,
-        b3.Inverter,
-        b3.Limiter,
-        b3.Failer,
-        b3.Succeeder,
-        b3.Runner,
-        b3.Error,
-        b3.Wait
-    ];
+
     this.organizer   = new b3editor.Organizer();
 
     // register system
@@ -82,10 +64,8 @@ this.b3editor = this.b3editor || {};
     this.registerSymbol('Priority',     b3editor.draw.prioritySymbol);
     this.registerSymbol('MemPriority',  b3editor.draw.memprioritySymbol);
 
-    // register node
-    for (var i = 0; i < this.defaultNodes.length; i++) {
-      this.registerNode(this.defaultNodes[i]);
-    };
+    // register root node
+    this.registerNode(b3editor.Root);
 
     this.canvas.layerOverlay.addChild(this.selectionBox.displayObject);
 
@@ -109,11 +89,11 @@ this.b3editor = this.b3editor || {};
     var name = node.prototype.name;
     this.nodes[name] = node;
   }
-  p.registerSymbol = function(category, symbol) {
+  p.registerSymbol = function(type, symbol) {
     if (!symbol) {
-      symbol = category;
+      symbol = type;
     }
-    this.symbols[category] = symbol;
+    this.symbols[type] = symbol;
   }
   p.registerShape = function(name, shape) {
     this.shapes[name] = shape;
@@ -127,7 +107,7 @@ this.b3editor = this.b3editor || {};
   }
   p.getRoot = function() {
     for (var i=0; i<this.blocks.length; i++) {
-      if (this.blocks[i].category === 'root') {
+      if (this.blocks[i].type === 'root') {
         return this.blocks[i];
       }
     }
@@ -208,11 +188,11 @@ this.b3editor = this.b3editor || {};
       var inBlock = this.getBlockById(id);
 
       var children = null;
-      if (inBlock.category == 'composite' && spec.children) {
+      if (inBlock.type == 'composite' && spec.children) {
         children = spec.children;
       }
-      else if (inBlock.category == 'decorator' && spec.child ||
-               inBlock.category == 'root' && spec.child) {
+      else if (inBlock.type == 'decorator' && spec.child ||
+               inBlock.type == 'root' && spec.child) {
         children = [spec.child]
       }
       
@@ -259,21 +239,19 @@ this.b3editor = this.b3editor || {};
     data.custom_nodes = [];
     for(var key in this.nodes) {
       var node = this.nodes[key];
-      if (this.defaultNodes.indexOf(node) === -1) {
-        var item = {
-          "name" : node.prototype.name,
-          "title" : node.prototype.title,
-          "category": node.prototype.category,
-        };
-        data.custom_nodes.push(item);
-      }
+      var item = {
+        "name" : node.prototype.name,
+        "title" : node.prototype.title,
+        "type": node.prototype.type,
+      };
+      data.custom_nodes.push(item);
     }
 
     // Node Spec
     for (var i=0; i<this.blocks.length; i++) {
       var block = this.blocks[i];
 
-      if (block.category === 'root') continue;
+      if (block.type === 'root') continue;
 
       var spec = {};
       spec.id          = block.id,
@@ -288,9 +266,9 @@ this.b3editor = this.b3editor || {};
       spec.properties  = block.properties;
 
       var children = block.getOutNodeIdsByOrder();
-      if (block.category == 'composite') {
+      if (block.type == 'composite') {
         spec.children = children;
-      } else if (block.category == 'decorator' || block.category == 'root') {
+      } else if (block.type == 'decorator' || block.type == 'root') {
         spec.child = children[0] || null;
       }
 
@@ -299,7 +277,7 @@ this.b3editor = this.b3editor || {};
 
     return JSON.stringify(data, null, 4);
   }
-  p.addNode = function(name, title, category) {
+  p.addNode = function(name, title, type) {
     if (this.nodes[name]) {
       this.trigger('notification', name, {
         level: 'error',
@@ -309,13 +287,12 @@ this.b3editor = this.b3editor || {};
     }
 
     var classes = {
-      'composite' : b3.Composite,
-      'decorator' : b3.Decorator,
-      'condition' : b3.Condition,
-      'action' : b3.Action,
+      'composite' : b3editor.Composite,
+      'decorator' : b3editor.Decorator,
+      'action' : b3editor.Action,
     };
-    var category = category;
-    var cls = classes[category];
+    var type = type;
+    var cls = classes[type];
     
     var tempClass = b3.Class(cls);
     tempClass.prototype.name = name;
@@ -670,7 +647,7 @@ this.b3editor = this.b3editor || {};
     for (var i=0; i<this.selectedBlocks.length; i++) {
       var block = this.selectedBlocks[i];
 
-      if (block.category != 'root') {
+      if (block.type != 'root') {
         this.clipboard.push(block)
       }
     }
@@ -681,7 +658,7 @@ this.b3editor = this.b3editor || {};
     for (var i=0; i<this.selectedBlocks.length; i++) {
       var block = this.selectedBlocks[i];
 
-      if (block.category != 'root') {
+      if (block.type != 'root') {
         this.removeBlock(block);
         this.clipboard.push(block)
       }
@@ -737,7 +714,7 @@ this.b3editor = this.b3editor || {};
   p.remove = function() {
     var root = null;
     for (var i=0; i<this.selectedBlocks.length; i++) {
-      if (this.selectedBlocks[i].category == 'root') {
+      if (this.selectedBlocks[i].type == 'root') {
         root = this.selectedBlocks[i];
       } else {
         this.removeBlock(this.selectedBlocks[i]);

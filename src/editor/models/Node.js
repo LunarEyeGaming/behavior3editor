@@ -10,7 +10,7 @@ this.b3editor = this.b3editor || {};
     this.spec = null;
     this.name = null;
     this.title = null;
-    this.category = null;
+    this.type = null;
     this.description = null;
     this.properties = null;
   }
