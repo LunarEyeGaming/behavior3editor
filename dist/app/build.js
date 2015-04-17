@@ -368,7 +368,7 @@ angular.module('app.menu', [])
   var this_ = this;
 
   // SCOPE --------------------------------------------------------------------
-  $scope.categories = ['composite', 'decorator', 'action'];
+  $scope.categories = ['composite', 'decorator', 'condition', 'action'];
   $scope.nodes = {};
   
   $scope.showAddNodeModal = function() {
@@ -407,6 +407,7 @@ angular.module('app.menu', [])
     var guiNodes = {
       'composite' : [],
       'decorator' : [],
+      'condition' : [],
       'action'    : []
     };
     var editorNodes = $window.app.editor.nodes;
