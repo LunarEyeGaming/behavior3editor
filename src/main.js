@@ -1,5 +1,7 @@
 "use strict";
 
+var remote = require('remote');
+
 var loader, app, editor, keyboard;
 
 if (!String.prototype.format) {

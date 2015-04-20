@@ -4,7 +4,6 @@ var app = angular.module('app', [
   'app.modal',
   'app.notification',
   'app.scrollable',
-  'app.import',
   'app.export',
   'app.menu',
   'app.node',

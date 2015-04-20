@@ -44,15 +44,25 @@ angular.module('app.menu', ['app.modal'])
     $rootScope.$broadcast('onButtonNewTree');
     return false;
   }
-  $scope.onButtonImportTree = function(e) {
+  $scope.onButtonOpenTree = function(e) {
     if (e) e.preventDefault();
-    ModalService.showModal({
-      templateUrl: "app/import/import.html",
-      controller: 'ImportModalController',
-      inputs: {}
-    }).then(function(modal) {
-      modal.close.then(function(result) {});
+
+    var dialog = remote.require('dialog');
+    var fs = remote.require('fs');
+    var filename = ""
+    dialog.showOpenDialog({
+      title: "Open Behavior File", 
+      filters : [
+        { name: "Behavior", extensions: ['behavior']}
+      ]
+    }, function(filenames) {
+      filename = filenames[0];
+      var json = fs.readFileSync(filename);
+
+      if (json)
+        $window.app.editor.importFromJSON(json);
     });
+
     return false;
   }
   $scope.onButtonExportTree = function(e) {
