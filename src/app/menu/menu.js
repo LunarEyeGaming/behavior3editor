@@ -57,7 +57,13 @@ angular.module('app.menu', ['app.modal'])
   }
   $scope.onButtonExportTree = function(e) {
     if (e) e.preventDefault();
-    $rootScope.$broadcast('onButtonNewTree');
+    ModalService.showModal({
+      templateUrl: "app/export/export.html",
+      controller: 'ExportModalController',
+      inputs: {}
+    }).then(function(modal) {
+      modal.close.then(function(result) {});
+    });
     return false;
   }
   $scope.onButtonNewNode = function(e) {

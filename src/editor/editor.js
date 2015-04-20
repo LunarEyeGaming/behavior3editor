@@ -189,63 +189,41 @@ this.b3editor = this.b3editor || {};
 
     this.organize(true);
   }
+  p.exportBlock = function(block) {
+    var data = {};
+
+    data.title = block.title;
+    data.type = block.type;
+    data.name = block.name;
+    data.parameters = block.properties;
+
+    var children = block.getOutNodeIdsByOrder();
+    if (children.length > 0) {
+      if (block.type == "composite") {
+        data.children = [];
+        for (var i=0; i<children.length; i++) {
+          data.children[i] = this.exportBlock(this.getBlockById(children[i]));
+        }
+      } else if (block.type == "decorator") {
+        data.child = this.exportBlock(this.getBlockById(children[0]));
+      }
+    }
+
+    return data;
+  }
   p.exportToJSON = function() {
     var root = this.getRoot();
     var data = {};
 
     // Tree data
-    data.title       = root.title;
+    data.name = root.title;
     data.description = root.description;
-    data.root        = root.getOutNodeIds()[0] || null;
-    data.display     = {
-      'camera_x' : this.canvas.camera.x,
-      'camera_y' : this.canvas.camera.y,
-      'camera_z' : this.canvas.camera.scaleX,
-      'x'        : root.displayObject.x,
-      'y'        : root.displayObject.y
-    }
-    data.properties  = root.properties;
-    data.nodes       = {};
-    data.custom_nodes = [];
-    for(var key in this.nodes) {
-      var node = this.nodes[key];
-      var item = {
-        "name" : node.prototype.name,
-        "title" : node.prototype.title,
-        "type": node.prototype.type,
-      };
-      data.custom_nodes.push(item);
-    }
+    data.scripts = root.properties.scripts;
 
-    // Node Spec
-    for (var i=0; i<this.blocks.length; i++) {
-      var block = this.blocks[i];
+    var rootBlock = root.getOutNodeIds()[0]
+    data.root = this.exportBlock(this.getBlockById(rootBlock));
 
-      if (block.type === 'root') continue;
-
-      var spec = {};
-      spec.id          = block.id,
-      spec.name        = block.name,
-      spec.title       = block.title,
-      spec.description = block.description;
-      spec.display     = {
-        'x' : block.displayObject.x,
-        'y' : block.displayObject.y
-      }
-      spec.parameters  = block.parameters;
-      spec.properties  = block.properties;
-
-      var children = block.getOutNodeIdsByOrder();
-      if (block.type == 'composite') {
-        spec.children = children;
-      } else if (block.type == 'decorator' || block.type == 'root') {
-        spec.child = children[0] || null;
-      }
-
-      data.nodes[block.id] = spec;
-    }
-
-    return JSON.stringify(data, null, 4);
+    return JSON.stringify(data, null, 2);
   }
   p.addNode = function(name, title, type) {
     if (this.nodes[name]) {
