@@ -31,9 +31,11 @@ angular.module('app.property', [])
       var block = $window.app.editor.selectedBlocks[0];
 
       this_.table.html('');
+      var domName = document.querySelector('#property-panel #name');
       var domTitle = document.querySelector('#property-panel #title');
       var domDescription = document.querySelector('#property-panel #description');
 
+      domName.value = block.name;
       domTitle.value = block.title;
       domDescription.value = block.description;
 

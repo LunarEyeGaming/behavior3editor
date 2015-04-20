@@ -8,6 +8,11 @@
   <div ng-hide="block === null">
     <form>
       <div class="row">
+        <label>Name</label>
+        <input id="name" type="text" placeholder="name" readonly/>
+      </div>
+
+      <div class="row">
         <label>Title</label>
         <input id="title" type="text" onkeyup="element(this).updateProperties(this)" placeholder="title"/>
       </div>
