@@ -1,6 +1,6 @@
-angular.module('app.menu', [])
+angular.module('app.menu', ['app.modal'])
 
-.controller('MenuController', function($scope, $rootScope, $timeout, $window) {
+.controller('MenuController', function($scope, $rootScope, $timeout, $window, ModalService) {
   this.update = function() {
     var settings = $window.app.editor.settings;
 
@@ -40,6 +40,22 @@ angular.module('app.menu', [])
   // this.onButtonNewProject = function(e) {}
   // ...
   $scope.onButtonNewTree = function(e) {
+    if (e) e.preventDefault();
+    $rootScope.$broadcast('onButtonNewTree');
+    return false;
+  }
+  $scope.onButtonImportTree = function(e) {
+    if (e) e.preventDefault();
+    ModalService.showModal({
+      templateUrl: "app/import/import.html",
+      controller: 'ImportModalController',
+      inputs: {}
+    }).then(function(modal) {
+      modal.close.then(function(result) {});
+    });
+    return false;
+  }
+  $scope.onButtonExportTree = function(e) {
     if (e) e.preventDefault();
     $rootScope.$broadcast('onButtonNewTree');
     return false;

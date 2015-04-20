@@ -147,77 +147,47 @@ this.b3editor = this.b3editor || {};
       this.connections[i].applySettings(settings);
     }
   }
+  p.importNode = function(node, parent) {
+    if (!this.nodes[node.name]) {
+      if (node.type == "control") node.type = "composite"; // Stupid format conversion
+      this.addNode(node.name, node.name, node.type);
+    }
+
+    var block = this.addBlock(node.name, 0, 0);
+    block.id = b3.createUUID();
+    block.title = node.title;
+    block.description = node.description;
+    block.properties = node.parameters;
+    block.redraw();
+
+    if (parent) {
+      var outBlock = this.getBlockById(parent);
+      this.addConnection(outBlock, block);
+    }
+
+    if (node.children) {
+      for (var i=0; i<node.children.length; i++) {
+        this.importNode(node.children[i], block.id);
+      }
+    }
+    if (node.child) {
+      this.importNode(node.child, block.id);
+    }
+
+    return block
+  }
   p.importFromJSON = function(json) {
     this.reset();
 
     var data = JSON.parse(json);
-    var dataRoot = null;
-    var hasDisplay = (data.display)?true:false;
+    var dataRoot = this.importNode(data.root);
+ 
+    var root = this.getRoot();
+    root.title = data.name;
+    root.properties["scripts"] = data.scripts;
+    this.addConnection(root, dataRoot);
 
-    if (data.custom_nodes) {
-      for (var i = 0; i < data.custom_nodes.length; i++) {
-        var template = data.custom_nodes[i];
-        if (!this.nodes[template.name]) {
-          //If the node doesn't allready exist
-          this.createNodeType(template);
-        }   
-      };
-    }
-
-    // Nodes
-    for (var id in data.nodes) {
-      var spec = data.nodes[id];
-
-      spec.display = spec.display || {};
-
-      var block = this.addBlock(spec.name, spec.display.x, spec.display.y);
-      block.id = spec.id;
-      block.title = spec.title;
-      block.description = spec.description;
-      block.properties = b3editor.extend({}, spec.parameters, spec.properties);
-      block.redraw();
-
-      if (block.id === data.root) {
-        dataRoot = block;
-      }
-    }
-
-    // Connections
-    for (var id in data.nodes) {
-      var spec = data.nodes[id];
-      var inBlock = this.getBlockById(id);
-
-      var children = null;
-      if (inBlock.type == 'composite' && spec.children) {
-        children = spec.children;
-      }
-      else if (inBlock.type == 'decorator' && spec.child ||
-               inBlock.type == 'root' && spec.child) {
-        children = [spec.child]
-      }
-      
-      if (children) {
-        for (var i=0; i<children.length; i++) {
-          var outBlock = this.getBlockById(children[i]);
-          this.addConnection(inBlock, outBlock);
-        }
-      }
-    }
-
-    if (dataRoot) {
-      this.addConnection(this.getRoot(), dataRoot);
-    }
-
-    data.display = data.display || {};
-    this.canvas.camera.x      = data.display.camera_x || 0;
-    this.canvas.camera.y      = data.display.camera_y || 0;
-    this.canvas.camera.scaleX = data.display.camera_z || 1;
-    this.canvas.camera.scaleY = data.display.camera_z || 1;
-
-    // Auto organize
-    if (!hasDisplay) {
-      this.organize(true);
-    }
+    this.organize(true);
   }
   p.exportToJSON = function() {
     var root = this.getRoot();

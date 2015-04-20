@@ -7,6 +7,7 @@
     "../src/app/common/notification/notification.js",
     "../src/app/common/scrollable/scrollable.js",
     "../src/app/menu/menu.js",
+    "../src/app/import/import.js",
     "../src/app/node/node.js",
     "../src/app/node/directives.js",
     "../src/app/tree/tree.js",

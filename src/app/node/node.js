@@ -53,7 +53,6 @@ angular.module('app.node', ['app.modal'])
     for (key in guiNodes) {
       for (nodeName in editorNodes) {
         var node = editorNodes[nodeName];
-        console.log(node.prototype)
         if (node.prototype.type === key) {
           guiNodes[key].push(node);
         }
