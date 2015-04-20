@@ -36,8 +36,8 @@ var OPTIONS = {
     block_decorator_height : 60,
     block_action_width     : 160,
     block_action_height    : 40,
-    block_condition_width  : 160,
-    block_condition_height : 40,
+    block_module_width  : 160,
+    block_module_height : 40,
 }
 
 b3editor.OPTIONS = OPTIONS;

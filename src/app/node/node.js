@@ -7,7 +7,7 @@ angular.module('app.node', ['app.modal'])
   var this_ = this;
 
   // SCOPE --------------------------------------------------------------------
-  $scope.types = ['composite', 'decorator', 'action'];
+  $scope.types = ['composite', 'decorator', 'action', 'module'];
   $scope.nodes = {};
   
   $scope.showAddNodeModal = function() {
@@ -46,7 +46,8 @@ angular.module('app.node', ['app.modal'])
     var guiNodes = {
       'composite' : [],
       'decorator' : [],
-      'action'    : []
+      'action'    : [],
+      'module'    : []
     };
     var editorNodes = $window.app.editor.nodes;
 
@@ -103,7 +104,7 @@ angular.module('app.node', ['app.modal'])
   ';
 
   var this_ = this;
-  $scope.types = ['composite', 'decorator', 'action'];
+  $scope.types = ['composite', 'decorator', 'action', 'module'];
   $scope.addRow = function() {
     if (typeof key == 'undefined') key = '';
     if (typeof value == 'undefined') value = '';

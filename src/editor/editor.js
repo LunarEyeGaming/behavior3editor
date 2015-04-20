@@ -54,15 +54,14 @@ this.b3editor = this.b3editor || {};
     this.registerShape('root',      b3editor.draw.rootShape);
     this.registerShape('composite', b3editor.draw.compositeShape);
     this.registerShape('decorator', b3editor.draw.decoratorShape);
-    this.registerShape('condition', b3editor.draw.conditionShape);
+    this.registerShape('module', b3editor.draw.conditionShape);
     this.registerShape('action',    b3editor.draw.actionShape);
 
     // register symbol
     this.registerSymbol('Root',         b3editor.draw.rootSymbol);
-    this.registerSymbol('Sequence',     b3editor.draw.sequenceSymbol);
-    this.registerSymbol('MemSequence',  b3editor.draw.memsequenceSymbol);
-    this.registerSymbol('Priority',     b3editor.draw.prioritySymbol);
-    this.registerSymbol('MemPriority',  b3editor.draw.memprioritySymbol);
+    this.registerSymbol('sequence',  b3editor.draw.memsequenceSymbol);
+    this.registerSymbol('dynamic',     b3editor.draw.prioritySymbol);
+    this.registerSymbol('selector',  b3editor.draw.memprioritySymbol);
 
     // register root node
     this.registerNode(b3editor.Root);
@@ -148,6 +147,10 @@ this.b3editor = this.b3editor || {};
     }
   }
   p.importNode = function(node, parent) {
+    if (node.type == 'module') {
+      node.name = node.path;
+    } 
+
     if (!this.nodes[node.name]) {
       if (node.type == "control") node.type = "composite"; // Stupid format conversion
       this.addNode(node.name, node.name, node.type);
@@ -158,6 +161,7 @@ this.b3editor = this.b3editor || {};
     block.title = node.title;
     block.description = node.description;
     block.properties = node.parameters;
+
     block.redraw();
 
     if (parent) {
@@ -192,6 +196,12 @@ this.b3editor = this.b3editor || {};
   p.exportBlock = function(block) {
     var data = {};
 
+    if (block.type == "module") {
+      data.type = "module";
+      data.path = block.name;
+      return data;
+    }
+
     data.title = block.title;
     data.type = block.type;
     data.name = block.name;
@@ -200,6 +210,7 @@ this.b3editor = this.b3editor || {};
     var children = block.getOutNodeIdsByOrder();
     if (children.length > 0) {
       if (block.type == "composite") {
+        data.type = "control"; // Stupid format conversion
         data.children = [];
         for (var i=0; i<children.length; i++) {
           data.children[i] = this.exportBlock(this.getBlockById(children[i]));
@@ -238,6 +249,7 @@ this.b3editor = this.b3editor || {};
       'composite' : b3editor.Composite,
       'decorator' : b3editor.Decorator,
       'action' : b3editor.Action,
+      'module' : b3editor.Module
     };
     var type = type;
     var cls = classes[type];
