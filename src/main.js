@@ -18,43 +18,15 @@ function element(object) {
   return angular.element(object).scope();
 }
 
-function preload() {
-  var domProgress = document.getElementById('loading-progress');
-  var domLoading  = document.getElementById('loading-text');
-  
-  loader = new createjs.LoadQueue(true);
 
-  // on progress
-  loader.on('progress', function(event) {
-    if (domProgress) {
-      domProgress.innerHTML = Math.floor(event.progress*100)+'%';
-    }
-  });
+keyboard = key.noConflict();
+app = {};
+app.dom = {};
+app.dom.page = document.getElementById('page');
+app.dom.gameCanvas = document.getElementById('game-canvas');
 
-  // on complete
-  loader.on('complete', function(event) {
-    domLoading.innerHTML = 'Initializing, please wait...';
-    keyboard = key.noConflict();
-    start();
-    document.getElementById('preloading').remove();
-  });
+app.editor = new b3editor.Editor();
+app.game = app.editor.canvas;
+app.settings = app.editor.settings;
 
-  // load
-  loader.loadManifest(MANIFEST);
-}
-
-
-function start() {
-  app = {};
-  app.dom = {};
-  app.dom.page = document.getElementById('page');
-  app.dom.gameCanvas = document.getElementById('game-canvas');
-
-  app.editor = new b3editor.Editor();
-  app.game = app.editor.canvas;
-  app.settings = app.editor.settings;
-
-  angular.bootstrap(document, ['app']);
-}
-
-preload();
+angular.bootstrap(document, ['app']);
