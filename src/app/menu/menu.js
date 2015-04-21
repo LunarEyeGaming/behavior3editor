@@ -30,8 +30,9 @@ angular.module('app.menu', ['app.modal'])
     $window.keyboard(settings.get('key_invert_selection'), function(e) {$scope.onButtonInvertSelection(e)});
     $window.keyboard(settings.get('key_new_tree'), function(e) {$scope.onButtonNewTree(e)});
     $window.keyboard(settings.get('key_new_node'), function(e) {$scope.onButtonNewNode(e)});
-    $window.keyboard(settings.get('key_import_tree'), function(e) {$scope.onButtonCopy(e)});
-    $window.keyboard(settings.get('key_export_tree'), function(e) {$scope.onButtonCopy(e)});
+    $window.keyboard(settings.get('key_open_tree'), function(e) {$scope.onButtonOpenTree(e)});
+    $window.keyboard(settings.get('key_save_tree'), function(e) {$scope.onButtonSaveTree(e)});
+    $window.keyboard(settings.get('key_save_as'), function(e) {$scope.onButtonSaveAs(e)});
   }
   this.update();
   $window.app.editor.on('shortcutsChanged', this.update, this);
@@ -47,33 +48,30 @@ angular.module('app.menu', ['app.modal'])
   $scope.onButtonOpenTree = function(e) {
     if (e) e.preventDefault();
 
-    var dialog = remote.require('dialog');
-    var fs = remote.require('fs');
-    var filename = ""
     dialog.showOpenDialog({
       title: "Open Behavior File", 
       filters : [
-        { name: "Behavior", extensions: ['behavior']}
+        { name: "Behavior", extensions: ['behavior']},
+        { name: "All files", extensions: ['*']}
       ]
     }, function(filenames) {
-      filename = filenames[0];
-      var json = fs.readFileSync(filename);
-
-      if (json)
-        $window.app.editor.importFromJSON(json);
+      var filename = filenames[0];
+      $window.app.editor.openTreeFile(filenames[0]);
     });
 
     return false;
   }
-  $scope.onButtonExportTree = function(e) {
+  $scope.onButtonSaveTree = function(e) {
     if (e) e.preventDefault();
-    ModalService.showModal({
-      templateUrl: "app/export/export.html",
-      controller: 'ExportModalController',
-      inputs: {}
-    }).then(function(modal) {
-      modal.close.then(function(result) {});
-    });
+
+    $window.app.editor.saveTree();
+    return false;
+  }
+  $scope.onButtonSaveAs = function(e) {
+    if (e) e.preventDefault();
+
+    $window.app.editor.tree.path = "";
+    $window.app.editor.saveTree();
     return false;
   }
   $scope.onButtonNewNode = function(e) {

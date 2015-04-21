@@ -193,6 +193,27 @@ this.b3editor = this.b3editor || {};
 
     this.organize(true);
   }
+  p.openTreeFile = function(filename) {
+    for (var i=0; i<this.trees.length; i++) {
+      var tree = this.trees[i];
+      if (tree.path == filename) {
+        this.selectTree(tree.id);
+        return;
+      }
+    }
+
+    var tree = this.addTree();
+    tree.path = filename;
+
+    var editor = this;
+    fs.readFile(filename, function(err, data){
+      if (err) throw err;
+      editor.importFromJSON(data);
+
+      editor.trigger('treeadded', tree);
+      this.selectTree(tree.id);
+    });
+  }
   p.exportBlock = function(block) {
     var data = {};
 
@@ -232,9 +253,49 @@ this.b3editor = this.b3editor || {};
     data.scripts = root.properties.scripts;
 
     var rootBlock = root.getOutNodeIds()[0]
-    data.root = this.exportBlock(this.getBlockById(rootBlock));
+    if (rootBlock) {
+      data.root = this.exportBlock(this.getBlockById(rootBlock));
 
-    return JSON.stringify(data, null, 2);
+      return JSON.stringify(data, null, 2);
+    } else {
+      return "{}";
+    }
+  }
+  p.writeTreeFile = function() {
+    var json = this.exportToJSON();
+    var path = this.tree.path;
+    var editor = this;
+
+    if (path != "") {
+      fs.writeFile(path, json, function(err){
+        if (err) throw err;
+
+        editor.trigger('notification', name, {
+          level: 'success',
+          message: 'Saved'
+        });
+      });
+    }
+  }
+  p.saveTree = function() {
+    var path = this.tree.path;
+
+    if (path == "") {
+      var editor = this;
+      dialog.showSaveDialog({
+        title: "Open Behavior File", 
+        filters : [
+          { name: "Behavior", extensions: ['behavior']},
+          { name: "All files", extensions: ['*']}
+        ]
+      }, function(filename) {
+        editor.tree.path = filename;
+
+        editor.writeTreeFile();
+      });
+    } else {
+      this.writeTreeFile();
+    }
   }
   p.addNode = function(name, title, type) {
     if (this.nodes[name]) {

@@ -21,8 +21,9 @@ var SHORTCUTS = {
     
     key_new_tree         : 'ctrl+t',
     key_new_node         : 'ctrl+n',
-    key_import_tree      : '',
-    key_export_tree      : '',
+    key_open_tree      : 'ctrl+o',
+    key_save_tree      : 'ctrl+s',
+    key_save_as      : 'ctrl+alt+s'
 }
 
 b3editor.SHORTCUTS = SHORTCUTS;

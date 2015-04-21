@@ -8,6 +8,7 @@ this.b3editor = this.b3editor || {};
 
   p.initialize = function() {
     this.id = 0;
+    this.path = "";
     this.blocks = [];
     this.connections = [];
     this.selectedBlocks = [];

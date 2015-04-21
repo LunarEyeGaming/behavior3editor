@@ -1,6 +1,8 @@
 "use strict";
 
 var remote = require('remote');
+var fs = remote.require('fs');
+var dialog = remote.require('dialog');
 
 var loader, app, editor, keyboard;
 
