@@ -211,7 +211,6 @@ this.b3editor = this.b3editor || {};
       editor.importFromJSON(data);
 
       editor.trigger('treeadded', tree);
-      this.selectTree(tree.id);
     });
   }
   p.exportBlock = function(block) {

@@ -20,6 +20,7 @@ angular.module('app.property', [])
   $scope.addRow = function(key, value) {
     if (typeof key == 'undefined') key = '';
     if (typeof value == 'undefined') value = '';
+    value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
     var template = this_.template.format(key, value);
     this_.table.append($compile(template)($scope));
   }
@@ -36,8 +37,8 @@ angular.module('app.property', [])
       var domDescription = document.querySelector('#property-panel #description');
 
       domName.value = block.name;
-      domTitle.value = block.title;
-      domDescription.value = block.description;
+      domTitle.value = block.title || '';
+      domDescription.value = block.description || '';
 
       for (key in block.properties) {
         $scope.addRow(key, block.properties[key]);
@@ -75,9 +76,13 @@ angular.module('app.property', [])
       var key = domKeys[i].value;
       var value = domValues[i].value;
 
-      // verify if value is numeric
-      if (!isNaN(value) && value !== '') {
-        value = parseFloat(value);
+      try {
+        value = JSON.parse(value);
+      } catch (e){
+        $window.app.editor.trigger('notification', name, {
+          level: 'error',
+          message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+        });
       }
 
       if (key) {
