@@ -249,7 +249,7 @@ this.b3editor = this.b3editor || {};
     // Tree data
     data.name = root.title;
     data.description = root.description;
-    data.scripts = root.properties.scripts;
+    data.scripts = root.properties.scripts || [];
 
     var rootBlock = root.getOutNodeIds()[0]
     if (rootBlock) {
