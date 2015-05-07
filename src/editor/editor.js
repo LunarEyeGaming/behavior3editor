@@ -230,7 +230,6 @@ this.b3editor = this.b3editor || {};
     var children = block.getOutNodeIdsByOrder();
     if (children.length > 0) {
       if (block.type == "composite") {
-        data.type = "control"; // Stupid format conversion
         data.children = [];
         for (var i=0; i<children.length; i++) {
           data.children[i] = this.exportBlock(this.getBlockById(children[i]));
