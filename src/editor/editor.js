@@ -188,7 +188,8 @@ this.b3editor = this.b3editor || {};
  
     var root = this.getRoot();
     root.title = data.name;
-    root.properties["scripts"] = data.scripts;
+    root.properties = data.parameters || {};
+    root.properties.scripts = data.scripts;
     this.addConnection(root, dataRoot);
 
     this.organize(true);
@@ -219,6 +220,7 @@ this.b3editor = this.b3editor || {};
     if (block.type == "module") {
       data.type = "module";
       data.path = block.name;
+      data.parameters = block.properties;
       return data;
     }
 
@@ -249,6 +251,8 @@ this.b3editor = this.b3editor || {};
     data.name = root.title;
     data.description = root.description;
     data.scripts = root.properties.scripts || [];
+    data.parameters = root.properties;
+    delete data.parameters.scripts;
 
     var rootBlock = root.getOutNodeIds()[0]
     if (rootBlock) {
