@@ -220,6 +220,7 @@ this.b3editor = this.b3editor || {};
     if (block.type == "module") {
       data.type = "module";
       data.path = block.name;
+      data.title = block.title;
       data.parameters = block.properties;
       return data;
     }
