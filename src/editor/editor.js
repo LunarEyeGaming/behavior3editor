@@ -189,7 +189,7 @@ this.b3editor = this.b3editor || {};
     var root = this.getRoot();
     root.title = data.name;
     root.properties = data.parameters || {};
-    root.properties.scripts = data.scripts;
+    root.properties["scripts"] = data.scripts;
     this.addConnection(root, dataRoot);
 
     this.organize(true);
@@ -252,8 +252,11 @@ this.b3editor = this.b3editor || {};
     data.name = root.title;
     data.description = root.description;
     data.scripts = root.properties.scripts || [];
-    data.parameters = root.properties;
-    delete data.parameters.scripts;
+    data.parameters = {};
+    for (var key in root.properties) {
+      if (key != "scripts")
+        data.parameters[key] == root.properties[key];
+    }
 
     var rootBlock = root.getOutNodeIds()[0]
     if (rootBlock) {
