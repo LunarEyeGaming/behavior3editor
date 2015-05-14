@@ -86,6 +86,13 @@ this.b3editor = this.b3editor || {};
     // Add to display
     this.displayObject.addChild(this._shapeObject);
     this.displayObject.addChild(this._symbolObject);
+
+    //Redraw connections
+    if (this.inConnection)
+      this.inConnection.redraw();
+    for (var i=0; i<this.outConnections.length; i++) {
+      this.outConnections[i].redraw();
+    }
   }
 
   p.getTitle = function() {
