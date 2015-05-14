@@ -706,6 +706,7 @@ this.b3editor = this.b3editor || {};
       this.blocks.push(newBlock)
       this.canvas.layerBlocks.addChild(newBlock.displayObject);
       newBlocks.push(newBlock);
+      newBlock.redraw();
     }
 
     // Copy connections

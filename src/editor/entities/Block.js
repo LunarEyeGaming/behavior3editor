@@ -58,6 +58,7 @@ this.b3editor = this.b3editor || {};
     block.type        = this.type;
     block.title           = this.title;
     block.description     = this.description;
+    block.properties      = JSON.parse(JSON.stringify(this.properties));
 
     return block;
   }
