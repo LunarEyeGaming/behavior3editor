@@ -93,6 +93,8 @@ this.b3editor = this.b3editor || {};
     for (var i=0; i<this.outConnections.length; i++) {
       this.outConnections[i].redraw();
     }
+
+    app.game.stage.update();
   }
 
   p.getTitle = function() {

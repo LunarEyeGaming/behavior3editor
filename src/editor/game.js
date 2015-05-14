@@ -19,7 +19,6 @@ this.b3editor = this.b3editor || {};
     this.display.refresh();
 
     this.stage.snapToPixelEnabled = true;
-    createjs.Ticker.setFPS(60);
 
     // layers
     this.camera = new createjs.Container();
@@ -36,7 +35,7 @@ this.b3editor = this.b3editor || {};
     this.stage.addChild(this.camera);
 
     var this_ = this;
-    createjs.Ticker.addEventListener('tick', function() {
+    window.addEventListener("resize", function(e){
       this_.stage.update();
     });
   }

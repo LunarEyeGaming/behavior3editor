@@ -65,6 +65,8 @@ this.b3editor = this.b3editor || {};
     graphics.drawPolyStar(x2-arrowWidth, y2, arrowWidth, 3, 0, 0);
     graphics.endFill();
     graphics.endStroke();
+
+    app.game.stage.update();
   }
 
   b3editor.Connection = Connection;

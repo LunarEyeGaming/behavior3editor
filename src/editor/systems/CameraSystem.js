@@ -43,6 +43,7 @@ this.b3editor = this.b3editor || {};
 
     this.canvas.camera.x = this.canvas.stage.mouseX - this.offsetX;
     this.canvas.camera.y = this.canvas.stage.mouseY - this.offsetY;
+    this.canvas.stage.update();
   };
 
   p.onMouseUp = function(event) {
@@ -58,8 +59,10 @@ this.b3editor = this.b3editor || {};
   p.onMouseWheel = function(event) {
     if (event.wheelDeltaY > 0) {
       this.editor.zoomIn();
+      this.canvas.stage.update();
     } else {
       this.editor.zoomOut();
+      this.canvas.stage.update();
     }
   }
 

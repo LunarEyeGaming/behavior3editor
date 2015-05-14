@@ -70,6 +70,8 @@ this.b3editor = this.b3editor || {};
 
     this.addTree();
     this.center();
+    
+    this.canvas.stage.update();
   };
 
   // INTERNAL =================================================================
