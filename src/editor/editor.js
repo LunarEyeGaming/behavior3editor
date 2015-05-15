@@ -293,7 +293,7 @@ this.b3editor = this.b3editor || {};
     if (path == "") {
       var editor = this;
       dialog.showSaveDialog({
-        title: "Open Behavior File", 
+        title: "Save Behavior File", 
         filters : [
           { name: "Behavior", extensions: ['behavior']},
           { name: "All files", extensions: ['*']}
@@ -305,6 +305,31 @@ this.b3editor = this.b3editor || {};
       });
     } else {
       this.writeTreeFile();
+    }
+  }
+  p.exportNodes = function() {
+    var data = {}
+    for (var name in this.nodes) {
+      var node = this.nodes[name];
+
+      if (node.prototype.type != "root") {
+        data[name] = {};
+        data[name].type = node.prototype.type;
+        data[name].name = node.prototype.name;
+        data[name].title = node.prototype.title;
+        if (node.prototype.properties)
+          data[name].properties = JSON.parse(JSON.stringify(node.prototype.properties));
+      }
+    }
+
+    return JSON.stringify(data, null, 2);
+  }
+  p.importNodes = function(json) {
+    var nodes = JSON.parse(json);
+    for (var name in nodes) {
+      var node = nodes[name];
+
+      this.addNode(node);
     }
   }
   p.addNode = function(node) {

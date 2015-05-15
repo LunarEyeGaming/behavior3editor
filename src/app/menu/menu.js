@@ -74,6 +74,55 @@ angular.module('app.menu', ['app.modal'])
     $window.app.editor.saveTree();
     return false;
   }
+  $scope.onButtonImportNodes = function(e) {
+    if (e) e.preventDefault();
+
+    dialog.showOpenDialog({
+      title: "Import nodes", 
+      filters : [
+        { name: "JSON", extensions: ['json']},
+        { name: "All files", extensions: ['*']}
+      ]
+    }, function(filenames) {
+      if (filenames) {
+        var filename = filenames[0];
+        fs.readFile(filename, function(err, data){
+          if (err) throw err;
+          $window.app.editor.importNodes(data);
+
+          editor.trigger('notification', name, {
+            level: 'success',
+            message: 'Imported Nodes'
+          });
+        });
+      }
+    });
+    return false;
+  }
+  $scope.onButtonExportNodes = function(e) {
+    if (e) e.preventDefault();
+
+    dialog.showSaveDialog({
+      title: "Export nodes", 
+      filters : [
+        { name: "JSON", extensions: ['json']},
+        { name: "All files", extensions: ['*']}
+      ]
+    }, function(filename) {
+      var editor = $window.app.editor;
+      var json = editor.exportNodes();
+
+      fs.writeFile(filename, json, function(err){
+        if (err) throw err;
+
+        editor.trigger('notification', name, {
+          level: 'success',
+          message: 'Exported Nodes'
+        });
+      });
+    });
+    return false;
+  }
   $scope.onButtonNewNode = function(e) {
     if (e) e.preventDefault();
     $rootScope.$broadcast('onButtonNewNode');
