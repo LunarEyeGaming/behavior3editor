@@ -69,12 +69,7 @@ this.b3editor = this.b3editor || {};
       block.displayObject.y = dy - dy%this.editor.settings.get('snap_y');
 
       // redraw connections linked to the entity
-      if (block.inConnection) {
-        block.inConnection.redraw();
-      }
-      for (var j=0; j<block.outConnections.length; j++) {
-        block.outConnections[j].redraw();
-      }
+      block.redraw();
     }
   }
 

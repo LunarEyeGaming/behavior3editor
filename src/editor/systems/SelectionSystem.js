@@ -72,6 +72,8 @@ this.b3editor = this.b3editor || {};
 
     this.editor.selectionBox.displayObject.visible = true;
     this.editor.selectionBox.redraw(this.x1, this.y1, x, y);
+
+    this.canvas.stage.update();
   }
 
   p.onMouseUp = function(event) {

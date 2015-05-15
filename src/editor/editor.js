@@ -70,7 +70,7 @@ this.b3editor = this.b3editor || {};
 
     this.addTree();
     this.center();
-    
+
     this.canvas.stage.update();
   };
 
@@ -409,6 +409,7 @@ this.b3editor = this.b3editor || {};
         'x'        : this.blocks[0].displayObject.x,
         'y'        : this.blocks[0].displayObject.y
       }
+      this.canvas.stage.update();
     }
 
     for (var i=0; i<this.trees.length; i++) {
@@ -636,6 +637,7 @@ this.b3editor = this.b3editor || {};
     this.selectedBlocks.push(block)
 
     this.trigger('blockselected', block);
+    this.canvas.stage.update();
   }
   p.deselect = function(block) {
     if (!block.isSelected) return;
@@ -645,16 +647,19 @@ this.b3editor = this.b3editor || {};
     if (index > -1) this.selectedBlocks.splice(index, 1);
 
     this.trigger('blockdeselected', block);
+    this.canvas.stage.update();
   }
   p.selectAll = function() {
     for (var i=0; i<this.blocks.length; i++) {
       this.select(this.blocks[i]);
     }
+    this.canvas.stage.update();
   }
   p.deselectAll = function() {
     for (var i=this.selectedBlocks.length-1; i>=0; i--) {
       this.deselect(this.selectedBlocks[i])
     }
+    this.canvas.stage.update();
   }
   p.invertSelection = function(block) {
     var blocks = (block)?[block]:this.blocks;
@@ -668,6 +673,7 @@ this.b3editor = this.b3editor || {};
         this.select(block);
       }
     }
+    this.canvas.stage.update();
   }
 
   p.copy = function() {
