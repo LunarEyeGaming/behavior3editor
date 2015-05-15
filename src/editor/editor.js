@@ -409,7 +409,6 @@ this.b3editor = this.b3editor || {};
         'x'        : this.blocks[0].displayObject.x,
         'y'        : this.blocks[0].displayObject.y
       }
-      this.canvas.stage.update();
     }
 
     for (var i=0; i<this.trees.length; i++) {
@@ -437,6 +436,8 @@ this.b3editor = this.b3editor || {};
         this.canvas.camera.scaleY = tree.camera['camera_z'];
 
         this.trigger('treeselected', tree);
+
+        this.canvas.stage.update();
         return;
       }
     }
