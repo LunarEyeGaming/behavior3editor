@@ -11,52 +11,40 @@
       <div class="modal-body">
         <form>
           <div class="row">
+            <label>Type</label>
+            <select id="type" type="text" placeholder="title">
+              <option ng-repeat="type in types" value="{{type}}">{{type}}</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label>Name</label>
+            <input id="name" type="text" placeholder="name" />
+          </div>
+
+          <div class="row">
+            <label>Title</label>
+            <input id="title" type="text" placeholder="title"/>
+          </div>
+
+          <div class="row" id="addnode-properties">
             <label class="clearfix">
-              <span class="left">Node Specification</span>
-              <a href="#" ng-click="addRow()" class="button success right">+</a>
+              <span class="left">Properties</span>
+              <a href="#" ng-click="addProperty()" class="button success right">+</a>
             </label>
 
             <table id="addnode-properties-table">
               <tbody>
-                <tr>
-                  <td><input id="name" type="text" placeholder="name" /></td>
-                  <td><input id="title" type="text" placeholder="title" /></td>
-                  <td>
-                    <select id="type">
-                      <option ng-repeat="type in types" value="{{type}}">{{type}}</option>
-                    </select>
-                  </td>
-                  <td><a href="#" propertyremovable class="button alert right">-</a></td>
-                </tr>
-                <tr>
-                  <td><input id="name" type="text" placeholder="name" /></td>
-                  <td><input id="title" type="text" placeholder="title" /></td>
-                  <td>
-                    <select id="type">
-                      <option ng-repeat="type in types" value="{{type}}">{{type}}</option>
-                    </select>
-                  </td>
-                  <td><a href="#" propertyremovable class="button alert right">-</a></td>
-                </tr>
-                <tr>
-                  <td><input id="name" type="text" placeholder="name" /></td>
-                  <td><input id="title" type="text" placeholder="title" /></td>
-                  <td>
-                    <select id="type">
-                      <option ng-repeat="type in types" value="{{type}}">{{type}}</option>
-                    </select>
-                  </td>
-                  <td><a href="#" propertyremovable class="button alert right">-</a></td>
-                </tr>
               </tbody>
             </table>
           </div>
         </form>
       </div>
+      </div>
 
       <div class="modal-footer">
         <a href="#" ng-click="close('No')" class="button secondary" data-dismiss="modal">Cancel</a>
-        <a href="#" ng-click="addNodes(); close('Yes')" class="button" data-dismiss="modal">Add</a>
+        <a href="#" ng-click="addNode(); close('Yes')" class="button" data-dismiss="modal">Add</a>
       </div>
 
     </div>

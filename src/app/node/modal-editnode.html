@@ -12,12 +12,29 @@
         <form id="editnode-form">
           <div class="row">
             <label>Name</label>
-            <input id="name" type="text" value="{{node.prototype.name}}" placeholder="name"/>
+            <input id="name" type="text" placeholder="name" value="{{node.prototype.name}}" />
           </div>
 
           <div class="row">
             <label>Title</label>
-            <input id="title" type="text" value="{{node.prototype.title}}" placeholder="title"/>
+            <input id="title" type="text" placeholder="title" value="{{node.prototype.title}}" />
+          </div>
+
+          <div class="row" id="editnode-properties">
+            <label class="clearfix">
+              <span class="left">Properties</span>
+              <a href="#" ng-click="addProperty()" class="button success right">+</a>
+            </label>
+
+            <table id="editnode-properties-table">
+              <tbody>
+                  <tr ng-repeat="(key, value) in properties">
+                    <td><input id="key" type="text" value="{{key}}" placeholder="key" /></td>
+                    <td><input id="value" type="text" value="{{value}}" placeholder="value" /></td>
+                    <td><a href="#" propertyremovable class="button alert right">-</a></td>
+                  </tr>
+              </tbody>
+            </table>
           </div>
         </form>
       </div>

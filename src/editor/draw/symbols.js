@@ -126,6 +126,7 @@ b3editor.draw.textSymbol = function(block, settings) {
         '18px Arial',
         '#333333'
     );
+    
     text.textAlign = 'center';
 
     var bounds = text.getBounds();

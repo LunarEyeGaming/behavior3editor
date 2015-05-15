@@ -90,47 +90,79 @@ angular.module('app.node', ['app.modal'])
   $scope.close = function(result) { close(result); };
   
   // DYNAMIC TABLE ------------------------------------------------------------
-  this.template = '\
+  
+  this.propertyTemplate = '\
     <tr>\
-      <td><input id="name" type="text" placeholder="name" /></td>\
-      <td><input id="title" type="text" placeholder="title" /></td>\
-      <td>\
-        <select id="type">\
-            <option ng-repeat="type in types" value="{{type}}">{{type}}</option>\
-        </select>\
-      </td>\
+      <td><input id="key" type="text" value="{0}" placeholder="key" /></td>\
+      <td><input id="value" type="text" value="{1}" placeholder="value" /></td>\
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
     </tr>\
   ';
 
-  var this_ = this;
   $scope.types = ['composite', 'decorator', 'action', 'module'];
-  $scope.addRow = function() {
+
+  var this_ = this;
+
+  $scope.addProperty = function(key, value) {
     if (typeof key == 'undefined') key = '';
     if (typeof value == 'undefined') value = '';
-    
-    var table = document.querySelector('#addnode-properties-table>tbody');
-    var template = $compile(this_.template)($scope);
-    angular.element(table).append(template);
+    value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
+    var template = this_.propertyTemplate.format(key, value);
+    var propertiesTable = angular.element(
+      document.querySelectorAll('#addnode-properties-table>tbody')
+    );
+    propertiesTable.append($compile(template)($scope));
   }
 
-  $scope.addNodes = function() {
-    var domNames = document.querySelectorAll('#addnode-properties-table #name');
-    var domTitles = document.querySelectorAll('#addnode-properties-table #title');
-    var domTypes = document.querySelectorAll('#addnode-properties-table #type');
-    
-    for (var i=0; i<domNames.length; i++) {
-      var name = domNames[i].value;
-      var title = domTitles[i].value;
-      var type = domTypes[i].value;
+  $scope.addNode = function() {
+    var domType = document.querySelector('#addnode-modal #type');
+    var domName = document.querySelector('#addnode-modal #name');
+    var domTitle = document.querySelector('#addnode-modal #title');
+    var domKeys = document.querySelectorAll('#addnode-properties #key');
+    var domValues = document.querySelectorAll('#addnode-properties #value');
 
-      if (name) {
-        $window.app.editor.addNode(name, title, type)
+    var newNode = {
+      type: domType.value,
+      name: domName.value,
+      title: domTitle.value,
+      properties: {}
+    }
+
+    for (var i=0; i<domKeys.length; i++) {
+      var key = domKeys[i].value;
+      var value = domValues[i].value;
+
+      try {
+        value = JSON.parse(value);
+      } catch (e){
+        $window.app.editor.trigger('notification', name, {
+          level: 'error',
+          message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+        });
       }
+
+      if (key) {
+        newNode.properties[key] = value;
+      }
+    }
+    
+    if (newNode.name) {
+      $window.app.editor.addNode(newNode);
     }
   }
 })
 
+.directive('propertyremovable', function() {    
+  return {
+    restrict: 'A',
+    link: function(scope, element, attrs) {
+      element.bind('click', function() {
+        element.parent().parent().remove();
+        scope.updateProperties();
+      });
+    }
+  };
+})
 
 //
 // EDIT NODE MODAL CONTROLLER
@@ -140,15 +172,68 @@ angular.module('app.node', ['app.modal'])
 
   $scope.node = $window.app.editor.nodes[node];
 
+  this.jsonProperties = function(properties){
+    var props = {}
+    for (key in properties) {
+      props[key] = JSON.stringify(properties[key]);
+    }
+    return props;
+  }
+
+  $scope.properties = this.jsonProperties($scope.node.prototype.properties);
+  
+  this.propertyTemplate = '\
+    <tr>\
+      <td><input id="key" type="text" value="{0}" placeholder="key" /></td>\
+      <td><input id="value" type="text" value="{1}" placeholder="value" /></td>\
+      <td><a href="#" propertyremovable class="button alert right">-</a></td>\
+    </tr>\
+  ';
+
+  var this_ = this;
+
+  $scope.addProperty = function(key, value) {
+    if (typeof key == 'undefined') key = '';
+    if (typeof value == 'undefined') value = '';
+    value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
+    var template = this_.propertyTemplate.format(key, value);
+    var propertiesTable = angular.element(
+      document.querySelectorAll('#editnode-properties-table>tbody')
+    );
+    propertiesTable.append($compile(template)($scope));
+  }
+
   $scope.saveNode = function() {
     var domName = document.querySelector('#editnode-form #name');
     var domTitle = document.querySelector('#editnode-form #title');
+    var domKeys = document.querySelectorAll('#editnode-properties #key');
+    var domValues = document.querySelectorAll('#editnode-properties #value');
     
-    var name = domName.value;
-    var title = domTitle.value;
+    var newNode = {
+      name: domName.value,
+      title: domTitle.value,
+      properties: {}
+    }
 
-    if (name) {
-      $window.app.editor.editNode(node, name, title);
+    for (var i=0; i<domKeys.length; i++) {
+      var key = domKeys[i].value;
+      var value = domValues[i].value;
+
+      try {
+        value = JSON.parse(value);
+      } catch (e){
+        $window.app.editor.trigger('notification', name, {
+          level: 'error',
+          message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+        });
+      }
+
+      if (key) {
+        newNode.properties[key] = value;
+      }
+    }
+    if (newNode.name) {
+      $window.app.editor.editNode(node, newNode);
     }
   }
 

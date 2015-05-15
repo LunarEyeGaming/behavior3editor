@@ -155,7 +155,9 @@ this.b3editor = this.b3editor || {};
 
     if (!this.nodes[node.name]) {
       if (node.type == "control") node.type = "composite"; // Stupid format conversion
-      this.addNode(node.name, node.name, node.type);
+      var newNode = JSON.parse(JSON.stringify(node));
+      newNode.title = node.name;
+      this.addNode(newNode);
     }
 
     var block = this.addBlock(node.name, 0, 0);
@@ -305,11 +307,11 @@ this.b3editor = this.b3editor || {};
       this.writeTreeFile();
     }
   }
-  p.addNode = function(name, title, type) {
-    if (this.nodes[name]) {
-      this.trigger('notification', name, {
+  p.addNode = function(node) {
+    if (this.nodes[node.name]) {
+      this.trigger('notification', node.name, {
         level: 'error',
-        message: 'Node named "'+name+'" already registered.'
+        message: 'Node named "'+node.name+'" already registered.'
       });
       return;
     }
@@ -320,41 +322,45 @@ this.b3editor = this.b3editor || {};
       'action' : b3editor.Action,
       'module' : b3editor.Module
     };
-    var type = type;
+    var type = node.type;
     var cls = classes[type];
     
     var tempClass = b3.Class(cls);
-    tempClass.prototype.name = name;
-    tempClass.prototype.title = title;
+    tempClass.prototype.name = node.name;
+    tempClass.prototype.title = node.title;
+    if (node.properties != undefined)
+     tempClass.prototype.properties = JSON.parse(JSON.stringify(node.properties));
     
     this.registerNode(tempClass);
     this.trigger('nodeadded', tempClass);
   }
-  p.editNode = function(oldName, newName, newTitle) {
+  p.editNode = function(oldName, newNode) {
     var node = this.nodes[oldName];
     if (!node) return;
     
-    if (oldName !== newName && this.nodes[newName]) {
-      this.trigger('notification', newName, {
+    if (oldName !== newNode.name && this.nodes[newNode.name]) {
+      this.trigger('notification', newNode.name, {
         level: 'error',
-        message: 'Node named "'+newName+'" already registered.'
+        message: 'Node named "'+newNode.name+'" already registered.'
       });
       return;
     }
 
     delete this.nodes[oldName];
-    this.nodes[newName] = node;
+    this.nodes[newNode.name] = node;
 
     var oldTitle = node.prototype.title;
-    node.prototype.name = newName;
-    node.prototype.title = newTitle;
+    node.prototype.name = newNode.name;
+    node.prototype.title = newNode.title;
+    if (newNode.properties)
+      node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
     
     for (var i=this.blocks.length-1; i>=0; i--) {
       var block = this.blocks[i];
       if (block.node === node) {
-        block.name = newName;
+        block.name = newNode.name;
         if (block.title === oldTitle || block.title === oldName) {
-          block.title = newTitle || newName;
+          block.title = newNode.title || newNode.name;
         }
         block.redraw();
       }
