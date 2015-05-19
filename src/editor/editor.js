@@ -259,7 +259,7 @@ this.b3editor = this.b3editor || {};
     data.parameters = {};
     for (var key in root.properties) {
       if (key != "scripts")
-        data.parameters[key] == root.properties[key];
+        data.parameters[key] = root.properties[key];
     }
 
     var rootBlock = root.getOutNodeIds()[0]
