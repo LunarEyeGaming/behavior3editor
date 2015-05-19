@@ -12,8 +12,8 @@
         <form>
           <div class="row">
             <label>Type</label>
-            <select id="type" type="text" placeholder="title">
-              <option ng-repeat="type in types" value="{{type}}">{{type}}</option>
+            <select id="type" ng-change="changeType()" ng-model="nodeType" type="text" placeholder="title">
+              <option ng-repeat="type in types"value="{{type}}">{{type}}</option>
             </select>
           </div>
 
@@ -37,6 +37,28 @@
               <tbody>
               </tbody>
             </table>
+          </div>
+
+          <div class="row" id="addnode-outputs" style="display: none;">
+            <label class="clearfix">
+              <span class="left">Outputs</span>
+              <a href="#" ng-click="addOutput()" class="button success right">+</a>
+            </label>
+
+            <table id="addnode-outputs-table">
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="row">
+            <label>Category</label>
+            <input id="category" type="text" placeholder="category"/>
+          </div>
+
+          <div class="row">
+            <label>Script</label>
+            <input id="script" type="text" placeholder="script"/>
           </div>
         </form>
       </div>

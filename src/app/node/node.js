@@ -114,12 +114,25 @@ angular.module('app.node', ['app.modal'])
     propertiesTable.append($compile(template)($scope));
   }
 
+  $scope.changeType = function() {
+    var outputsTable = angular.element(
+      document.querySelectorAll('#addnode-outputs')
+    );
+    var domType = document.querySelector('#addnode-modal #type');
+
+    if (domType.value == 'action') {
+      outputsTable.css('display', 'block');
+    } else {
+      outputsTable.css('display', 'none');
+    }
+  }
+
   $scope.addNode = function() {
     var domType = document.querySelector('#addnode-modal #type');
     var domName = document.querySelector('#addnode-modal #name');
     var domTitle = document.querySelector('#addnode-modal #title');
-    var domKeys = document.querySelectorAll('#addnode-properties #key');
-    var domValues = document.querySelectorAll('#addnode-properties #value');
+    var domPropertyKeys = document.querySelectorAll('#addnode-properties #key');
+    var domPropertyValues = document.querySelectorAll('#addnode-properties #value');
 
     var newNode = {
       type: domType.value,
@@ -128,9 +141,27 @@ angular.module('app.node', ['app.modal'])
       properties: {}
     }
 
-    for (var i=0; i<domKeys.length; i++) {
-      var key = domKeys[i].value;
-      var value = domValues[i].value;
+    if (newNode.type == 'action'){
+      var domOutputKeys = document.querySelectorAll('#addnode-outputs #key');
+      var domOutputValues = document.querySelectorAll('#addnode-outputs #value');
+      var domCategory = document.querySelector('#addnode-modal #category');
+      var domScript = document.querySelector('#addnode-modal #script');
+      
+      newNode.script = domScript.value;
+      newNode.category = domCategory.value;
+      newNode.outputs = {};
+
+      for (var i=0; i<domOutputKeys.length; i++) {
+        var key = domOutputKeys[i].value;
+        var value = domOutputValues[i].value;
+        if (key)
+          newNode.outputs[key] = value;
+      }
+    }
+
+    for (var i=0; i<domPropertyKeys.length; i++) {
+      var key = domPropertyKeys[i].value;
+      var value = domPropertyValues[i].value;
 
       try {
         value = JSON.parse(value);
@@ -144,6 +175,13 @@ angular.module('app.node', ['app.modal'])
       if (key) {
         newNode.properties[key] = value;
       }
+    }
+
+    for (var i=0; i<domOutputKeys.length; i++) {
+      var key = domOutputKeys[i].value;
+      var value = domOutputValues[i].value;
+      if (key)
+        newNode.outputs[key] = value;
     }
     
     if (newNode.name) {
@@ -215,6 +253,28 @@ angular.module('app.node', ['app.modal'])
       properties: {}
     }
 
+    if ($scope.node.prototype.type == 'action'){
+      console.log("ARawd")
+      var domOutputKeys = document.querySelectorAll('#editnode-outputs #key');
+      var domOutputValues = document.querySelectorAll('#editnode-outputs #value');
+      var domCategory = document.querySelector('#editnode-modal #category');
+      var domScript = document.querySelector('#editnode-modal #script');
+
+      if (domScript.value != '')
+        newNode.script = domScript.value;
+      if (domCategory.value != '')
+        newNode.category = domCategory.value;
+      if (domOutputKeys.length > 0)
+        newNode.outputs = {};
+
+      for (var i=0; i<domOutputKeys.length; i++) {
+        var key = domOutputKeys[i].value;
+        var value = domOutputValues[i].value;
+        if (key)
+          newNode.outputs[key] = value;
+      }
+    }
+
     for (var i=0; i<domKeys.length; i++) {
       var key = domKeys[i].value;
       var value = domValues[i].value;
@@ -232,6 +292,7 @@ angular.module('app.node', ['app.modal'])
         newNode.properties[key] = value;
       }
     }
+
     if (newNode.name) {
       $window.app.editor.editNode(node, newNode);
     }

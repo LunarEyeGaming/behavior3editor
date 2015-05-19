@@ -319,6 +319,15 @@ this.b3editor = this.b3editor || {};
         data[name].title = node.prototype.title;
         if (node.prototype.properties)
           data[name].properties = JSON.parse(JSON.stringify(node.prototype.properties));
+
+        if (node.prototype.type == "action") {
+          if (node.prototype.category)
+            data[name].category = node.prototype.category;
+          if (node.prototype.script)
+            data[name].script = node.prototype.script;
+          if (node.prototype.outputs)
+            data[name].outputs = JSON.parse(JSON.stringify(node.prototype.outputs));
+        }
       }
     }
 
@@ -353,8 +362,16 @@ this.b3editor = this.b3editor || {};
     var tempClass = b3.Class(cls);
     tempClass.prototype.name = node.name;
     tempClass.prototype.title = node.title;
-    if (node.properties != undefined)
+    tempClass.prototype.category = node.category;
+    if (node.properties)
      tempClass.prototype.properties = JSON.parse(JSON.stringify(node.properties));
+
+    if (node.type == "action") {
+      if (node.output)
+       tempClass.prototype.output = JSON.parse(JSON.stringify(node.output));
+      if (node.script)
+       tempClass.prototype.script = node.script;
+    }
     
     this.registerNode(tempClass);
     this.trigger('nodeadded', tempClass);
@@ -379,6 +396,14 @@ this.b3editor = this.b3editor || {};
     node.prototype.title = newNode.title;
     if (newNode.properties)
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
+    if (node.prototype.type == "action") {
+      if (newNode.output)
+       node.prototype.output = JSON.parse(JSON.stringify(node.output));
+      if (newNode.script)
+       node.prototype.script = newNode.script;
+      if (newNode.category)
+        node.prototype.category = newNode.category;
+    }
     
     for (var i=this.blocks.length-1; i>=0; i--) {
       var block = this.blocks[i];
