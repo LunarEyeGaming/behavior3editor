@@ -190,13 +190,6 @@ angular.module('app.node', ['app.modal'])
         newNode.properties[key] = value;
       }
     }
-
-    for (var i=0; i<domOutputKeys.length; i++) {
-      var key = domOutputKeys[i].value;
-      var value = domOutputValues[i].value;
-      if (key)
-        newNode.output[key] = value;
-    }
     
     if (newNode.name) {
       $window.app.editor.addNode(newNode);
