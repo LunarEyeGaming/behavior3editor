@@ -325,8 +325,8 @@ this.b3editor = this.b3editor || {};
             data[name].category = node.prototype.category;
           if (node.prototype.script)
             data[name].script = node.prototype.script;
-          if (node.prototype.outputs)
-            data[name].outputs = JSON.parse(JSON.stringify(node.prototype.outputs));
+          if (node.prototype.output)
+            data[name].output = JSON.parse(JSON.stringify(node.prototype.output));
         }
       }
     }
@@ -398,7 +398,7 @@ this.b3editor = this.b3editor || {};
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
     if (node.prototype.type == "action") {
       if (newNode.output)
-       node.prototype.output = JSON.parse(JSON.stringify(node.output));
+       node.prototype.output = JSON.parse(JSON.stringify(newNode.output));
       if (newNode.script)
        node.prototype.script = newNode.script;
       if (newNode.category)

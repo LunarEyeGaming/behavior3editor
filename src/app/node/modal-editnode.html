@@ -37,14 +37,19 @@
             </table>
           </div>
 
-          <div class="row" id="editnode-outputs" ng-show="node.prototype.type == 'action'">
+          <div class="row" id="editnode-output" ng-show="node.prototype.type == 'action'">
             <label class="clearfix">
-              <span class="left">Outputs</span>
+              <span class="left">Output</span>
               <a href="#" ng-click="addOutput()" class="button success right">+</a>
             </label>
 
-            <table id="editnode-outputs-table">
+            <table id="editnode-output-table">
               <tbody>
+                  <tr ng-repeat="(key, value) in output">
+                    <td><input id="key" type="text" value="{{key}}" placeholder="key" /></td>
+                    <td><input id="value" type="text" value="{{value}}" placeholder="value" /></td>
+                    <td><a href="#" propertyremovable class="button alert right">-</a></td>
+                  </tr>
               </tbody>
             </table>
           </div>

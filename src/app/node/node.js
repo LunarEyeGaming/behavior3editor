@@ -114,16 +114,30 @@ angular.module('app.node', ['app.modal'])
     propertiesTable.append($compile(template)($scope));
   }
 
-  $scope.changeType = function() {
-    var outputsTable = angular.element(
-      document.querySelectorAll('#addnode-outputs')
+  $scope.addOutput = function(key, value) {
+    if (typeof key == 'undefined') key = '';
+    if (typeof value == 'undefined') value = '';
+    var template = this_.propertyTemplate.format(key, value);
+    var outputTable = angular.element(
+      document.querySelectorAll('#addnode-output-table>tbody')
     );
+    outputTable.append($compile(template)($scope));
+  }
+
+  $scope.changeType = function() {
+    var outputTable = angular.element(document.querySelector('#addnode-output'));
+    var categoryRow = angular.element(document.querySelector('#addnode-script'));
+    var scriptRow = angular.element(document.querySelector('#addnode-category'));
     var domType = document.querySelector('#addnode-modal #type');
 
     if (domType.value == 'action') {
-      outputsTable.css('display', 'block');
+      outputTable.css('display', 'block');
+      categoryRow.css('display', 'block');
+      scriptRow.css('display', 'block');
     } else {
-      outputsTable.css('display', 'none');
+      outputTable.css('display', 'none');
+      categoryRow.css('display', 'none');
+      scriptRow.css('display', 'none');
     }
   }
 
@@ -142,20 +156,20 @@ angular.module('app.node', ['app.modal'])
     }
 
     if (newNode.type == 'action'){
-      var domOutputKeys = document.querySelectorAll('#addnode-outputs #key');
-      var domOutputValues = document.querySelectorAll('#addnode-outputs #value');
+      var domOutputKeys = document.querySelectorAll('#addnode-output #key');
+      var domOutputValues = document.querySelectorAll('#addnode-output #value');
       var domCategory = document.querySelector('#addnode-modal #category');
       var domScript = document.querySelector('#addnode-modal #script');
       
       newNode.script = domScript.value;
       newNode.category = domCategory.value;
-      newNode.outputs = {};
+      newNode.output = {};
 
       for (var i=0; i<domOutputKeys.length; i++) {
         var key = domOutputKeys[i].value;
         var value = domOutputValues[i].value;
         if (key)
-          newNode.outputs[key] = value;
+          newNode.output[key] = value;
       }
     }
 
@@ -181,7 +195,7 @@ angular.module('app.node', ['app.modal'])
       var key = domOutputKeys[i].value;
       var value = domOutputValues[i].value;
       if (key)
-        newNode.outputs[key] = value;
+        newNode.output[key] = value;
     }
     
     if (newNode.name) {
@@ -219,6 +233,7 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.properties = this.jsonProperties($scope.node.prototype.properties);
+  $scope.output = $scope.node.prototype.output;
   
   this.propertyTemplate = '\
     <tr>\
@@ -241,6 +256,16 @@ angular.module('app.node', ['app.modal'])
     propertiesTable.append($compile(template)($scope));
   }
 
+  $scope.addOutput = function(key, value) {
+    if (typeof key == 'undefined') key = '';
+    if (typeof value == 'undefined') value = '';
+    var template = this_.propertyTemplate.format(key, value);
+    var outputTable = angular.element(
+      document.querySelectorAll('#editnode-output-table>tbody')
+    );
+    outputTable.append($compile(template)($scope));
+  }
+
   $scope.saveNode = function() {
     var domName = document.querySelector('#editnode-form #name');
     var domTitle = document.querySelector('#editnode-form #title');
@@ -254,9 +279,8 @@ angular.module('app.node', ['app.modal'])
     }
 
     if ($scope.node.prototype.type == 'action'){
-      console.log("ARawd")
-      var domOutputKeys = document.querySelectorAll('#editnode-outputs #key');
-      var domOutputValues = document.querySelectorAll('#editnode-outputs #value');
+      var domOutputKeys = document.querySelectorAll('#editnode-output #key');
+      var domOutputValues = document.querySelectorAll('#editnode-output #value');
       var domCategory = document.querySelector('#editnode-modal #category');
       var domScript = document.querySelector('#editnode-modal #script');
 
@@ -265,13 +289,13 @@ angular.module('app.node', ['app.modal'])
       if (domCategory.value != '')
         newNode.category = domCategory.value;
       if (domOutputKeys.length > 0)
-        newNode.outputs = {};
+        newNode.output = {};
 
       for (var i=0; i<domOutputKeys.length; i++) {
         var key = domOutputKeys[i].value;
         var value = domOutputValues[i].value;
         if (key)
-          newNode.outputs[key] = value;
+          newNode.output[key] = value;
       }
     }
 
