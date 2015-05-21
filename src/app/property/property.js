@@ -116,8 +116,7 @@ angular.module('app.property', [])
         var key = domKeys[i].value;
         var value = domValues[i].value;
 
-        if (key) {
-          console.log("Test " + value)
+        if (key && value != '') {
           newNode.output[key] = value;
         }
       }

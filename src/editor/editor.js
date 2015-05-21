@@ -165,10 +165,9 @@ this.b3editor = this.b3editor || {};
     block.title = node.title;
     block.description = node.description;
     block.properties = node.parameters;
-    block.output = node.output;
 
-    if (node.type == 'action' && node.output)
-      block.output = node.output;
+    if (node.type == 'action')
+      block.output = node.output || {};
 
     // Import properties
     for (var key in block.properties) {
@@ -254,7 +253,7 @@ this.b3editor = this.b3editor || {};
     data.name = block.name;
     data.parameters = block.properties;
 
-    if (block.type == 'action' && block.output) 
+    if (block.type == 'action' && Object.keys(block.output).length > 0) 
       data.output = block.output;
 
     var children = block.getOutNodeIdsByOrder();
