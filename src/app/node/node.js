@@ -168,7 +168,7 @@ angular.module('app.node', ['app.modal'])
       for (var i=0; i<domOutputKeys.length; i++) {
         var key = domOutputKeys[i].value;
         var value = domOutputValues[i].value;
-        if (key && value != '')
+        if (key)
           newNode.output[key] = value;
       }
     }
@@ -287,7 +287,7 @@ angular.module('app.node', ['app.modal'])
       for (var i=0; i<domOutputKeys.length; i++) {
         var key = domOutputKeys[i].value;
         var value = domOutputValues[i].value;
-        if (key && value != '')
+        if (key)
           newNode.output[key] = value;
       }
     }

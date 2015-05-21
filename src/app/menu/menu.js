@@ -77,6 +77,7 @@ angular.module('app.menu', ['app.modal'])
   $scope.onButtonImportNodes = function(e) {
     if (e) e.preventDefault();
 
+    var editor = $window.app.editor;
     dialog.showOpenDialog({
       title: "Import nodes", 
       filters : [
