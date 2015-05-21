@@ -49,12 +49,14 @@ angular.module('app.property', [])
       domTitle.value = block.title || '';
 
       for (key in block.node.prototype.properties) {
-        $scope.addRow(key, block.properties[key] || '');
+        var value = block.properties[key] !== '' ? block.properties[key] : '';
+        $scope.addRow(key, value);
       }
 
       if (block.type == 'action') {
         for (key in block.node.prototype.output) {
-          $scope.addOutput(key, block.output[key] || '');
+          var value = block.output[key] !== '' ? block.output[key] : '';
+          $scope.addOutput(key, value);
         }
       }
     } else {
