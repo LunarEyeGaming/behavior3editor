@@ -8,11 +8,13 @@ angular.module('app.property', [])
   this.table = angular.element(
     document.querySelector('#property-properties-table>tbody')
   );
+  this.outputs = angular.element(
+    document.querySelector('#property-output-table>tbody')
+  );
   this.template = '\
     <tr>\
-      <td><input id="key" type="text" value="{0}" onkeyup="element(this).updateProperties(this);" placeholder="key" /></td>\
+      <td><input id="key" type="text" value="{0}" onkeyup="element(this).updateProperties(this);" placeholder="key" readonly/></td>\
       <td><input id="value" type="text" value="{1}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
-      <td><a href="#" propertyremovable class="button alert right">-</a></td>\
     </tr>\
   ';
   
@@ -25,6 +27,13 @@ angular.module('app.property', [])
     this_.table.append($compile(template)($scope));
   }
 
+  $scope.addOutput = function(key, value) {
+    if (typeof key == 'undefined') key = '';
+    if (typeof value == 'undefined') value = '';;
+    var template = this_.template.format(key, value);
+    this_.outputs.append($compile(template)($scope));
+  }
+
   // SELECTION/DESELECTION
   $scope.block = null;
   this.updateProperties = function() {
@@ -32,16 +41,21 @@ angular.module('app.property', [])
       var block = $window.app.editor.selectedBlocks[0];
 
       this_.table.html('');
+      this_.outputs.html('');
       var domName = document.querySelector('#property-panel #name');
       var domTitle = document.querySelector('#property-panel #title');
-      var domDescription = document.querySelector('#property-panel #description');
 
       domName.value = block.name;
       domTitle.value = block.title || '';
-      domDescription.value = block.description || '';
 
-      for (key in block.properties) {
-        $scope.addRow(key, block.properties[key]);
+      for (key in block.node.prototype.properties) {
+        $scope.addRow(key, block.properties[key] || '');
+      }
+
+      if (block.type == 'action') {
+        for (key in block.node.prototype.output) {
+          $scope.addOutput(key, block.output[key] || '');
+        }
       }
     } else {
       var block = null;
@@ -64,13 +78,13 @@ angular.module('app.property', [])
   // UPDATE PROPERTIES ON NODE
   $scope.updateProperties = function() {
     var domTitle = document.querySelector('#property-panel #title');
-    var domDescription = document.querySelector('#property-panel #description');
-    var domKeys = document.querySelectorAll('#property-panel #key');
-    var domValues = document.querySelectorAll('#property-panel #value');
+    var domKeys = document.querySelectorAll('#property-properties-table #key');
+    var domValues = document.querySelectorAll('#property-properties-table #value');
 
-    var title = domTitle.value;
-    var description = domDescription.value;
-    var properties = {};
+    var newNode = {
+      title: domTitle.value,
+      properties: {}
+    }
 
     for (var i=0; i<domKeys.length; i++) {
       var key = domKeys[i].value;
@@ -85,15 +99,29 @@ angular.module('app.property', [])
         });
       }
 
-      if (key) {
-        properties[key] = value;
+      if (key && value != '') {
+        newNode.properties[key] = value;
       }
     }
     
-    $window.app.editor.editBlock(
-      $scope.block,
-      {title: title, description:description, properties:properties}
-    )
+    if ($scope.block.type == 'action') {
+      var domKeys = document.querySelectorAll('#property-output-table #key');
+      var domValues = document.querySelectorAll('#property-output-table #value');
+
+      newNode.output = {};
+
+      for (var i=0; i<domKeys.length; i++) {
+        var key = domKeys[i].value;
+        var value = domValues[i].value;
+
+        if (key) {
+          console.log("Test " + value)
+          newNode.output[key] = value;
+        }
+      }
+    }
+    
+    $window.app.editor.editBlock($scope.block, newNode)
   }
 })
 
@@ -106,7 +134,7 @@ angular.module('app.property', [])
   }
 })
 
-.directive('propertyremovable', function() {    
+.directive('propertyremovable', function() {
   return {
     restrict: 'A',
     link: function(scope, element, attrs) {

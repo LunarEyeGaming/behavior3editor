@@ -148,7 +148,7 @@ this.b3editor = this.b3editor || {};
       this.connections[i].applySettings(settings);
     }
   }
-  p.importNode = function(node, parent) {
+  p.importBlock = function(node, parent) {
     if (node.type == 'module') {
       node.name = node.path;
     } 
@@ -165,8 +165,26 @@ this.b3editor = this.b3editor || {};
     block.title = node.title;
     block.description = node.description;
     block.properties = node.parameters;
+    block.output = node.output;
 
-    block.redraw();
+    if (node.type == 'action' && node.output)
+      block.output = node.output;
+
+    // Import properties
+    for (var key in block.properties) {
+      if (block.node.prototype.properties[key] == undefined) {
+        block.node.prototype.properties[key] = block.properties[key];
+      }
+    }
+
+    // Import output types
+    if (block.type == 'action') {
+      for (var key in block.output) {
+        if (block.node.prototype.output[key] == undefined) {
+          block.node.prototype.output[key] = block.output[key];
+        }
+      }
+    }
 
     if (parent) {
       var outBlock = this.getBlockById(parent);
@@ -175,12 +193,14 @@ this.b3editor = this.b3editor || {};
 
     if (node.children) {
       for (var i=0; i<node.children.length; i++) {
-        this.importNode(node.children[i], block.id);
+        this.importBlock(node.children[i], block.id);
       }
     }
     if (node.child) {
-      this.importNode(node.child, block.id);
+      this.importBlock(node.child, block.id);
     }
+
+    block.redraw();
 
     return block
   }
@@ -188,7 +208,7 @@ this.b3editor = this.b3editor || {};
     this.reset();
 
     var data = JSON.parse(json);
-    var dataRoot = this.importNode(data.root);
+    var dataRoot = this.importBlock(data.root);
  
     var root = this.getRoot();
     root.title = data.name;
@@ -233,6 +253,9 @@ this.b3editor = this.b3editor || {};
     data.type = block.type;
     data.name = block.name;
     data.parameters = block.properties;
+
+    if (block.type == 'action' && block.output) 
+      data.output = block.output;
 
     var children = block.getOutNodeIdsByOrder();
     if (children.length > 0) {
@@ -362,15 +385,12 @@ this.b3editor = this.b3editor || {};
     var tempClass = b3.Class(cls);
     tempClass.prototype.name = node.name;
     tempClass.prototype.title = node.title;
-    tempClass.prototype.category = node.category;
-    if (node.properties)
-     tempClass.prototype.properties = JSON.parse(JSON.stringify(node.properties));
+    tempClass.prototype.properties =  node.properties ? JSON.parse(JSON.stringify(node.properties)) : {};
 
     if (node.type == "action") {
-      if (node.output)
-       tempClass.prototype.output = JSON.parse(JSON.stringify(node.output));
-      if (node.script)
-       tempClass.prototype.script = node.script;
+      tempClass.prototype.category = node.category || '';
+      tempClass.prototype.script = node.script || '';
+      tempClass.prototype.output = node.output ? JSON.parse(JSON.stringify(node.output)) : {};
     }
     
     this.registerNode(tempClass);
@@ -639,11 +659,13 @@ this.b3editor = this.b3editor || {};
     var oldValues = {
       title       : block.title,
       description : block.description,
-      properties  : block.properties
+      properties  : block.properties,
+      output      : block.output
     }
     block.title       = template.title;
     block.description = template.description;
     block.properties  = template.properties;
+    block.output      = template.output;
     block.redraw();
 
     this.trigger('blockchanged', block, {

@@ -19,7 +19,8 @@ this.b3editor = this.b3editor || {};
     this.type       = dict.type;
     this.title          = dict.title || this.name;
     this.description    = dict.description || '';
-    this.properties     = b3editor.extend({}, dict.parameters, dict.properties);
+    this.properties     = b3editor.extend({}, dict.properties);
+    this.output         = b3editor.extend({}, dict.output);
 
     this.displayObject  = new createjs.Container();
     this.inConnection   = null;

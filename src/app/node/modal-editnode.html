@@ -54,12 +54,12 @@
             </table>
           </div>
 
-          <div class="row">
+          <div class="row" ng-show="node.prototype.type == 'action'">
             <label>Category</label>
             <input id="category" type="text" value="{{node.prototype.category}}" placeholder="category"/>
           </div>
 
-          <div class="row">
+          <div class="row" ng-show="node.prototype.type == 'action'">
             <label>Script</label>
             <input id="script" type="text" value="{{node.prototype.script}}" placeholder="script"/>
           </div>

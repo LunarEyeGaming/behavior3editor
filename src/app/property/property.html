@@ -18,17 +18,22 @@
       </div>
 
       <div class="row">
-        <label>Description</label>
-        <textarea id="description" type="text" rows="4" onkeyup="element(this).updateProperties(this)" placeholder="description"></textarea>
+        <label class="clearfix">
+          <span class="left">Properties</span>
+        </label>
+
+        <table id="property-properties-table">
+          <tbody>
+          </tbody>
+        </table>
       </div>
 
       <div class="row">
         <label class="clearfix">
-          <span class="left">Properties</span>
-          <a href="#" ng-click="addRow()" class="button success right">+</a>
+          <span class="left">Output</span>
         </label>
 
-        <table id="property-properties-table">
+        <table id="property-output-table">
           <tbody>
           </tbody>
         </table>
