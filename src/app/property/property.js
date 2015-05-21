@@ -133,16 +133,4 @@ angular.module('app.property', [])
     controller: 'PropertyController',
     templateUrl: 'app/property/property.html'
   }
-})
-
-.directive('propertyremovable', function() {
-  return {
-    restrict: 'A',
-    link: function(scope, element, attrs) {
-      element.bind('click', function() {
-        element.parent().parent().remove();
-        scope.updateProperties();
-      });
-    }
-  };
 });
