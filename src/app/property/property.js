@@ -17,6 +17,13 @@ angular.module('app.property', [])
       <td><input id="value" type="text" value="{1}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
     </tr>\
   ';
+  this.rootTemplate ='\
+    <tr>\
+      <td><input id="key" type="text" value="{0}" onkeyup="element(this).updateProperties(this);" placeholder="key" /></td>\
+      <td><input id="value" type="text" value="{1}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
+      <td><a href="#" propertyremovable class="button alert right">-</a></td>\
+    </tr>\
+  ';
   
   var this_ = this;
   $scope.addRow = function(key, value) {
@@ -24,6 +31,13 @@ angular.module('app.property', [])
     if (typeof value == 'undefined') value = '';
     value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
     var template = this_.template.format(key, value);
+    this_.table.append($compile(template)($scope));
+  }
+  $scope.addRootProperty = function(key, value) {
+    if (typeof key == 'undefined') key = '';
+    if (typeof value == 'undefined') value = '';
+    value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
+    var template = this_.rootTemplate.format(key, value);
     this_.table.append($compile(template)($scope));
   }
 
@@ -51,6 +65,13 @@ angular.module('app.property', [])
       for (key in block.node.prototype.properties) {
         var value = block.properties[key] !== '' ? block.properties[key] : '';
         $scope.addRow(key, value);
+      }
+
+      if (block.type == 'root') {
+        for (key in block.properties) {
+          var value = block.properties[key] !== '' ? block.properties[key] : '';
+          $scope.addRootProperty(key, value);
+        }
       }
 
       if (block.type == 'action') {
@@ -124,6 +145,18 @@ angular.module('app.property', [])
     
     $window.app.editor.editBlock($scope.block, newNode)
   }
+})
+
+.directive('propertyremovable', function() {    
+  return {
+    restrict: 'A',
+    link: function(scope, element, attrs) {
+      element.bind('click', function() {
+        element.parent().parent().remove();
+        scope.updateProperties();
+      });
+    }
+  };
 })
 
 .directive('propertypanel', function() {
