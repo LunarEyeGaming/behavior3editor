@@ -212,7 +212,6 @@ this.b3editor = this.b3editor || {};
     var root = this.getRoot();
     root.title = data.name;
     root.properties = data.parameters || {};
-    root.properties["scripts"] = data.scripts;
     this.addConnection(root, dataRoot);
 
     this.organize(true);
@@ -237,7 +236,7 @@ this.b3editor = this.b3editor || {};
       editor.trigger('treeadded', tree);
     });
   }
-  p.exportBlock = function(block) {
+  p.exportBlock = function(block, scripts) {
     var data = {};
 
     if (block.type == "module") {
@@ -253,6 +252,13 @@ this.b3editor = this.b3editor || {};
     data.name = block.name;
     data.parameters = block.properties;
 
+    var script = block.node.prototype.script;
+    if (script && script != '') {
+      if(scripts.indexOf(script) == -1) {
+        scripts.push(script);
+      }
+    }
+
     if (block.type == 'action' && Object.keys(block.output).length > 0) 
       data.output = block.output;
 
@@ -261,10 +267,10 @@ this.b3editor = this.b3editor || {};
       if (block.type == "composite") {
         data.children = [];
         for (var i=0; i<children.length; i++) {
-          data.children[i] = this.exportBlock(this.getBlockById(children[i]));
+          data.children[i] = this.exportBlock(this.getBlockById(children[i]), scripts);
         }
       } else if (block.type == "decorator") {
-        data.child = this.exportBlock(this.getBlockById(children[0]));
+        data.child = this.exportBlock(this.getBlockById(children[0]), scripts);
       }
     }
 
@@ -277,7 +283,7 @@ this.b3editor = this.b3editor || {};
     // Tree data
     data.name = root.title;
     data.description = root.description;
-    data.scripts = root.properties.scripts || [];
+    data.scripts = [];
     data.parameters = {};
     for (var key in root.properties) {
       if (key != "scripts")
@@ -286,12 +292,15 @@ this.b3editor = this.b3editor || {};
 
     var rootBlock = root.getOutNodeIds()[0]
     if (rootBlock) {
-      data.root = this.exportBlock(this.getBlockById(rootBlock));
+      data.root = this.exportBlock(this.getBlockById(rootBlock), data.scripts);
 
       return JSON.stringify(data, null, 2);
     } else {
       return "{}";
     }
+  }
+  p.getScripts = function() {
+
   }
   p.writeTreeFile = function() {
     var json = this.exportToJSON();
