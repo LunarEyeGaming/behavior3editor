@@ -502,6 +502,10 @@ form .row input, form .row textarea, form .row select {
 .item-list a.header:hover {
   background-color: inherit;
 }
+.item-list a.category {
+  font-weight: 600;
+  color: #666666;
+}
 .item-list .edit {
   padding: 0px 5px;
   margin: 0px 1px;

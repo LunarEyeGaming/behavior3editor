@@ -9,6 +9,7 @@ angular.module('app.node', ['app.modal'])
   // SCOPE --------------------------------------------------------------------
   $scope.types = ['composite', 'decorator', 'action', 'module'];
   $scope.nodes = {};
+  $scope.categories = {};
   
   $scope.showAddNodeModal = function() {
     ModalService.showModal({
@@ -50,21 +51,30 @@ angular.module('app.node', ['app.modal'])
       'module'    : []
     };
     var editorNodes = $window.app.editor.nodes;
+    var categoryNodes = {};
 
-    for (key in guiNodes) {
-      for (nodeName in editorNodes) {
-        var node = editorNodes[nodeName];
+    for (nodeName in editorNodes) {
+      var node = editorNodes[nodeName];
+      for (key in guiNodes) {
         if (node.prototype.type === key) {
           guiNodes[key].push(node);
         }
       }
+
+      if (node.prototype.type == 'action'){
+        if (!categoryNodes[node.prototype.category])
+          categoryNodes[node.prototype.category] = [];
+
+        categoryNodes[node.prototype.category].push(node);
+      }
     }
-    
+
     // timeout needed due to apply function
     // apply is used to update the view automatically when the scope is changed
     $timeout(function() {
       $scope.$apply(function() {
         $scope.nodes = guiNodes;
+        $scope.categories = categoryNodes;
       });
     }, 0, false);
   }
