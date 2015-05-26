@@ -122,7 +122,7 @@ angular.module('app.property', [])
         });
       }
 
-      if (key && value != '') {
+      if (key && value !== '') {
         newNode.properties[key] = value;
       }
     }
