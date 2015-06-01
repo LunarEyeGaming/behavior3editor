@@ -153,7 +153,6 @@ angular.module('app.property', [])
     link: function(scope, element, attrs) {
       element.bind('click', function() {
         element.parent().parent().remove();
-        scope.updateProperties();
       });
     }
   };

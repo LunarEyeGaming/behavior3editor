@@ -164,7 +164,7 @@ this.b3editor = this.b3editor || {};
     block.id = b3.createUUID();
     block.title = node.title;
     block.description = node.description;
-    block.properties = node.parameters;
+    block.properties = node.parameters || {};
 
     if (node.type == 'action')
       block.output = node.output || {};

@@ -55,8 +55,10 @@ angular.module('app.menu', ['app.modal'])
         { name: "All files", extensions: ['*']}
       ]
     }, function(filenames) {
-      var filename = filenames[0];
-      $window.app.editor.openTreeFile(filenames[0]);
+      if (filenames) {
+        var filename = filenames[0];
+        $window.app.editor.openTreeFile(filenames[0]);
+      }
     });
 
     return false;
