@@ -149,10 +149,6 @@ this.b3editor = this.b3editor || {};
     }
   }
   p.importBlock = function(node, parent) {
-    if (node.type == 'module') {
-      node.name = node.path;
-    } 
-
     if (!this.nodes[node.name]) {
       if (node.type == "control") node.type = "composite"; // Stupid format conversion
       var newNode = JSON.parse(JSON.stringify(node));
@@ -238,14 +234,6 @@ this.b3editor = this.b3editor || {};
   }
   p.exportBlock = function(block, scripts) {
     var data = {};
-
-    if (block.type == "module") {
-      data.type = "module";
-      data.path = block.name;
-      data.title = block.title;
-      data.parameters = block.properties;
-      return data;
-    }
 
     data.title = block.title;
     data.type = block.type;
