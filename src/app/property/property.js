@@ -30,6 +30,10 @@ angular.module('app.property', [])
     if (typeof key == 'undefined') key = '';
     if (typeof value == 'undefined') value = '';
     value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
+    
+    if (value == "null")
+      value = "";
+
     var template = this_.template.format(key, value);
     this_.table.append($compile(template)($scope));
   }
@@ -113,6 +117,9 @@ angular.module('app.property', [])
       var key = domKeys[i].value;
       var value = domValues[i].value;
 
+      if (value === "")
+        value = "null";
+
       try {
         value = JSON.parse(value);
       } catch (e){
@@ -122,7 +129,7 @@ angular.module('app.property', [])
         });
       }
 
-      if (key && value !== '') {
+      if (key) {
         newNode.properties[key] = value;
       }
     }

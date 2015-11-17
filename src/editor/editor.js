@@ -238,7 +238,14 @@ this.b3editor = this.b3editor || {};
     data.title = block.title;
     data.type = block.type;
     data.name = block.name;
-    data.parameters = block.properties;
+    data.parameters = {};
+
+    var parameterKeys = Object.keys(block.properties)
+    for (var i=0; i<parameterKeys.length; i++) {
+      var key = parameterKeys[i];
+      if (block.properties[key] != null)
+        data.parameters[key] = block.properties[key];
+    }
 
     var script = block.node.prototype.script;
     if (script && script != '') {
