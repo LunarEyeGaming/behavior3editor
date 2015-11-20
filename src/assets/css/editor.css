@@ -2,11 +2,10 @@ html, body {
   padding     : 0px;
   margin      : 0px;
   overflow    : hidden;
-  font-family : 'Open Sans', sans-serif;
-  font-size   : 16px;
+  font-size   : 12px;
   font-weight : 100 !important;
-  color       : #999999;
-  background  : #171717;
+  color       : #333333;
+  background  : #ffffff;
 }
 .left {
   float: left;
@@ -16,7 +15,7 @@ html, body {
 }
 .panel {
   overflow-y: auto;
-  padding: 15px;
+  padding: 5px;
 }
 .wide {
   width: 100%;
@@ -58,7 +57,7 @@ button, .button {
   padding: 2px 5px;
   background-color: #008CBA;
   border-color: #007095;
-  color: #FFFFFF;
+  color: #333333;
   padding-top: 0.375rem;
   padding-right: 1.75rem;
   padding-bottom: 0.4375rem;
@@ -69,7 +68,7 @@ button:hover, .button:hover {
   background-color: #007095;
 }
 button:hover, .button:hover {
-  color: #FFFFFF;
+  color: #333333;
 }
 button.secondary, .button.secondary {
   background-color: #e7e7e7;
@@ -85,62 +84,25 @@ button.secondary:hover, .button.secondary:hover {
 button.success, .button.success {
   background-color: #43AC6A;
   border-color: #368a55;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 button.success:hover, .button.success:hover {
   background-color: #368a55;
 }
 button.success:hover, .button.success:hover {
-  color: #FFFFFF;
+  color: #ffffff;
 }
 button.alert, .button.alert {
   background-color: #f04124;
   border-color: #cf2a0e;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 button.alert:hover, .button.alert:hover {
   background-color: #cf2a0e;
 }
 button.alert:hover, .button.alert:hover {
-  color: #FFFFFF;
+  color: #ffffff;
 }
-
-
-
-
-/* ================================*/
-/* SCROLL                          */
-/* ================================*/
-/* Let's get this party started */
-::-webkit-scrollbar {
-    width: 3px;
-}
- 
-/* Track */
-::-webkit-scrollbar-track {
-  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3); 
-  background: #222222;
-  /*-webkit-border-radius: 10px;*/
-  /*border-radius: 10px;*/
-}
- 
-/* Handle */
-::-webkit-scrollbar-thumb {
-  /*-webkit-border-radius: 10px;*/
-  /*border-radius: 10px;*/
-  background: #008CBA;
-  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
-}
-::-webkit-scrollbar-thumb:window-inactive {
-  background: #008CBA; 
-}
-
-
-
-
-
-
-
 
 /* ================================*/
 /* FORM                            */
@@ -149,18 +111,18 @@ form {
   text-align: left;
 }
 form .row {
-  margin: 10px 0px 20px 0px;
+  margin: 0.5em 0px 1em 0px;
 }
 form .row label {
   text-align: left;
   display: block;
-  padding-bottom: 5px;
+  padding-bottom: 2px;
 }
 form .row input, form .row textarea, form .row select { 
   display: block;
   width: 95%;
   color: #111;
-  padding: 5px;
+  padding: 3px;
 }
 
 
@@ -174,16 +136,13 @@ form .row input, form .row textarea, form .row select {
   margin: 0px;
   padding: 0px;
   text-align: center;
-  font-size: 14px;
   position: absolute;
   top: 0px;
   left: 0px;
   width: 100%;
-  height: 35px;
-  background-color: #454545;
-  -webkit-box-shadow: 0px 0px 16px 0px rgba(0,0,0,0.75);
-  -moz-box-shadow: 0px 0px 16px 0px rgba(0,0,0,0.75);
-  box-shadow: 0px 0px 16px 0px rgba(0,0,0,0.75);
+  height: 25px;
+  background-color: #dddddd;
+  border-bottom: 1px solid #aaaaaa;
   z-index: 100;
 }
 
@@ -202,33 +161,23 @@ form .row input, form .row textarea, form .row select {
 
 .topbar ul li {
   float: left;
+  border-right: 1px solid #aaaaaa;
 }
 .topbar ul li:hover {
-  background-color: #222;
+  background-color: #aaaaaa;
 }
 .topbar ul li a {
-  color: #FFFFFF;
+  color: #333333;
   display: block;
-  height: 35px;
+  height: 25px;
   padding: 0px 10px;
-  line-height: 35px;
+  line-height: 25px;
   text-decoration: none;
 }
 .topbar ul li a .shortcut {
-  color: #999;
+  color: #666666;
   float: right;
   font-style: italic;
-}
-.topbar ul li .logo {
-  color: #4BB2FD;
-  background-color: #333333;
-  font-weight: bold;
-  transition: background-color 300ms ease-in; 
-  transition: color 300ms ease-in; 
-}
-.topbar ul li .logo:hover {
-  color: #454545;
-  background-color: #CCCCCC;
 }
 
 .topbar ul li:hover > ul {
@@ -236,24 +185,21 @@ form .row input, form .row textarea, form .row select {
 }
 .topbar ul ul {
   display: none;
-  background: #454545;
+  background: #ffffff;
   position: absolute;
   top: 100%;
   min-width: 200px;
   border: 1px solid #333333;
-}
-.topbar .right ul ul {
-  right: 0;
 }
 .topbar ul ul li {
   float: none;
   position: relative;
 }
 .topbar ul ul li a {
-  height: 35px;
+  height: 25px;
   padding: 0px 10px;
-  line-height: 35px;
-  color: #fff;
+  line-height: 25px;
+  color: #333333;
   text-align: left;
 }
 .topbar ul ul ul {
@@ -261,7 +207,6 @@ form .row input, form .row textarea, form .row select {
   top: 0;
 }
 .topbar .left ul ul ul { left: 100%; }
-.topbar .right ul ul ul { right: 100%; }
 .topbar .divider { border-top: 1px solid #555; }
 /* ================================*/
 
@@ -277,13 +222,10 @@ form .row input, form .row textarea, form .row select {
   position: absolute;
   z-index: 50;
   top: 0px;
-  background-color: #2F2F2F;
-  width: 300px;
+  background-color: #ffffff;
+  width: 250px;
   height: 100%;
   padding-top: 40px;
-  -webkit-box-shadow: 0px 0px 16px 0px rgba(0,0,0,0.75);
-  -moz-box-shadow: 0px 0px 16px 0px rgba(0,0,0,0.75);
-  box-shadow: 0px 0px 16px 0px rgba(0,0,0,0.75);
 }
 .sidebar.left { left: 0px; }
 .sidebar.right { right: 0px; }
@@ -315,7 +257,6 @@ form .row input, form .row textarea, form .row select {
   opacity: 0.8;
 }
 .modal-dialog {
-  /* A centered div above the overlay with a box shadow. */
   position: absolute;
   z-index: 10000;
   width: 50%; /* Default */
@@ -324,19 +265,15 @@ form .row input, form .row textarea, form .row select {
   /* Center the dialog */
   top: 200px;
   left: 50%;
-  transform: translate(-50%, 0);
-  -webkit-transform: translate(-50%, 0);
-  -moz-transform: translate(-50%, 0);
 
   border: 1px solid #454545;
-  /*box-shadow: 4px 4px 80px #000;*/
 }
 .modal-dialog .wide {
   width: 50%;
 }
 .modal-dialog-content {
   padding: 10px;
-  background-color: #343434;
+  background-color: #ffffff;
   text-align: left;
 }
 .modal-close {
@@ -362,12 +299,12 @@ form .row input, form .row textarea, form .row select {
 }
 .modal-body {
   color: #efefef;
-  background-color: #484848;
+  background-color: #ffffff;
   border: 1px solid #181818;
   padding: 15px;
 }
 .modal-footer {
-  background-color: #484848;
+  background-color: #ffffff;
   border: 1px solid #181818;
   padding: 15px;
   margin-top: 10px;
@@ -473,9 +410,14 @@ form .row input, form .row textarea, form .row select {
   padding: 0px;
   margin: 0px;
 }
+.item-list li ul li {
+  padding: 2px;
+  margin: 2px;
+  border: 1px solid #333333;
+}
 .item-list a {
   padding: 2px 0px 2px 10px;
-  color: #FFFFFF;
+  color: #333333;
   text-decoration: none;
   display: block;
 }
@@ -491,25 +433,26 @@ form .row input, form .row textarea, form .row select {
   display: block;
 }
 .item-list a:hover {
-  background-color: #222;
+  background-color: #ffffff;
 }
 .item-list a.header {
   text-transform: uppercase;
   font-weight: 600!important;
-  color: #999999;
-  border-bottom: 1px solid #555;
+  color: #333333;
+  font-size: 1.2em;
 }
 .item-list a.header:hover {
   background-color: inherit;
 }
 .item-list a.category {
   font-weight: 600;
-  color: #666666;
+  color: #333333;
+  font-size: 1.1em;
 }
 .item-list .edit {
   padding: 0px 5px;
   margin: 0px 1px;
-  background-color: #2F2F2F;
+  background-color: #ffffff;
 }
 
 
@@ -540,7 +483,7 @@ form .row input, form .row textarea, form .row select {
 #addnode-modal table input, 
 #addnode-modal table select  {
   width: 90%;
-  padding: 0px 5px !important;
+  padding: 3px 2px !important;
 }
 #addnode-modal table .button {
   width: 20px;
@@ -588,7 +531,7 @@ form .row input, form .row textarea, form .row select {
 }
 .property-panel table input {
   width: 85%;
-  padding: 0px 5px !important;
+  padding: 3px 5px !important;
 }
 .property-panel table .button {
   width: 20px;
