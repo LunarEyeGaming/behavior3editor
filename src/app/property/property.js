@@ -28,9 +28,9 @@ angular.module('app.property', [])
   var this_ = this;
   $scope.addRow = function(key, value) {
     if (typeof key == 'undefined') key = '';
-    if (typeof value == 'undefined') value = '';
+    if (typeof value == 'undefined') value = null;
     value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
-    
+
     if (value == "null")
       value = "";
 
