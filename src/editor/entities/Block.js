@@ -60,6 +60,7 @@ this.b3editor = this.b3editor || {};
     block.title           = this.title;
     block.description     = this.description;
     block.properties      = JSON.parse(JSON.stringify(this.properties));
+    block.output          = this.output ? JSON.parse(JSON.stringify(this.output)) : null;
 
     return block;
   }
