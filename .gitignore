@@ -34,4 +34,12 @@ node_modules
 todo
 
 dist/*
-electron/*
+electron/*.dll
+electron/*.dat
+electron/*.bin
+electron/*.pak
+electron/*.exe
+electron/LICENSE
+electron/version
+electron/resources/*.asar
+electron/locales
