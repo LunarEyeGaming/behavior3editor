@@ -16,16 +16,16 @@ var OPTIONS = {
     snap_y        : 16,
     snap_offset_x : 0,
     snap_offset_y : 0,
-    
+
     // CONNECTION
     connection_width       : 2,
-    
+
     // ANCHOR
     anchor_border_width    : 2,
     anchor_radius          : 7,
     anchor_offset_x        : 4,
     anchor_offset_y        : 0,
-    
+
     // BLOCK
     block_border_width     : 2,
     block_root_width       : 40,

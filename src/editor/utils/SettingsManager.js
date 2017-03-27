@@ -21,11 +21,14 @@ this.b3editor = this.b3editor || {};
     p.get = function(key) {
         return this._dict[key]
     };
+    p.all = function() {
+      return this._dict;
+    };
     p.load = function(data) {
         for (var key in data) {
             this.set(key, data[key]);
         }
-    };    
+    };
 
   b3editor.SettingsManager = SettingsManager;
 }());

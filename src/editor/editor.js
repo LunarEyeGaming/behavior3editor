@@ -9,9 +9,8 @@ this.b3editor = this.b3editor || {};
 
   p.initialize = function() {
     this.settings = new b3editor.SettingsManager();
-    this.settings.load(b3editor.OPTIONS);
-    this.settings.load(b3editor.THEME_DARK);
-    this.settings.load(b3editor.SHORTCUTS);
+    this.loadSettings();
+    this.saveSettings(); // creates new settings file if it doesn't exist
     this.canvas = new b3editor.Game(this.settings);
     app.editor = this;
     app.settings= this.settings;
@@ -71,6 +70,12 @@ this.b3editor = this.b3editor || {};
     this.center();
 
     this.canvas.stage.update();
+
+    var lastProject = this.settings.get("last_project")
+    if (lastProject) {
+      var project = fs.readFileSync(lastProject);
+      this.loadProject(b3editor.Project.load(lastProject, project));
+    }
   };
 
   // INTERNAL =================================================================
@@ -94,6 +99,29 @@ this.b3editor = this.b3editor || {};
       this.categories[category] = true;
     }
   }
+
+  p.resetNodes = function() {
+    this.nodes = [];
+    this.categories = {};
+    this.registerNode(b3editor.Root);
+  }
+
+  p.loadSettings = function() {
+    this.settings.load(b3editor.OPTIONS);
+    this.settings.load(b3editor.THEME_DARK);
+    this.settings.load(b3editor.SHORTCUTS);
+    if (fs.existsSync("../settings.json")) {
+      var settings = JSON.parse(fs.readFileSync("../settings.json"));
+      this.settings.load(settings)
+    }
+  }
+
+  p.saveSettings = function() {
+    console.log("ASD");
+    var settings = JSON.stringify(this.settings.all(), null, 2);
+    fs.writeFileSync("../settings.json", settings);
+  }
+
   p.registerSymbol = function(type, symbol) {
     if (!symbol) {
       symbol = type;
@@ -338,15 +366,22 @@ this.b3editor = this.b3editor || {};
     }
   }
   p.loadProject = function(project) {
-    this.project = project;
-    this.trees = [];
-    this.nodes = [];
-    this.tree = null;
+    this.settings.set("last_project", project.fileName);
+    this.saveSettings();
 
+    this.project = project;
+
+    this.resetNodes();
     project.findNodes().forEach(file => {
       var json = fs.readFileSync(file);
       this.importNodes(json);
     });
+
+    this.trees = [];
+    this.tree = null;
+
+    this.addTree();
+    this.center();
   }
   p.exportNodeCategory = function(category) {
     var data = {};

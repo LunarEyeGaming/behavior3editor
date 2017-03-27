@@ -33,6 +33,8 @@ node_modules
 # Custom
 todo
 
+settings.json
+
 dist/*
 electron/*.dll
 electron/*.dat
