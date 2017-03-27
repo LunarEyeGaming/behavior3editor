@@ -28,6 +28,8 @@ angular.module('app.menu', ['app.modal'])
     $window.keyboard(settings.get('key_select_all'), function(e) {$scope.onButtonSelectAll(e)});
     $window.keyboard(settings.get('key_deselect_all'), function(e) {$scope.onButtonDeselectAll(e)});
     $window.keyboard(settings.get('key_invert_selection'), function(e) {$scope.onButtonInvertSelection(e)});
+    $window.keyboard(settings.get('key_new_project'), function(e) {$scope.onButtonNewProject(e)});
+    $window.keyboard(settings.get('key_open_project'), function(e) {$scope.onButtonOpenProject(e)});
     $window.keyboard(settings.get('key_new_tree'), function(e) {$scope.onButtonNewTree(e)});
     $window.keyboard(settings.get('key_new_node'), function(e) {$scope.onButtonNewNode(e)});
     $window.keyboard(settings.get('key_open_tree'), function(e) {$scope.onButtonOpenTree(e)});
@@ -49,7 +51,7 @@ angular.module('app.menu', ['app.modal'])
     if (e) e.preventDefault();
 
     dialog.showOpenDialog({
-      title: "Open Behavior File", 
+      title: "Open Behavior File",
       filters : [
         { name: "Behavior", extensions: ['behavior']},
         { name: "All files", extensions: ['*']}
@@ -81,7 +83,7 @@ angular.module('app.menu', ['app.modal'])
 
     var editor = $window.app.editor;
     dialog.showOpenDialog({
-      title: "Import nodes", 
+      title: "Import nodes",
       filters : [
         { name: "JSON", extensions: ['json']},
         { name: "All files", extensions: ['*']}
@@ -104,28 +106,77 @@ angular.module('app.menu', ['app.modal'])
   }
   $scope.onButtonExportNodes = function(e) {
     if (e) e.preventDefault();
-
-    dialog.showSaveDialog({
-      title: "Export nodes", 
-      filters : [
-        { name: "JSON", extensions: ['json']},
-        { name: "All files", extensions: ['*']}
-      ]
-    }, function(filename) {
-      var editor = $window.app.editor;
-      var json = editor.exportNodes();
-
-      fs.writeFile(filename, json, function(err){
-        if (err) throw err;
-
-        editor.trigger('notification', name, {
-          level: 'success',
-          message: 'Exported Nodes'
-        });
+    var editor = $window.app.editor;
+    var nodes = editor.exportNodes();
+    if (editor.project == null) {
+      editor.trigger('notification', name, {
+        level: 'error',
+        message: 'Cannot export nodes. No project loaded.'
       });
+    }
+
+    for (category in nodes) {
+      fs.writeFileSync(path.join(editor.project.nodesPath, category + ".json"), nodes[category]);
+    }
+    return false;
+  }
+
+  $scope.onButtonNewProject = function(e) {
+    if (e) e.preventDefault();
+    console.log("New project");
+    dialog.showOpenDialog({
+      title: "Select path for nodes",
+      filters : [
+      ],
+      properties: [ "openDirectory" ]
+    }, function(filenames) {
+      if (filenames) {
+        var project = new b3editor.Project();
+        project.nodesPath = filenames[0];
+
+        dialog.showSaveDialog({
+          title: "Save project",
+          filters : [
+            { name: "Behavior project", extensions: ['.behavior-project']}
+          ]
+        }, function(filename) {
+          project.fileName = filename;
+
+          var editor = $window.app.editor;
+          fs.writeFile(filename, project.save(), function(err){
+            if (err) throw err;
+
+            editor.loadProject(project);
+          });
+        });
+      }
     });
     return false;
   }
+
+  $scope.onButtonOpenProject = function(e) {
+    if (e) e.preventDefault();
+
+    var editor = $window.app.editor;
+    dialog.showOpenDialog({
+      title: "Open project",
+      filters : [
+        { name: "Behavior project", extensions: ['behavior-project']},
+        { name: "All files", extensions: ['*']}
+      ]
+    }, function(filenames) {
+      if (filenames) {
+        var filename = filenames[0];
+        fs.readFile(filename, function(err, data){
+          if (err) throw err;
+          var project = b3editor.Project.load(filename, data);
+          editor.loadProject(project);
+        });
+      }
+    });
+    return false;
+  }
+
   $scope.onButtonNewNode = function(e) {
     if (e) e.preventDefault();
     $rootScope.$broadcast('onButtonNewNode');

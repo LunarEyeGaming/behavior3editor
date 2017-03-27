@@ -18,7 +18,8 @@ var SHORTCUTS = {
     key_organize         : 'a',
     key_zoom_in          : 'ctrl+up',
     key_zoom_out         : 'ctrl+down',
-    
+    key_new_project      : '',
+    key_open_project     : '',
     key_new_tree         : 'ctrl+t',
     key_new_node         : 'ctrl+n',
     key_open_tree      : 'ctrl+o',

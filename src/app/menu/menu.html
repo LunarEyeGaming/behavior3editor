@@ -3,6 +3,8 @@
     <ul>
       <li><a href="#">File</a>
         <ul>
+          <li><a ng-click ="onButtonNewProject()" href="#">New Project<span class="shortcut">{{key_new_project}}</span></a></li>
+          <li><a ng-click ="onButtonOpenProject()" href="#">Open Project<span class="shortcut">{{key_open_project}}</span></a></li>
           <li><a ng-click ="onButtonNewTree()" href="#">New Tree<span class="shortcut">{{key_new_tree}}</span></a></li>
           <li><a ng-click ="onButtonOpenTree()" href="#">Open...<span class="shortcut">{{key_open_tree}}</span></a></li>
           <li><a ng-click ="onButtonSaveTree()" href="#">Save<span class="shortcut">{{key_save_tree}}</span></a></li>
