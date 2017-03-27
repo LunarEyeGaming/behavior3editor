@@ -40,6 +40,8 @@ electron/*.bin
 electron/*.pak
 electron/*.exe
 electron/*.html
+electron/*.so
+electron/electron
 *LICENSE
 *version
 *.asar
