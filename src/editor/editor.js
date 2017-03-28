@@ -11,6 +11,22 @@ this.b3editor = this.b3editor || {};
     this.settings = new b3editor.SettingsManager();
     this.loadSettings();
     this.saveSettings(); // creates new settings file if it doesn't exist
+
+    this.logger = new b3editor.Logger();
+    var editor = this;
+    this.logger.onWarning = function(message) {
+      editor.trigger('notification', "Warning", {
+        level: 'warn',
+        message: message
+      });
+    }
+    this.logger.onError = function(message) {
+      editor.trigger('notification', "Error", {
+        level: 'error',
+        message: message
+      });
+    }
+
     this.canvas = new b3editor.Game(this.settings);
     app.editor = this;
     app.settings= this.settings;
@@ -27,8 +43,8 @@ this.b3editor = this.b3editor || {};
     this.selectedBlocks   = [];
 
     // PROJECT
-    this.nodes            = {};
-    this.categories       = {};
+    this.resetNodes();
+    this.warnedNodes      = new Set();
     this.clipboard        = [];
 
     // WHOLE
@@ -101,7 +117,7 @@ this.b3editor = this.b3editor || {};
   }
 
   p.resetNodes = function() {
-    this.nodes = [];
+    this.nodes = {};
     this.categories = {};
     this.registerNode(b3editor.Root);
   }
@@ -117,7 +133,6 @@ this.b3editor = this.b3editor || {};
   }
 
   p.saveSettings = function() {
-    console.log("ASD");
     var settings = JSON.stringify(this.settings.all(), null, 2);
     fs.writeFileSync("../settings.json", settings);
   }
@@ -181,11 +196,12 @@ this.b3editor = this.b3editor || {};
     }
   }
   p.importBlock = function(node, parent) {
-    if (!this.nodes[node.name]) {
-      if (node.type == "control") node.type = "composite"; // Stupid format conversion
-      var newNode = JSON.parse(JSON.stringify(node));
-      newNode.title = node.name;
-      this.addNode(newNode);
+    if (this.nodes[node.name] == undefined) {
+      var nodeCopy = JSON.parse(JSON.stringify(node));
+      if (nodeCopy.child) delete nodeCopy.child;
+      if (nodeCopy.children) delete nodeCopy.children;
+      this.logger.error("Node \"" + node.name + "\" not registered. Loaded with config: \n" + JSON.stringify(nodeCopy, null, 2));
+      return;
     }
 
     var block = this.addBlock(node.name, 0, 0);
@@ -199,16 +215,18 @@ this.b3editor = this.b3editor || {};
 
     // Import properties
     for (var key in block.properties) {
-      if (block.node.prototype.properties[key] == undefined) {
-        block.node.prototype.properties[key] = block.properties[key];
+      if (block.node.prototype.properties[key] === undefined) {
+        this.logger.warn("Deleting property not specified in prototype from \""+node.name+"\": " + key);
+        delete block.properties[key];
       }
     }
 
     // Import output types
     if (block.type == 'action') {
       for (var key in block.output) {
-        if (block.node.prototype.output[key] == undefined) {
-          block.node.prototype.output[key] = block.output[key];
+        if (block.node.prototype.output[key] === undefined) {
+          this.logger.warn("Deleting output not specified in prototype from \""+node.name+"\": " + key);
+          delete block.output[key];
         }
       }
     }
@@ -218,13 +236,24 @@ this.b3editor = this.b3editor || {};
       this.addConnection(outBlock, block);
     }
 
+    var error = false;
     if (node.children) {
       for (var i=0; i<node.children.length; i++) {
-        this.importBlock(node.children[i], block.id);
+        var parent = error ? null : block.id;
+        if (!this.importBlock(node.children[i], parent)) {
+          error = true;
+        }
       }
     }
     if (node.child) {
-      this.importBlock(node.child, block.id);
+      var parent = error ? null : block.id;
+      if (!this.importBlock(node.child, parent)) {
+        error = true;
+      }
+    }
+
+    if (error) {
+      return;
     }
 
     block.redraw();
@@ -235,7 +264,13 @@ this.b3editor = this.b3editor || {};
     this.reset();
 
     var data = JSON.parse(json);
+    this.logger.info("Import tree "+data.name);
     var dataRoot = this.importBlock(data.root);
+    if (!dataRoot) {
+      this.logger.error("Failed to import tree "+data.name);
+      this.reset();
+      return false;
+    }
 
     var root = this.getRoot();
     root.title = data.name;
@@ -243,6 +278,7 @@ this.b3editor = this.b3editor || {};
     this.addConnection(root, dataRoot);
 
     this.organize(true);
+    return true;
   }
   p.openTreeFile = function(filename) {
     for (var i=0; i<this.trees.length; i++) {
@@ -253,16 +289,13 @@ this.b3editor = this.b3editor || {};
       }
     }
 
+    this.logger.info("Open behavior from " + filename);
     var tree = this.addTree();
     tree.path = filename;
 
     var editor = this;
-    fs.readFile(filename, function(err, data){
-      if (err) throw err;
-      editor.importFromJSON(data);
-
-      editor.trigger('treeadded', tree);
-    });
+    var data = fs.readFileSync(filename);
+    editor.importFromJSON(data);
   }
   p.exportBlock = function(block, scripts) {
     var data = {};
@@ -271,7 +304,6 @@ this.b3editor = this.b3editor || {};
     data.type = block.type;
     data.name = block.name;
     data.parameters = {};
-
     var parameterKeys = Object.keys(block.properties)
     for (var i=0; i<parameterKeys.length; i++) {
       var key = parameterKeys[i];
@@ -338,6 +370,7 @@ this.b3editor = this.b3editor || {};
       fs.writeFile(path, json, function(err){
         if (err) throw err;
 
+        this.logger.info("Saved tree "+name)
         editor.trigger('notification', name, {
           level: 'success',
           message: 'Saved'
@@ -369,19 +402,23 @@ this.b3editor = this.b3editor || {};
     this.settings.set("last_project", project.fileName);
     this.saveSettings();
 
+    this.logger.info("Loaded project from " + project.fileName);
     this.project = project;
 
     this.resetNodes();
     project.findNodes().forEach(file => {
+      this.logger.info("Import nodes from " + path.relative(project.fileName, file))
       var json = fs.readFileSync(file);
       this.importNodes(json);
     });
 
-    this.trees = [];
-    this.tree = null;
+    this.reset();
 
-    this.addTree();
-    this.center();
+    // project.findTrees().forEach(file => {
+    //   this.openTreeFile(file);
+    // });
+
+    this.logger.info("Successfully loaded project")
   }
   p.exportNodeCategory = function(category) {
     var data = {};
@@ -417,7 +454,6 @@ this.b3editor = this.b3editor || {};
     nodes.action = this.exportNodeCategory("action")
     nodes.module = this.exportNodeCategory("module")
     for (var category in this.categories) {
-      console.log(category)
       nodes[category] = this.exportNodeCategory(category);
     }
     return nodes;
@@ -432,10 +468,7 @@ this.b3editor = this.b3editor || {};
   }
   p.addNode = function(node) {
     if (this.nodes[node.name]) {
-      this.trigger('notification', node.name, {
-        level: 'error',
-        message: 'Node named "'+node.name+'" already registered.'
-      });
+      this.logger.error('Node named "'+node.name+'" already registered.')
       return;
     }
 
@@ -461,16 +494,15 @@ this.b3editor = this.b3editor || {};
 
     this.registerNode(tempClass);
     this.trigger('nodeadded', tempClass);
+
+    this.exportNodes();
   }
   p.editNode = function(oldName, newNode) {
     var node = this.nodes[oldName];
     if (!node) return;
 
     if (oldName !== newNode.name && this.nodes[newNode.name]) {
-      this.trigger('notification', newNode.name, {
-        level: 'error',
-        message: 'Node named "'+newNode.name+'" already registered.'
-      });
+      this.logger.error('Node named "'+newNode.name+'" already registered.');
       return;
     }
 
@@ -502,7 +534,10 @@ this.b3editor = this.b3editor || {};
       }
     }
 
+    this.exportNodes();
     this.trigger('nodechanged', node);
+
+    this.exportNodes();
   }
   p.removeNode = function(name) {
     // TODO: verify if it is b3 node
@@ -519,6 +554,8 @@ this.b3editor = this.b3editor || {};
 
     delete this.nodes[name];
     this.trigger('noderemoved', node);
+
+    this.exportNodes();
   }
   p.addTree = function() {
     var block = new b3editor.Block(this.nodes['Root']);
@@ -584,10 +621,7 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    this.trigger('notification', id, {
-      level: 'error',
-      message: 'Trying to select an invalid tree.'
-    });
+    this.logger.error('Trying to select an invalid tree.');
   }
   p.removeTree = function(id) {
     var index = -1;

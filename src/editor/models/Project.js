@@ -31,7 +31,7 @@ this.b3editor = this.b3editor || {};
     fs.readdirSync(dir).forEach(file => {
       var full = path.join(dir, file)
       if (fs.statSync(full).isDirectory()) {
-        this.walk(full, filelist)
+        this.walk(full, match, filelist)
       } else if (full.match(match)) {
         filelist.push(full)
       }
