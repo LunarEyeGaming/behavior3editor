@@ -116,14 +116,13 @@ angular.module('app.menu', ['app.modal'])
     }
 
     for (category in nodes) {
-      fs.writeFileSync(path.join(editor.project.nodesPath, category + ".json"), nodes[category]);
+      fs.writeFileSync(path.join(editor.project.nodesPath, category + ".nodes"), nodes[category]);
     }
     return false;
   }
 
   $scope.onButtonNewProject = function(e) {
     if (e) e.preventDefault();
-    console.log("New project");
     dialog.showOpenDialog({
       title: "Select path for nodes",
       filters : [

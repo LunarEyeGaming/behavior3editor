@@ -13,8 +13,13 @@ angular.module('app.property', [])
   );
   this.template = '\
     <tr>\
-      <td><input id="key" type="text" value="{0}" onkeyup="element(this).updateProperties(this);" placeholder="key" readonly/></td>\
-      <td><input id="value" type="text" value="{1}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
+      <td><input id="is_key" type="checkbox" onchange="element(this).updateProperties(this);" {0} readonly/>key</td>\
+      <td><label id="key" for="{2}">{1}</label><input id="value" type="text" value="{2}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
+    </tr>\
+  ';
+  this.outputTemplate = '\
+    <tr>\
+      <td><label id="key" for="{1}">{0}</label><input id="value" type="text" value="{1}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
     </tr>\
   ';
   this.rootTemplate ='\
@@ -24,17 +29,28 @@ angular.module('app.property', [])
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
     </tr>\
   ';
-  
+
   var this_ = this;
   $scope.addRow = function(key, value) {
-    if (typeof key == 'undefined') key = '';
-    if (typeof value == 'undefined') value = null;
-    value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
+    if (value == undefined) value = {type: 'json', value: null};
+    var isKey = value.key === undefined ? false : true;
 
-    if (value == "null")
-      value = "";
+    var valString = value.value
+    if (valString === undefined) {
+      valString = value.key;
+    }
+    if (valString == null) valString = '';
+    if (valString !== '' && !isKey && value.type != 'string') {
+      valString = JSON.stringify(valString);
+    }
+    valString = valString.replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
 
-    var template = this_.template.format(key, value);
+    if (isKey) {
+      isKey = "checked";
+    } else {
+      isKey = "";
+    }
+    var template = this_.template.format(isKey, key, valString);
     this_.table.append($compile(template)($scope));
   }
   $scope.addRootProperty = function(key, value) {
@@ -46,9 +62,9 @@ angular.module('app.property', [])
   }
 
   $scope.addOutput = function(key, value) {
-    if (typeof key == 'undefined') key = '';
-    if (typeof value == 'undefined') value = '';;
-    var template = this_.template.format(key, value);
+    if (key == undefined) key = '';
+    if (value == undefined) value = '';
+    var template = this_.outputTemplate.format(key, value);
     this_.outputs.append($compile(template)($scope));
   }
 
@@ -67,27 +83,23 @@ angular.module('app.property', [])
       domTitle.value = block.title || '';
 
       for (key in block.node.prototype.properties) {
-        var value = block.properties[key] !== '' ? block.properties[key] : '';
-        $scope.addRow(key, value);
+        $scope.addRow(key, block.properties[key]);
       }
 
       if (block.type == 'root') {
         for (key in block.properties) {
-          var value = block.properties[key] !== '' ? block.properties[key] : '';
-          $scope.addRootProperty(key, value);
+          $scope.addRootProperty(key, block.properties[key].value);
         }
       }
 
       if (block.type == 'action') {
         for (key in block.node.prototype.output) {
-          var value = block.output[key] !== '' ? block.output[key] : '';
-          $scope.addOutput(key, value);
+          $scope.addOutput(key, block.output[key].key);
         }
       }
     } else {
       var block = null;
     }
-
 
     // timeout needed due to apply function
     // apply is used to update the view automatically when the scope is changed
@@ -104,36 +116,52 @@ angular.module('app.property', [])
 
   // UPDATE PROPERTIES ON NODE
   $scope.updateProperties = function() {
+    var node = $scope.block.node;
+
     var domTitle = document.querySelector('#property-panel #title');
     var domKeys = document.querySelectorAll('#property-properties-table #key');
     var domValues = document.querySelectorAll('#property-properties-table #value');
+    var domIsKeys = []
+    if (node.prototype.type != 'root') {
+      domIsKeys = document.querySelectorAll('#property-properties-table #is_key');
+    }
 
     var newNode = {
       title: domTitle.value,
       properties: {}
     }
 
+    var isRoot = node.prototype.type == 'root';
     for (var i=0; i<domKeys.length; i++) {
-      var key = domKeys[i].value;
+      var isKey = isRoot ? false : domIsKeys[i].checked;
+      var key = isRoot ? domKeys[i].value : domKeys[i].innerText;
       var value = domValues[i].value;
+      if (value == '') value = null;
 
-      if (value === "")
-        value = "null";
-
-      try {
-        value = JSON.parse(value);
-      } catch (e){
-        $window.app.editor.trigger('notification', name, {
-          level: 'error',
-          message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
-        });
+      var valueType = isRoot ? 'json' : node.prototype.properties[key].type;
+      if (!isKey && valueType != 'string') {
+        try {
+          value = JSON.parse(value);
+        } catch (e){
+          $window.app.editor.trigger('notification', name, {
+            level: 'error',
+            message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+          });
+        }
       }
 
       if (key) {
-        newNode.properties[key] = value;
+        newNode.properties[key] = {
+          type: valueType
+        }
+        if (isKey) {
+          newNode.properties[key].key = value
+        } else {
+          newNode.properties[key].value = value
+        }
       }
     }
-    
+
     if ($scope.block.type == 'action') {
       var domKeys = document.querySelectorAll('#property-output-table #key');
       var domValues = document.querySelectorAll('#property-output-table #value');
@@ -141,20 +169,33 @@ angular.module('app.property', [])
       newNode.output = {};
 
       for (var i=0; i<domKeys.length; i++) {
-        var key = domKeys[i].value;
+        var key = domKeys[i].innerText;
         var value = domValues[i].value;
+        if (value == '') value = null;
 
-        if (key && value != '') {
-          newNode.output[key] = value;
+        if (valueType != 'string') {
+          try {
+            value = JSON.parse(value);
+          } catch (e){
+            $window.app.editor.trigger('notification', name, {
+              level: 'error',
+              message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+            });
+          }
+        }
+
+        newNode.output[key] = {
+          type: node.prototype.output[key].type,
+          key: value || null
         }
       }
     }
-    
+
     $window.app.editor.editBlock($scope.block, newNode)
   }
 })
 
-.directive('propertyremovable', function() {    
+.directive('propertyremovable', function() {
   return {
     restrict: 'A',
     link: function(scope, element, attrs) {

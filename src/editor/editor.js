@@ -208,10 +208,24 @@ this.b3editor = this.b3editor || {};
     block.id = b3.createUUID();
     block.title = node.title;
     block.description = node.description;
-    block.properties = node.parameters || {};
+    block.properties = {};
+    var proto = this.nodes[node.name].prototype;
+    for (var key in proto.properties) {
+      if (node.parameters[key] !== undefined) {
+        block.properties[key] = JSON.parse(JSON.stringify(node.parameters[key]))
+      } else {
+        block.properties[key] = {value: null}
+      }
+      block.properties[key].type = proto.properties[key].type
+    }
 
-    if (node.type == 'action')
-      block.output = node.output || {};
+    if (node.type == 'action') {
+      block.output = {};
+      node.output = node.output || {};
+      for (var key in proto.output) {
+        block.output[key] = {type: proto.output[key].type, key: node.output[key] || null}
+      }
+    }
 
     // Import properties
     for (var key in block.properties) {
@@ -277,6 +291,31 @@ this.b3editor = this.b3editor || {};
     root.properties = data.parameters || {};
     this.addConnection(root, dataRoot);
 
+    var editor = this
+    var treeModuleParameters = function(treeParameters) {
+      var params = {}
+      for (var key in treeParameters) {
+        params[key] = {
+          type: 'json',
+          value: treeParameters[key]
+        }
+      }
+      return params
+    }
+
+    var moduleNode = this.nodes[data.name];
+    if (moduleNode != undefined && moduleNode.prototype.type == 'module') {
+      moduleNode.prototype.properties = treeModuleParameters(data.parameters);
+    } else {
+      var newNode = {
+        name: data.name,
+        type: 'module',
+        title: '',
+        properties: treeModuleParameters(data.parameters)
+      }
+      this.addNode(newNode);
+    }
+
     this.organize(true);
     return true;
   }
@@ -295,7 +334,9 @@ this.b3editor = this.b3editor || {};
 
     var editor = this;
     var data = fs.readFileSync(filename);
-    editor.importFromJSON(data);
+    if (editor.importFromJSON(data)) {
+      //editor.writeTreeFile();
+    }
   }
   p.exportBlock = function(block, scripts) {
     var data = {};
@@ -304,11 +345,13 @@ this.b3editor = this.b3editor || {};
     data.type = block.type;
     data.name = block.name;
     data.parameters = {};
-    var parameterKeys = Object.keys(block.properties)
-    for (var i=0; i<parameterKeys.length; i++) {
-      var key = parameterKeys[i];
-      if (block.properties[key] != null)
-        data.parameters[key] = block.properties[key];
+    for (var key in block.properties) {
+      if (block.properties[key] != null) {
+        if (block.properties[key].value != null)
+          data.parameters[key] = {value: block.properties[key].value};
+        else if (block.properties[key].key != null)
+          data.parameters[key] = {key: block.properties[key].key};
+      }
     }
 
     var script = block.node.prototype.script;
@@ -318,8 +361,14 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    if (block.type == 'action' && Object.keys(block.output).length > 0)
-      data.output = block.output;
+    if (block.type == 'action') {
+      for (var key in block.output) {
+        if (block.output[key] != null && block.output[key].key != null) {
+          data.output = data.output || {}
+          data.output[key] = block.output[key].key;
+        }
+      }
+    }
 
     var children = block.getOutNodeIdsByOrder();
     if (children.length > 0) {
@@ -353,14 +402,22 @@ this.b3editor = this.b3editor || {};
     if (rootBlock) {
       data.root = this.exportBlock(this.getBlockById(rootBlock), data.scripts);
 
-      return JSON.stringify(data, null, 2);
+      var replacer = function(k, v, spaces, depth) {
+        if (k == "parameters" || k == "output") {
+          // each parameter on one line
+          return CustomJSON.stringify(v, function(k2, v2, spaces, depth) {
+            return CustomJSON.stringify(v2, null, 0);
+          }, spaces, depth + 1)
+        } else {
+          return CustomJSON.stringify(v, replacer, spaces, depth + 1);
+        }
+      }
+      return CustomJSON.stringify(data, replacer, 2);
     } else {
       return "{}";
     }
   }
-  p.getScripts = function() {
 
-  }
   p.writeTreeFile = function() {
     var json = this.exportToJSON();
     var path = this.tree.path;
@@ -370,7 +427,7 @@ this.b3editor = this.b3editor || {};
       fs.writeFile(path, json, function(err){
         if (err) throw err;
 
-        this.logger.info("Saved tree "+name)
+        editor.logger.info("Saved tree "+name)
         editor.trigger('notification', name, {
           level: 'success',
           message: 'Saved'
@@ -431,8 +488,10 @@ this.b3editor = this.b3editor || {};
           data[name].type = node.prototype.type;
           data[name].name = node.prototype.name;
           data[name].title = node.prototype.title;
-          if (node.prototype.properties)
+          if (node.prototype.properties) {
             data[name].properties = JSON.parse(JSON.stringify(node.prototype.properties));
+
+          }
 
           if (node.prototype.type == "action") {
             if (node.prototype.category)
@@ -445,7 +504,17 @@ this.b3editor = this.b3editor || {};
         }
       }
     }
-    return JSON.stringify(data, null, 2)
+    var replacer = function(k, v, spaces, depth) {
+      if (k == "properties" || k == "output") {
+        // each parameter on one line
+        return CustomJSON.stringify(v, function(k2, v2, spaces, depth) {
+          return CustomJSON.stringify(v2, null, 0);
+        }, spaces, depth + 1)
+      } else {
+        return CustomJSON.stringify(v, replacer, spaces, depth + 1);
+      }
+    }
+    return CustomJSON.stringify(data, replacer, 2);
   }
   p.exportNodes = function() {
     var nodes = {}
@@ -484,18 +553,30 @@ this.b3editor = this.b3editor || {};
     var tempClass = b3.Class(cls);
     tempClass.prototype.name = node.name;
     tempClass.prototype.title = node.title;
-    tempClass.prototype.properties =  node.properties ? JSON.parse(JSON.stringify(node.properties)) : {};
+    tempClass.prototype.properties = {}
+    if (node.properties) {
+      for (var key in node.properties) {
+        tempClass.prototype.properties[key] = JSON.parse(JSON.stringify(node.properties[key]))
+      }
+    }
 
     if (node.type == "action") {
       tempClass.prototype.category = node.category || '';
       tempClass.prototype.script = node.script || '';
-      tempClass.prototype.output = node.output ? JSON.parse(JSON.stringify(node.output)) : {};
+
+      tempClass.prototype.output = {}
+      if (node.output) {
+        for (var key in node.output) {
+          if (node.output[key].key === '')
+            tempClass.prototype.output[key] = {type: node.output[key].type, key: null}
+          else
+            tempClass.prototype.output[key] = JSON.parse(JSON.stringify(node.output[key]))
+        }
+      }
     }
 
     this.registerNode(tempClass);
     this.trigger('nodeadded', tempClass);
-
-    this.exportNodes();
   }
   p.editNode = function(oldName, newNode) {
     var node = this.nodes[oldName];
@@ -534,10 +615,7 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    this.exportNodes();
     this.trigger('nodechanged', node);
-
-    this.exportNodes();
   }
   p.removeNode = function(name) {
     // TODO: verify if it is b3 node
@@ -554,8 +632,6 @@ this.b3editor = this.b3editor || {};
 
     delete this.nodes[name];
     this.trigger('noderemoved', node);
-
-    this.exportNodes();
   }
   p.addTree = function() {
     var block = new b3editor.Block(this.nodes['Root']);

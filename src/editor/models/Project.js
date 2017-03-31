@@ -40,7 +40,7 @@ this.b3editor = this.b3editor || {};
   }
 
   p.findNodes = function() {
-    return this.walk(this.nodesPath, /\.json$/);
+    return this.walk(this.nodesPath, /\.nodes$/);
   }
 
   p.findTrees = function() {
