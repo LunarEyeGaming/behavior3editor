@@ -19,7 +19,7 @@ angular.module('app.tree', ['app.modal'])
     });
   };
   // --------------------------------------------------------------------------
-  
+
   $scope.currentTree = $window.app.editor.tree.id;
 
   $scope.canEditTree = function() {

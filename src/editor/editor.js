@@ -275,20 +275,20 @@ this.b3editor = this.b3editor || {};
     return block
   }
   p.importFromJSON = function(json) {
-    this.reset();
-
     var data = JSON.parse(json);
     this.logger.info("Import tree "+data.name);
     var dataRoot = this.importBlock(data.root);
     if (!dataRoot) {
       this.logger.error("Failed to import tree "+data.name);
-      this.reset();
       return false;
     }
 
     var root = this.getRoot();
-    root.title = data.name;
-    root.properties = data.parameters || {};
+    this.editBlock(root, {
+      title: data.name,
+      description: data.description || "",
+      properties: data.parameters || {}
+    })
     this.addConnection(root, dataRoot);
 
     var editor = this
@@ -329,8 +329,8 @@ this.b3editor = this.b3editor || {};
     }
 
     this.logger.info("Open behavior from " + filename);
-    var tree = this.addTree();
-    tree.path = filename;
+    this.addTree();
+    this.tree.path = filename;
 
     var editor = this;
     var data = fs.readFileSync(filename);
@@ -569,8 +569,13 @@ this.b3editor = this.b3editor || {};
         for (var key in node.output) {
           if (node.output[key].key === '')
             tempClass.prototype.output[key] = {type: node.output[key].type, key: null}
-          else
+          else {
+            if (node.output[key].value !== undefined) {
+              node.output[key].key = node.output[key].value
+              delete node.output[key].value
+            }
             tempClass.prototype.output[key] = JSON.parse(JSON.stringify(node.output[key]))
+          }
         }
       }
     }

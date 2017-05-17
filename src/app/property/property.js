@@ -88,7 +88,7 @@ angular.module('app.property', [])
 
       if (block.type == 'root') {
         for (key in block.properties) {
-          $scope.addRootProperty(key, block.properties[key].value);
+          $scope.addRootProperty(key, block.properties[key]);
         }
       }
 
@@ -154,10 +154,14 @@ angular.module('app.property', [])
         newNode.properties[key] = {
           type: valueType
         }
-        if (isKey) {
-          newNode.properties[key].key = value
+        if (isRoot) {
+          newNode.properties[key] = value
         } else {
-          newNode.properties[key].value = value
+          if (isKey) {
+            newNode.properties[key].key = value
+          } else {
+            newNode.properties[key].value = value
+          }
         }
       }
     }
