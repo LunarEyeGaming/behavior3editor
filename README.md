@@ -9,7 +9,7 @@ BEHAVIOR3 EDITOR
 
 1. Clone this repo
 
-2. Download Electron from http://electron.atom.io/releases/
+2. Download Electron from https://github.com/electron/electron/releases/tag/v1.3.1
 
 3. Extract Electron into the /electron/ folder
 
