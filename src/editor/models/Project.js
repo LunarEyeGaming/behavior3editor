@@ -36,7 +36,7 @@ this.b3editor = this.b3editor || {};
   p.save = function() {
     var config = {}
     config.nodesPath = path.relative(this.fileName, this.nodesPath);
-    config.otherNodesPaths = this.otherNodesPaths.map(file => path.relative(this.fileName, file))
+    config.otherNodesPaths = this.otherNodesPaths.map(file => path.relative(this.fileName, file));
     return JSON.stringify(config, null, 2);
   }
 
@@ -61,14 +61,21 @@ this.b3editor = this.b3editor || {};
       return nodesPathNodes;
     }
 
-    var otherNodesPathsNodes = this.otherNodesPaths.map(file => this.walk(file, /\.nodes$/));
+    // An association between nodes directories and their corresponding nodes paths.
+    var otherNodesPathsNodes = this.otherNodesPaths.map(file => [file, this.walk(file, /\.nodes$/)]);
     // Concat all otherNodesPathNodes into one list, then concatenate nodesPathNodes with it.
-    var allNodes = [];
-    otherNodesPathsNodes.forEach(fileList => {
-      allNodes = allNodes.concat(fileList);
-    })
-    allNodes = allNodes.concat(nodesPathNodes);
-    return allNodes;
+    // var allNodes = [];
+    // otherNodesPathsNodes.forEach(fileList => {
+    //   allNodes = allNodes.concat(fileList);
+    // })
+    // allNodes = allNodes.concat(nodesPathNodes);
+    // return allNodes;
+
+    return {
+      mainPath: this.nodesPath,
+      mainNodes: nodesPathNodes,
+      otherNodes: otherNodesPathsNodes
+    }
   }
 
   p.findTrees = function() {

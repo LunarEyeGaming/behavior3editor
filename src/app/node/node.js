@@ -44,22 +44,32 @@ angular.module('app.node', ['app.modal'])
 
   // UPDATE NODES--------------------------------------------------------------
   this.updateNodes = function() {
-    var guiNodes = {
-      'composite' : [],
-      'decorator' : [],
-      'action'    : [],
-      'module'    : []
-    };
+    var guiNodes = {};
     var editorNodes = $window.app.editor.nodes;
-    var categoryNodes = {};
-
     for (nodeName in editorNodes) {
       var node = editorNodes[nodeName];
-      for (key in guiNodes) {
+
+      // If the origin directory has no corresponding entry, create it. Otherwise, do nothing.
+      if (guiNodes[node.prototype.originDirectory] === undefined) {
+        guiNodes[node.prototype.originDirectory] = {
+          'composite'        : [],
+          'decorator'        : [],
+          'action'           : [],
+          'module'           : [],
+          'actionCategories' : {}  // Used to display nodes by category
+        };
+      }
+
+      var guiNodesInDir = guiNodes[node.prototype.originDirectory];
+
+      // Validate type and add it to guiNodes
+      for (key in guiNodesInDir) {
         if (node.prototype.type === key) {
-          guiNodes[key].push(node);
+          guiNodesInDir[key].push(node);
         }
       }
+
+      var categoryNodes = guiNodesInDir.actionCategories;
 
       if (node.prototype.type == 'action'){
         if (!categoryNodes[node.prototype.category])
@@ -74,7 +84,6 @@ angular.module('app.node', ['app.modal'])
     $timeout(function() {
       $scope.$apply(function() {
         $scope.nodes = guiNodes;
-        $scope.categories = categoryNodes;
       });
     }, 0, false);
   }

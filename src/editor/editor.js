@@ -105,6 +105,7 @@ this.b3editor = this.b3editor || {};
     }
     this.dispatchEvent(event);
   }
+  // node is the node to register
   p.registerNode = function(node) {
     // TODO: raise error if node is invalid
     var name = node.prototype.name;
@@ -463,11 +464,7 @@ this.b3editor = this.b3editor || {};
     this.project = project;
 
     this.resetNodes();
-    project.findNodes().forEach(file => {
-      this.logger.info("Import nodes from " + path.relative(project.fileName, file))
-      var json = fs.readFileSync(file);
-      this.importNodes(json);
-    });
+    this.importAllNodes(project.fileName, project.findNodes());
 
     this.reset();
 
@@ -527,15 +524,28 @@ this.b3editor = this.b3editor || {};
     }
     return nodes;
   }
-  p.importNodes = function(json) {
+  // json is the JSON contents of the .nodes file; originDirectory is the directory from which it originated.
+  p.importNodes = function(json, originDirectory) {
     var nodes = JSON.parse(json);
     for (var name in nodes) {
       var node = nodes[name];
 
-      this.addNode(node);
+      this.addNode(node, originDirectory);
     }
   }
-  p.addNode = function(node) {
+  // Helper function. Shortcut for importing nodes during the loading of the project.
+  // projectLoc is the location of the behavior-project file to log the location of nodes that are imported.
+  // nodesPathList is the list of nodes paths to import.
+  // originDirectory is the directory from which the list of nodes originated (absolute).
+  p.importNodesInit = function(projectLoc, nodesPathList, originDirectory) {
+    nodesPathList.forEach(file => {
+      this.logger.info("Import nodes from " + path.relative(projectLoc, file));
+      var json = fs.readFileSync(file);
+      this.importNodes(json, path.relative(projectLoc, originDirectory));
+    });
+  }
+  // node is the node to add; originDirectory is the directory from which it originated (relative).
+  p.addNode = function(node, originDirectory) {
     if (this.nodes[node.name]) {
       this.logger.error('Node named "'+node.name+'" already registered.')
       return;
@@ -560,6 +570,9 @@ this.b3editor = this.b3editor || {};
       }
     }
 
+    // Indicate the directory of origin
+    tempClass.prototype.originDirectory = originDirectory;
+
     if (node.type == "action") {
       tempClass.prototype.category = node.category || '';
       tempClass.prototype.script = node.script || '';
@@ -582,6 +595,16 @@ this.b3editor = this.b3editor || {};
 
     this.registerNode(tempClass);
     this.trigger('nodeadded', tempClass);
+  }
+  // Imports all nodes nodesPaths from the result of Project.findNodes().
+  // nodesPaths is an object containing a mainPath, a mainNodes, and a nodesAssoc field. The nodesAssoc field contains
+  // an association list that associates each nodes directory with a list of .nodes files to import.
+  p.importAllNodes = function(projectLoc, nodesPaths) {
+    this.importNodesInit(projectLoc, nodesPaths.mainNodes, nodesPaths.mainPath);
+    nodesPaths.otherNodes.forEach(nodesAssoc => {
+      var [nodesDir, nodesPathList] = nodesAssoc;
+      this.importNodesInit(projectLoc, nodesPathList, nodesDir);
+    })
   }
   p.editNode = function(oldName, newNode) {
     var node = this.nodes[oldName];
