@@ -106,6 +106,7 @@ angular.module('app.menu', ['app.modal'])
   }
   $scope.onButtonExportNodes = function(e) {
     if (e) e.preventDefault();
+    // $rootScope.$broadcast('onButtonExportNodes');
     var editor = $window.app.editor;
     var nodes = editor.exportNodes();
     if (editor.project == null) {
@@ -115,8 +116,14 @@ angular.module('app.menu', ['app.modal'])
       });
     }
 
-    for (category in nodes) {
-      fs.writeFileSync(path.join(editor.project.nodesPath, category + ".nodes"), nodes[category]);
+    for (origin in nodes) {
+      var nodesInDir = nodes[origin];
+      for (category in nodesInDir) {
+        if (nodesInDir[category] !== null) {
+          // console.log("Category: " + category + ", Origin: " + origin);
+          fs.writeFileSync(path.join(path.resolve(editor.project.fileName, origin), category + ".nodes"), nodesInDir[category]); 
+        }
+      }
     }
     return false;
   }

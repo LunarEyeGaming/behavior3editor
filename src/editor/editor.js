@@ -115,11 +115,18 @@ this.b3editor = this.b3editor || {};
     if (category) {
       this.categories[category] = true;
     }
+
+    // TODO: make a less dumb way of representing origin directories.
+    var origin = node.prototype.originDirectory;
+    if (origin) {
+      this.originDirectories[origin] = true;
+    }
   }
 
   p.resetNodes = function() {
     this.nodes = {};
     this.categories = {};
+    this.originDirectories = {};
     this.registerNode(b3editor.Root);
   }
 
@@ -474,13 +481,20 @@ this.b3editor = this.b3editor || {};
 
     this.logger.info("Successfully loaded project")
   }
-  p.exportNodeCategory = function(category) {
+  // Exports nodes by category and directory of origin.
+  // category: the category of nodes to export
+  // origin: the directory of origin to filter by
+  // return a list of nodes to export (keyed by name), or null if no nodes have been exported.
+  p.exportNodeCategory = function(category, origin) {
     var data = {};
+    var dataIsEmpty = true;
+  
     for (var name in this.nodes) {
       var node = this.nodes[name];
       var nodeCategory = node.prototype.category || node.prototype.type
-      if (nodeCategory == category) {
+      if (nodeCategory == category && node.prototype.originDirectory == origin) {
         if (node.prototype.type != "root") {
+          dataIsEmpty = false;
           data[name] = {};
           data[name].type = node.prototype.type;
           data[name].name = node.prototype.name;
@@ -501,6 +515,10 @@ this.b3editor = this.b3editor || {};
         }
       }
     }
+
+    if (dataIsEmpty)
+      return null;
+
     var replacer = function(k, v, spaces, depth) {
       if (k == "properties" || k == "output") {
         // each parameter on one line
@@ -514,13 +532,17 @@ this.b3editor = this.b3editor || {};
     return CustomJSON.stringify(data, replacer, 2);
   }
   p.exportNodes = function() {
-    var nodes = {}
-    nodes.composite = this.exportNodeCategory("composite")
-    nodes.decorator = this.exportNodeCategory("decorator")
-    nodes.action = this.exportNodeCategory("action")
-    nodes.module = this.exportNodeCategory("module")
-    for (var category in this.categories) {
-      nodes[category] = this.exportNodeCategory(category);
+    var nodes = {};
+    for (var origin in this.originDirectories) {
+      nodes[origin] = {};
+
+      nodes[origin].composite = this.exportNodeCategory("composite", origin)
+      nodes[origin].decorator = this.exportNodeCategory("decorator", origin)
+      nodes[origin].action = this.exportNodeCategory("action", origin)
+      nodes[origin].module = this.exportNodeCategory("module", origin)
+      for (var category in this.categories) {
+        nodes[origin][category] = this.exportNodeCategory(category, origin);
+      }
     }
     return nodes;
   }
