@@ -458,6 +458,7 @@ form .row input, form .row textarea, form .row select {
   margin: 0px 1px;
   background-color: #ffffff;
 }
+/* ================================*/
 
 /* ================================*/
 /* ITEM LIST                       */
@@ -518,6 +519,7 @@ form .row input, form .row textarea, form .row select {
   margin: 0px 1px;
   background-color: #ffffff;
 }
+/* ================================*/
 
 /* ================================*/
 /*  NODEPANEL                      */
@@ -570,9 +572,38 @@ form .row input, form .row textarea, form .row select {
 }
 /* ================================*/
 
+/* ================================*/
+/*  EXPORTSELECTOR                 */
+/* ================================*/
+.export-selector-entry {
+  margin: 0.5em 0px 1em 0px;
+  list-style: none;
+}
+.export-selector.button {
+  border-width: 1px;
+  transition: none;
+  padding: 0px 0px;
+  width: 20px;
+  height: 20px;
+}
+.export-selector.button.all {
+  background-color: #43AC6A;
+  /* border-style: none; */
+  color: #ffffff;
+}
 
+.export-selector.button.some {
+  background-color: #008CBA;
+  /* border-style: none; */
+  color: #ffffff;
+}
 
-
+.export-selector.button.none {
+  background-color: #ffffff;
+  border-color: gray;
+  color: #ffffff;
+}
+/* ================================*/
 
 
 

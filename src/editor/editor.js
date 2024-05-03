@@ -481,11 +481,11 @@ this.b3editor = this.b3editor || {};
 
     this.logger.info("Successfully loaded project")
   }
-  // Exports nodes by category and directory of origin.
+  // Returns the export data of nodes fitting a specific category "category" and directory of origin "origin".
   // category: the category of nodes to export
   // origin: the directory of origin to filter by
   // return a list of nodes to export (keyed by name), or null if no nodes have been exported.
-  p.exportNodeCategory = function(category, origin) {
+  p.getNodeCategoryExportData = function(category, origin) {
     var data = {};
     var dataIsEmpty = true;
   
@@ -531,20 +531,91 @@ this.b3editor = this.b3editor || {};
     }
     return CustomJSON.stringify(data, replacer, 2);
   }
-  p.exportNodes = function() {
+  // Returns JSON data containing the nodes to export
+  p.getNodeExportData = function(categoriesToExport) {
     var nodes = {};
-    for (var origin in this.originDirectories) {
+
+    // For each originDirectory key in categoriesToExport...
+    for (var origin in categoriesToExport) {
+      var categories = categoriesToExport[origin];
+
       nodes[origin] = {};
 
-      nodes[origin].composite = this.exportNodeCategory("composite", origin)
-      nodes[origin].decorator = this.exportNodeCategory("decorator", origin)
-      nodes[origin].action = this.exportNodeCategory("action", origin)
-      nodes[origin].module = this.exportNodeCategory("module", origin)
-      for (var category in this.categories) {
-        nodes[origin][category] = this.exportNodeCategory(category, origin);
+      nodes[origin].composite = this.getNodeCategoryExportData("composite", origin)
+      nodes[origin].decorator = this.getNodeCategoryExportData("decorator", origin)
+      nodes[origin].action = this.getNodeCategoryExportData("action", origin)
+      nodes[origin].module = this.getNodeCategoryExportData("module", origin)
+
+      // For each category in categories...
+      for (var category in categories) {
+        // If the category should be exported...
+        if (categories[category]) {
+          // Get its export data
+          nodes[origin][category] = this.getNodeCategoryExportData(category, origin);
+        }
       }
     }
     return nodes;
+  }
+
+  // Exports nodes based on an object (called "categoriesToExport") containing hash sets of categories to export each 
+  // mapped to an origin directory.
+  p.exportNodes = function(categoriesToExport) {
+    var nodes = this.getNodeExportData(categoriesToExport);
+    if (this.project == null) {
+      this.trigger('notification', name, {
+        level: 'error',
+        message: 'Cannot export nodes. No project loaded.'
+      });
+    }
+    for (var origin in nodes) {
+      var nodesInDir = nodes[origin];
+      for (var category in nodesInDir) {
+        if (nodesInDir[category] !== null) {
+          // console.log("Category: " + category + ", Origin: " + origin);
+          fs.writeFileSync(path.join(path.resolve(this.project.fileName, origin), category + ".nodes"), nodesInDir[category]); 
+        }
+      }
+    }
+  }
+
+  // Returns the node exporting hierarchy. A node exporting hierarchy is an object containing the categories associated
+  // with each origin directory.
+  p.getNodeExportHierarchy = function() {
+    // TODO: Attempt to get the cached hierarchy (which comes from the project configuration).
+    // TODO: do something less stupid than building the hierarchy each time, because I will need it multiple times!
+    // If the project has some nodes to export configured, use them instead.
+    if (this.project.nodesToExport) {
+      return this.project.nodesToExport;
+    }
+
+    this.project.nodesToExport = {};
+
+    var hierarchy = this.project.nodesToExport;
+
+    // Go through each node...
+    for (var nodeName in this.nodes) {
+      var node = this.nodes[nodeName];
+      var originDirectory = node.prototype.originDirectory;
+
+      // Skip if the origin directory or category is undefined (as is the case for the root node). It's also undesirable
+      // to display undefined categories and origin directories like that.
+      if (originDirectory === undefined || node.prototype.category === undefined) {
+        continue;
+      }
+
+      // If hierarchy does not contain an entry for the originDirectory...
+      if (hierarchy[originDirectory] === undefined) {
+        hierarchy[originDirectory] = {}
+      }
+
+      // If the category is not included in the originDirectory entry...
+      if (hierarchy[originDirectory][node.prototype.category] === undefined) {
+        hierarchy[originDirectory][node.prototype.category] = true
+      }
+    }
+
+    return hierarchy
   }
   // json is the JSON contents of the .nodes file; originDirectory is the directory from which it originated.
   p.importNodes = function(json, originDirectory) {

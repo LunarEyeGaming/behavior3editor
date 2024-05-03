@@ -106,25 +106,25 @@ angular.module('app.menu', ['app.modal'])
   }
   $scope.onButtonExportNodes = function(e) {
     if (e) e.preventDefault();
-    // $rootScope.$broadcast('onButtonExportNodes');
-    var editor = $window.app.editor;
-    var nodes = editor.exportNodes();
-    if (editor.project == null) {
-      editor.trigger('notification', name, {
-        level: 'error',
-        message: 'Cannot export nodes. No project loaded.'
-      });
-    }
+    $rootScope.$broadcast('onButtonExportNodes');
+    // var editor = $window.app.editor;
+    // var nodes = editor.getNodeExportData();
+    // if (editor.project == null) {
+    //   editor.trigger('notification', name, {
+    //     level: 'error',
+    //     message: 'Cannot export nodes. No project loaded.'
+    //   });
+    // }
 
-    for (origin in nodes) {
-      var nodesInDir = nodes[origin];
-      for (category in nodesInDir) {
-        if (nodesInDir[category] !== null) {
-          // console.log("Category: " + category + ", Origin: " + origin);
-          fs.writeFileSync(path.join(path.resolve(editor.project.fileName, origin), category + ".nodes"), nodesInDir[category]); 
-        }
-      }
-    }
+    // for (origin in nodes) {
+    //   var nodesInDir = nodes[origin];
+    //   for (category in nodesInDir) {
+    //     if (nodesInDir[category] !== null) {
+    //       // console.log("Category: " + category + ", Origin: " + origin);
+    //       fs.writeFileSync(path.join(path.resolve(editor.project.fileName, origin), category + ".nodes"), nodesInDir[category]); 
+    //     }
+    //   }
+    // }
     return false;
   }
 

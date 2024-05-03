@@ -13,6 +13,9 @@ this.b3editor = this.b3editor || {};
     // of this editor.
     this.nodesPath = null;
     this.otherNodesPaths = null;
+
+    this.nodesToExport = null;
+
     this.trees = [];
   }
 
@@ -23,20 +26,26 @@ this.b3editor = this.b3editor || {};
 
     project.nodesPath = path.resolve(filename, config.nodesPath);
   
-    // If nodesPaths is defined, resolve each path. Otherwise, make project.nodesPaths an empty list.
+    // If nodesPaths is defined, resolve each path (which turns them into absolute paths). Otherwise, make 
+    // project.nodesPaths an empty list.
     if (config.otherNodesPaths) {
       project.otherNodesPaths = config.otherNodesPaths.map(file => path.resolve(filename, file));
     } else {
       project.otherNodesPaths = [];
     }
+
+    project.nodesToExport = config.nodesToExport;
   
     return project;
   }
 
   p.save = function() {
     var config = {}
+
     config.nodesPath = path.relative(this.fileName, this.nodesPath);
     config.otherNodesPaths = this.otherNodesPaths.map(file => path.relative(this.fileName, file));
+    config.nodesToExport = this.nodesToExport;
+
     return JSON.stringify(config, null, 2);
   }
 

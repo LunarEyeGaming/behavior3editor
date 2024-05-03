@@ -21,6 +21,16 @@ angular.module('app.node', ['app.modal'])
     });
   };
 
+  $scope.showExportNodesModal = function() {
+    ModalService.showModal({
+      templateUrl: "app/node/modal-exportnodes.html",
+      controller: 'ExportNodesModalController'
+    }).then(function(modal) {
+      modal.close.then(function(result) {
+      });
+    });
+  };
+
   $scope.showEditNodeModal = function(node) {
     ModalService.showModal({
       templateUrl: "app/node/modal-editnode.html",
@@ -94,6 +104,7 @@ angular.module('app.node', ['app.modal'])
   $window.app.editor.on('noderemoved', this.updateNodes, this);
   $window.app.editor.on('nodechanged', this.updateNodes, this);
   $rootScope.$on('onButtonNewNode', $scope.showAddNodeModal);
+  $rootScope.$on('onButtonExportNodes', $scope.showExportNodesModal);
   // --------------------------------------------------------------------------
 
   // INITIALIZE ELEMENTS ------------------------------------------------------
@@ -235,6 +246,158 @@ angular.module('app.node', ['app.modal'])
     if (newNode.name) {
       $window.app.editor.addNode(newNode);
     }
+  }
+})
+
+//
+// EXPORT NODES MODAL CONTROLLER
+//
+.controller('ExportNodesModalController', function($scope, $window, $compile, close) {
+  // Currently uses a placeholder GUI.
+  $scope.close = function(result) { close(result); };
+
+  // DYNAMIC TABLE ------------------------------------------------------------
+
+  $scope.types = ['composite', 'decorator', 'action', 'module'];
+  $scope.valueTypes = [
+    {id: 'json', name: 'json'},
+    {id: "entity", name: "entity"},
+    {id: "position", name: "position"},
+    {id: "vec2", name: "vec2"},
+    {id: "number", name: "number"},
+    {id: "bool", name: "bool"},
+    {id: "list", name: "list"},
+    {id: "table", name: "table"},
+    {id: "string", name: "string"}
+  ];
+
+  $scope.exportHierarchy = $window.app.editor.getNodeExportHierarchy();
+  $scope.testVar = 'button success right';
+
+  this.propertyTemplate = '\
+    <tr>\
+      <td>\
+        <select id="type">\
+          <option ng-repeat="valueType in valueTypes" value="{{valueType.id}}">{{valueType.name}}</option>\
+        </select>\
+      </td>\
+      <td><input id="key" type="text" value="" placeholder="key" /></td>\
+      <td><input id="value" type="text" value="" placeholder="value" /></td>\
+      <td><a href="#" propertyremovable class="button alert right">-</a></td>\
+    </tr>\
+  ';
+
+  var this_ = this;
+
+  // Enum for state of origin directory exporting option.
+  const ALL_SELECTED = 0;
+  const SOME_SELECTED = 1;
+  const NONE_SELECTED = 2;
+
+  // HELPER FUNCTIONS---------------------------------
+  // Returns ALL_SELECTED if all categories within a directory "dir" are selected, SOME_SELECTED if at least one is
+  // selected, and NONE_SELECTED if no categories are selected.
+  var getSelectionStatus = function(dir) {
+    var exportDir = $scope.exportHierarchy[dir];
+
+    // Check if at least one category is selected for export.
+    var atLeastOneEnabled = false;
+    var allEnabled = true;
+    for (var category in exportDir) {
+      // If a category is selected for export...
+      if (exportDir[category]) {
+        // Say that at least one is enabled.
+        atLeastOneEnabled = true;
+      }
+
+      // If a category is not selected for export...
+      if (!exportDir[category]) {
+        // Say that not all are enabled.
+        allEnabled = false;
+      }
+    }
+
+    // If all are enabled...
+    if (allEnabled) {
+      return ALL_SELECTED;
+    } else if (atLeastOneEnabled) {  // If only some are enabled...
+      return SOME_SELECTED;
+    } else {
+      return NONE_SELECTED;
+    }
+  }
+  // FUNCTIONS----------------------------------------
+  // Toggles whether or not to export for a specific origin directory "dir" and a node category "category".
+  $scope.toggleExport = function(dir, category) {
+    $scope.exportHierarchy[dir][category] = !$scope.exportHierarchy[dir][category];
+  }
+
+  // Toggles whether or not to export nodes for a specific origin directory "dir". Disables all categories from being 
+  // exported if at least one of them is enabled. Otherwise, enables all of them.
+  $scope.toggleExportDir = function(dir) {
+    var selectionStatus = getSelectionStatus(dir);
+
+    var exportDir = $scope.exportHierarchy[dir];
+
+    // If at least one is enabled...
+    if (selectionStatus == ALL_SELECTED || selectionStatus == SOME_SELECTED) {
+      // Disable all categories from being exported.
+      for (var category in exportDir) {
+        exportDir[category] = false;
+      }
+    } else {  // Otherwise...
+      // Select all categories for export.
+      for (var category in exportDir) {
+        exportDir[category] = true;
+      }
+    }
+  }
+
+  // Returns the display style class to use for a category-level selector button.
+  $scope.getDisplayStyle = function(dir, category) {
+    if ($scope.exportHierarchy[dir][category]) {
+      return "button export-selector all";
+    } else {
+      return "button export-selector none";
+    }
+  }
+  // Returns the display style class to use for an origin directory-level selector button.
+  $scope.getDisplayStyleDir = function(dir) {
+    // Picks the style class to return based on the selection status.
+    switch (getSelectionStatus(dir)) {
+      case ALL_SELECTED:
+        return 'button export-selector all';
+      case SOME_SELECTED:
+        return 'button export-selector some';
+      case NONE_SELECTED:
+        return 'button export-selector none';
+    }    
+  }
+
+  // Returns the symbol to use for a category-level selector button.
+  $scope.getDisplaySymbol = function(dir, category) {
+    if ($scope.exportHierarchy[dir][category]) {
+      return "✔";
+    } else {
+      return "_";
+    }
+  }
+  // Returns the symbol to use for an origin directory-level selector button.
+  $scope.getDisplaySymbolDir = function(dir) {
+    // Picks the style class to return based on the selection status.
+    switch (getSelectionStatus(dir)) {
+      case ALL_SELECTED:
+        return "✔";
+      case SOME_SELECTED:
+        return "-";
+      case NONE_SELECTED:
+        return "_";
+    }    
+  }
+
+  // Export the nodes
+  $scope.exportNodes = function() {
+    $window.app.editor.exportNodes($scope.exportHierarchy);
   }
 })
 
