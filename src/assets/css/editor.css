@@ -293,12 +293,12 @@ form .row input, form .row textarea, form .row select {
   margin-bottom: 10px;
   font-size: 100%;
 
-  color: #FFF;
+  color: #000000;
   text-align: center;
   font-weight: 400;
 }
 .modal-body {
-  color: #efefef;
+  color: #555555;
   background-color: #ffffff;
   border: 1px solid #181818;
   padding: 15px;
