@@ -34,7 +34,7 @@ this.b3editor = this.b3editor || {};
       project.otherNodesPaths = [];
     }
 
-    project.nodesToExport = config.nodesToExport;
+    project.nodesToExport = config.nodesToExport || {};
   
     return project;
   }

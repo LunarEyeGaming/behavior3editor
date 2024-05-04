@@ -585,40 +585,39 @@ this.b3editor = this.b3editor || {};
   // Returns the node exporting hierarchy. A node exporting hierarchy is an object containing the categories associated
   // with each origin directory.
   p.getNodeExportHierarchy = function() {
-    // TODO: Attempt to get the cached hierarchy (which comes from the project configuration).
-    // TODO: do something less stupid than building the hierarchy each time, because I will need it multiple times!
-    // If the project has some nodes to export configured, use them instead.
-    if (this.project.nodesToExport) {
-      return this.project.nodesToExport;
-    }
+    return this.project.nodesToExport;
+    // // If the project has some nodes to export configured, use them instead.
+    // if (this.project.nodesToExport) {
+    //   return this.project.nodesToExport;
+    // }
 
-    this.project.nodesToExport = {};
+    // this.project.nodesToExport = {};
 
-    var hierarchy = this.project.nodesToExport;
+    // var hierarchy = this.project.nodesToExport;
 
-    // Go through each node...
-    for (var nodeName in this.nodes) {
-      var node = this.nodes[nodeName];
-      var originDirectory = node.prototype.originDirectory;
+    // // Go through each node...
+    // for (var nodeName in this.nodes) {
+    //   var node = this.nodes[nodeName];
+    //   var originDirectory = node.prototype.originDirectory;
 
-      // Skip if the origin directory or category is undefined (as is the case for the root node). It's also undesirable
-      // to display undefined categories and origin directories like that.
-      if (originDirectory === undefined || node.prototype.category === undefined) {
-        continue;
-      }
+    //   // Skip if the origin directory or category is undefined (as is the case for the root node). It's also undesirable
+    //   // to display undefined categories and origin directories like that.
+    //   if (originDirectory === undefined || node.prototype.category === undefined) {
+    //     continue;
+    //   }
 
-      // If hierarchy does not contain an entry for the originDirectory...
-      if (hierarchy[originDirectory] === undefined) {
-        hierarchy[originDirectory] = {}
-      }
+    //   // If hierarchy does not contain an entry for the originDirectory...
+    //   if (hierarchy[originDirectory] === undefined) {
+    //     hierarchy[originDirectory] = {}
+    //   }
 
-      // If the category is not included in the originDirectory entry...
-      if (hierarchy[originDirectory][node.prototype.category] === undefined) {
-        hierarchy[originDirectory][node.prototype.category] = true
-      }
-    }
+    //   // If the category is not included in the originDirectory entry...
+    //   if (hierarchy[originDirectory][node.prototype.category] === undefined) {
+    //     hierarchy[originDirectory][node.prototype.category] = true
+    //   }
+    // }
 
-    return hierarchy
+    // return hierarchy
   }
   // json is the JSON contents of the .nodes file; originDirectory is the directory from which it originated.
   p.importNodes = function(json, originDirectory) {
@@ -670,6 +669,13 @@ this.b3editor = this.b3editor || {};
     tempClass.prototype.originDirectory = originDirectory;
 
     if (node.type == "action") {
+      // Update the export hierarchy
+      // If the corresponding origin directory is not defined...
+      if (this.project.nodesToExport[originDirectory] === undefined) {
+        this.project.nodesToExport[originDirectory] = {};
+      }
+      this.project.nodesToExport[originDirectory][node.category] = true;
+
       tempClass.prototype.category = node.category || '';
       tempClass.prototype.script = node.script || '';
 
@@ -702,7 +708,8 @@ this.b3editor = this.b3editor || {};
       this.importNodesInit(projectLoc, nodesPathList, nodesDir);
     })
   }
-  p.editNode = function(oldName, newNode) {
+  // originDirectory is the updated directory in which to save the node.
+  p.editNode = function(oldName, newNode, originDirectory) {
     var node = this.nodes[oldName];
     if (!node) return;
 
@@ -717,9 +724,16 @@ this.b3editor = this.b3editor || {};
     var oldTitle = node.prototype.title;
     node.prototype.name = newNode.name;
     node.prototype.title = newNode.title;
+    node.prototype.originDirectory = originDirectory;
     if (newNode.properties)
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
     if (node.prototype.type == "action") {
+      // Update the export hierarchy
+      // If the corresponding origin directory is not defined...
+      if (this.project.nodesToExport[originDirectory] === undefined) {
+        this.project.nodesToExport[originDirectory] = {};
+      }
+      this.project.nodesToExport[originDirectory][node.category] = true;
       if (newNode.output)
        node.prototype.output = JSON.parse(JSON.stringify(newNode.output));
       if (newNode.script)

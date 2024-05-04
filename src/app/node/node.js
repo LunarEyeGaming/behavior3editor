@@ -189,6 +189,9 @@ angular.module('app.node', ['app.modal'])
     var domPropertyTypes = document.querySelectorAll('#addnode-properties #type');
     var domPropertyKeys = document.querySelectorAll('#addnode-properties #key');
     var domPropertyValues = document.querySelectorAll('#addnode-properties #value');
+    var domSaveLocation = document.querySelector('#addnode-modal #save-location');
+
+    var originDirectory = domSaveLocation.value;
 
     var newNode = {
       type: domType.value,
@@ -244,21 +247,18 @@ angular.module('app.node', ['app.modal'])
     }
 
     if (newNode.name) {
-      $window.app.editor.addNode(newNode);
+      $window.app.editor.addNode(newNode, originDirectory);
     }
   }
 })
 
 //
-// EXPORT NODES MODAL CONTROLLER
+// EDIT NODE MODAL CONTROLLER
 //
-.controller('ExportNodesModalController', function($scope, $window, $compile, close) {
-  // Currently uses a placeholder GUI.
+.controller('EditNodeModalController', function($scope, $window, $compile, close, node) {
   $scope.close = function(result) { close(result); };
 
-  // DYNAMIC TABLE ------------------------------------------------------------
-
-  $scope.types = ['composite', 'decorator', 'action', 'module'];
+  $scope.node = $window.app.editor.nodes[node];
   $scope.valueTypes = [
     {id: 'json', name: 'json'},
     {id: "entity", name: "entity"},
@@ -271,8 +271,26 @@ angular.module('app.node', ['app.modal'])
     {id: "string", name: "string"}
   ];
 
-  $scope.exportHierarchy = $window.app.editor.getNodeExportHierarchy();
-  $scope.testVar = 'button success right';
+  this.jsonProperties = function(properties){
+    var props = {}
+    for (key in properties) {
+      props[key] = {
+        type: properties[key].type
+      }
+      if (properties[key].type != 'string') {
+        if (properties[key].value === null)
+          props[key].value = '';
+        else
+          props[key].value = JSON.stringify(properties[key].value);
+      } else {
+        props[key].value = properties[key].value;
+      }
+    }
+    return props;
+  }
+
+  $scope.properties = this.jsonProperties($scope.node.prototype.properties);
+  $scope.output = $scope.node.prototype.output;
 
   this.propertyTemplate = '\
     <tr>\
@@ -288,6 +306,108 @@ angular.module('app.node', ['app.modal'])
   ';
 
   var this_ = this;
+
+  $scope.addProperty = function() {
+    var template = this_.propertyTemplate.format();
+    var propertiesTable = angular.element(
+      document.querySelectorAll('#editnode-properties-table>tbody')
+    );
+    propertiesTable.append($compile(template)($scope));
+  }
+
+  $scope.addOutput = function() {
+    var template = this_.propertyTemplate.format(type, key, value);
+    var outputTable = angular.element(
+      document.querySelectorAll('#editnode-output-table>tbody')
+    );
+    outputTable.append($compile(template)($scope));
+  }
+
+  $scope.saveNode = function() {
+    var domName = document.querySelector('#editnode-form #name');
+    var domTitle = document.querySelector('#editnode-form #title');
+    var domTypes = document.querySelectorAll('#editnode-properties #type');
+    var domKeys = document.querySelectorAll('#editnode-properties #key');
+    var domValues = document.querySelectorAll('#editnode-properties #value');
+    var domSaveLocation = document.querySelector('#editnode-form #save-location');
+
+    var originDirectory = domSaveLocation.value;
+
+    var newNode = {
+      name: domName.value,
+      title: domTitle.value,
+      properties: {}
+    }
+
+    if ($scope.node.prototype.type == 'action'){
+      var domOutputTypes = document.querySelectorAll('#editnode-output #type');
+      var domOutputKeys = document.querySelectorAll('#editnode-output #key');
+      var domOutputValues = document.querySelectorAll('#editnode-output #value');
+      var domCategory = document.querySelector('#editnode-modal #category');
+      var domScript = document.querySelector('#editnode-modal #script');
+
+      if (domScript.value != '')
+        newNode.script = domScript.value;
+      if (domCategory.value != '')
+        newNode.category = domCategory.value;
+      if (domOutputKeys.length > 0)
+        newNode.output = {};
+
+      for (var i=0; i<domOutputKeys.length; i++) {
+        var type = domOutputTypes[i].value;
+        var key = domOutputKeys[i].value;
+        var value = domOutputValues[i].value;
+        if (value === '') value = null;
+        if (key)
+          newNode.output[key] = {
+            type: type,
+            key: value
+          };
+      }
+    }
+
+    for (var i=0; i<domKeys.length; i++) {
+      var type = domTypes[i].value
+      var key = domKeys[i].value;
+      var value = domValues[i].value;
+
+      if (type != 'string' && value != '') {
+        try {
+          value = JSON.parse(value);
+        } catch (e){
+          $window.app.editor.trigger('notification', name, {
+            level: 'error',
+            message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+          });
+        }
+      }
+
+      if (value === '') value = null;
+      if (key) {
+        newNode.properties[key] = {
+          type: type,
+          value: value
+        };
+      }
+    }
+
+    if (newNode.name) {
+      $window.app.editor.editNode(node, newNode, originDirectory);
+    }
+  }
+
+  $scope.removeNode = function() {
+    $window.app.editor.removeNode(node);
+  }
+})
+
+//
+// EXPORT NODES MODAL CONTROLLER
+//
+.controller('ExportNodesModalController', function($scope, $window, $compile, close) {
+  $scope.close = function(result) { close(result); };
+
+  $scope.exportHierarchy = $window.app.editor.getNodeExportHierarchy();
 
   // Enum for state of origin directory exporting option.
   const ALL_SELECTED = 0;
@@ -411,150 +531,4 @@ angular.module('app.node', ['app.modal'])
       });
     }
   };
-})
-
-//
-// EDIT NODE MODAL CONTROLLER
-//
-.controller('EditNodeModalController', function($scope, $window, $compile, close, node) {
-  $scope.close = function(result) { close(result); };
-
-  $scope.node = $window.app.editor.nodes[node];
-  $scope.valueTypes = [
-    {id: 'json', name: 'json'},
-    {id: "entity", name: "entity"},
-    {id: "position", name: "position"},
-    {id: "vec2", name: "vec2"},
-    {id: "number", name: "number"},
-    {id: "bool", name: "bool"},
-    {id: "list", name: "list"},
-    {id: "table", name: "table"},
-    {id: "string", name: "string"}
-  ];
-
-  this.jsonProperties = function(properties){
-    var props = {}
-    for (key in properties) {
-      props[key] = {
-        type: properties[key].type
-      }
-      if (properties[key].type != 'string') {
-        if (properties[key].value === null)
-          props[key].value = '';
-        else
-          props[key].value = JSON.stringify(properties[key].value);
-      } else {
-        props[key].value = properties[key].value;
-      }
-    }
-    return props;
-  }
-
-  $scope.properties = this.jsonProperties($scope.node.prototype.properties);
-  $scope.output = $scope.node.prototype.output;
-
-  this.propertyTemplate = '\
-    <tr>\
-      <td>\
-        <select id="type">\
-          <option ng-repeat="valueType in valueTypes" value="{{valueType.id}}">{{valueType.name}}</option>\
-        </select>\
-      </td>\
-      <td><input id="key" type="text" value="" placeholder="key" /></td>\
-      <td><input id="value" type="text" value="" placeholder="value" /></td>\
-      <td><a href="#" propertyremovable class="button alert right">-</a></td>\
-    </tr>\
-  ';
-
-  var this_ = this;
-
-  $scope.addProperty = function() {
-    var template = this_.propertyTemplate.format();
-    var propertiesTable = angular.element(
-      document.querySelectorAll('#editnode-properties-table>tbody')
-    );
-    propertiesTable.append($compile(template)($scope));
-  }
-
-  $scope.addOutput = function() {
-    var template = this_.propertyTemplate.format(type, key, value);
-    var outputTable = angular.element(
-      document.querySelectorAll('#editnode-output-table>tbody')
-    );
-    outputTable.append($compile(template)($scope));
-  }
-
-  $scope.saveNode = function() {
-    var domName = document.querySelector('#editnode-form #name');
-    var domTitle = document.querySelector('#editnode-form #title');
-    var domTypes = document.querySelectorAll('#editnode-properties #type');
-    var domKeys = document.querySelectorAll('#editnode-properties #key');
-    var domValues = document.querySelectorAll('#editnode-properties #value');
-
-    var newNode = {
-      name: domName.value,
-      title: domTitle.value,
-      properties: {}
-    }
-
-    if ($scope.node.prototype.type == 'action'){
-      var domOutputTypes = document.querySelectorAll('#editnode-output #type');
-      var domOutputKeys = document.querySelectorAll('#editnode-output #key');
-      var domOutputValues = document.querySelectorAll('#editnode-output #value');
-      var domCategory = document.querySelector('#editnode-modal #category');
-      var domScript = document.querySelector('#editnode-modal #script');
-
-      if (domScript.value != '')
-        newNode.script = domScript.value;
-      if (domCategory.value != '')
-        newNode.category = domCategory.value;
-      if (domOutputKeys.length > 0)
-        newNode.output = {};
-
-      for (var i=0; i<domOutputKeys.length; i++) {
-        var type = domOutputTypes[i].value;
-        var key = domOutputKeys[i].value;
-        var value = domOutputValues[i].value;
-        if (value === '') value = null;
-        if (key)
-          newNode.output[key] = {
-            type: type,
-            key: value
-          };
-      }
-    }
-
-    for (var i=0; i<domKeys.length; i++) {
-      var type = domTypes[i].value
-      var key = domKeys[i].value;
-      var value = domValues[i].value;
-
-      if (type != 'string' && value != '') {
-        try {
-          value = JSON.parse(value);
-        } catch (e){
-          $window.app.editor.trigger('notification', name, {
-            level: 'error',
-            message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
-          });
-        }
-      }
-
-      if (value === '') value = null;
-      if (key) {
-        newNode.properties[key] = {
-          type: type,
-          value: value
-        };
-      }
-    }
-
-    if (newNode.name) {
-      $window.app.editor.editNode(node, newNode);
-    }
-  }
-
-  $scope.removeNode = function() {
-    $window.app.editor.removeNode(node);
-  }
 });
