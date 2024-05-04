@@ -92,6 +92,9 @@ this.b3editor = this.b3editor || {};
       var project = fs.readFileSync(lastProject);
       this.loadProject(b3editor.Project.load(lastProject, project));
     }
+
+    // Set exit handler.
+    window.onbeforeunload = this.onExit(this); 
   };
 
   // INTERNAL =================================================================
@@ -842,6 +845,41 @@ this.b3editor = this.b3editor || {};
       }
 
       this.trigger('treeremoved', tree);
+    }
+  }
+  // Calls to this function should include a reference to "this" within the context of the Editor object as the first
+  // argument. Returns a second function to actually use as the window.onbeforeunload replacement. The inner function is
+  // triggered when the user attempts to close the application.
+  p.onExit = function(this_) {
+    return function(e) {
+      // THIS COMMENTED CODE SHOULD BE KEPT. IT WILL BE USED IN A FUTURE VERSION.
+      // // Asynchronous function. The function returned from onExit will have returned by the time the message box has 
+      // // opened.
+      // // TODO: Make it so that this function blocks the entire program.
+      // dialog.showMessageBox({
+      //   message: "Test",
+      //   type: "warning",
+      //   buttons: ["Yes", "No", "Cancel"]
+      // }, function(result) {
+      //   switch (result) {
+      //     case 0:  // Fall through
+      //     case 1:
+      //       // Dumb stupid workaround: Set window.onbeforeunload to do nothing and then force close this window.
+      //       window.onbeforeunload = function() {
+      //         return
+      //       };
+      //       // Save
+      //       this_.project.save();
+      //       window.close();
+      //     // "cancel" (option 2) will do nothing.
+      //   }
+      // });
+
+      // e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
+
+      // TODO: consider cases where writing fails.
+      // Currently just saves the project on quitting.
+      fs.writeFileSync(this_.project.fileName, this_.project.save());
     }
   }
   // ==========================================================================
