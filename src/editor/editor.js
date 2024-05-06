@@ -94,7 +94,10 @@ this.b3editor = this.b3editor || {};
     }
 
     // Set exit handler.
-    window.onbeforeunload = this.onExit(this); 
+    window.onbeforeunload = this.onExit(this);
+
+    // COMMENT THIS OUT IN PRODUCTION RELEASES!
+    this.runTests();
   };
 
   // INTERNAL =================================================================
@@ -1263,6 +1266,11 @@ this.b3editor = this.b3editor || {};
     img.src = canvas.toDataURL();
 
     return img;
+  }
+
+  p.runTests = function() {
+    var testRunner = require('./test/testerMain');
+    testRunner.main();
   }
   // ==========================================================================
 
