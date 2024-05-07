@@ -1,33 +1,52 @@
 var {makeTest} = require("../tester");
 var {assertThrows, assertEqual, assertStrictEqual} = require("../assert");
 
+var TestCommand = (function() {
+  // This coding weirdness is to keep the scope of p local.
+  var TestCommand = b3.Class(b3editor.Command);
+  var p = TestCommand.prototype;
+
+  p.initialize = function(args) {
+    this.runFunc = args.runFunc;
+    this.undoFunc = args.undoFunc;
+  }
+
+  p.run = function() {
+    this.runFunc();
+  }
+
+  p.undo = function() {
+    this.undoFunc();
+  }
+
+  return TestCommand;
+}());
+
+function makeTestCommand(runFunc, undoFunc) {
+  return new TestCommand({runFunc, undoFunc});
+}
+
 var suite = [
   makeTest("addCommand basic functionality", () => {
     var undoHistory = new b3editor.UndoStack();
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = "bar"}, () => {});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = "bar"}, () => {}));
 
     // Make sure that the redo command has been executed.
     assertEqual("bar", someObject.foo);
   }),
   makeTest("addCommand throws error on null, undefined, or otherwise invalid 'cmd' argument", () => {
     var undoHistory = new b3editor.UndoStack();
-    assertThrows("TypeError", () => undoHistory.addCommand(undefined, () => {}));
-    assertThrows("TypeError", () => undoHistory.addCommand(null, () => {}));
-    assertThrows("TypeError", () => undoHistory.addCommand("Not a function", () => {}));
-  }),
-  makeTest("addCommand throws error on null, undefined, or otherwise invalid 'undo' argument", () => {
-    var undoHistory = new b3editor.UndoStack();
-    assertThrows("TypeError", () => undoHistory.addCommand(() => {}, undefined));
-    assertThrows("TypeError", () => undoHistory.addCommand(() => {}, null));
-    assertThrows("TypeError", () => undoHistory.addCommand(() => {}, "Not a function"));
+    assertThrows("TypeError", () => undoHistory.addCommand(undefined));
+    assertThrows("TypeError", () => undoHistory.addCommand(null));
+    assertThrows("TypeError", () => undoHistory.addCommand("Not a Command"));
   }),
   makeTest("undoLastCommand basic functionality", () => {
     var undoHistory = new b3editor.UndoStack();
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = "bar"}, () => {someObject.foo = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = "bar"}, () => {someObject.foo = undefined}));
     undoHistory.undoLastCommand();
 
     // Make sure that someObject.foo has been deleted.
@@ -37,16 +56,18 @@ var suite = [
     var undoHistory = new b3editor.UndoStack();
     var counter = 0;
 
-    var cmd = () => {
+    var run = () => {
       counter++;
     };
     var undo = () => {
         counter--;
     };
 
-    undoHistory.addCommand(cmd, undo);
-    undoHistory.addCommand(cmd, undo);
-    undoHistory.addCommand(cmd, undo);
+    var cmd = makeTestCommand(run, undo);
+
+    undoHistory.addCommand(cmd);
+    undoHistory.addCommand(cmd);
+    undoHistory.addCommand(cmd);
 
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
@@ -70,8 +91,8 @@ var suite = [
     var someObject = {};
     var someOtherObject = {foo: 25};
 
-    undoHistory1.addCommand(() => {someObject.foo = "a string"}, () => {someObject.foo = undefined});
-    undoHistory2.addCommand(() => {someOtherObject.foo += 15}, () => {someOtherObject.foo -= 15});
+    undoHistory1.addCommand(makeTestCommand(() => {someObject.foo = "a string"}, () => {someObject.foo = undefined}));
+    undoHistory2.addCommand(makeTestCommand(() => {someOtherObject.foo += 15}, () => {someOtherObject.foo -= 15}));
 
     assertStrictEqual("a string", someObject.foo);
     assertStrictEqual(40, someOtherObject.foo);
@@ -93,7 +114,7 @@ var suite = [
 
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
     undoHistory.undoLastCommand();
 
     undoHistory.redoNextCommand();
@@ -106,9 +127,9 @@ var suite = [
 
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined});
-    undoHistory.addCommand(() => {someObject.bar = "a string"}, () => {someObject.bar = undefined});
-    undoHistory.addCommand(() => {someObject.foo += 40}, () => {someObject.foo -= 40});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.bar = "a string"}, () => {someObject.bar = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 40}, () => {someObject.foo -= 40}));
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
@@ -130,9 +151,9 @@ var suite = [
 
     var someObject = {bar: "a string", baz: 1};
 
-    undoHistory.addCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined});
-    undoHistory.addCommand(() => {someObject.bar = 15}, () => {someObject.bar = "a string"});
-    undoHistory.addCommand(() => {someObject.baz += 15}, () => {someObject.baz -= 15});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.bar = 15}, () => {someObject.bar = "a string"}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.baz += 15}, () => {someObject.baz -= 15}));
 
     undoHistory.redoNextCommand();
 
@@ -144,15 +165,15 @@ var suite = [
 
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined});
-    undoHistory.addCommand(() => {someObject.bar = "a string"}, () => {someObject.bar = undefined});
-    undoHistory.addCommand(() => {someObject.foo += 40}, () => {someObject.foo -= 40});
-    undoHistory.addCommand(() => {someObject.baz = true}, () => {someObject.baz = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.bar = "a string"}, () => {someObject.bar = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 40}, () => {someObject.foo -= 40}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.baz = true}, () => {someObject.baz = undefined}));
 
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
 
-    undoHistory.addCommand(() => {someObject.brown = true}, () => {someObject.brown = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.brown = true}, () => {someObject.brown = undefined}));
 
     undoHistory.redoNextCommand();
 
@@ -166,14 +187,14 @@ var suite = [
 
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined});
-    undoHistory.addCommand(() => {someObject.bar = "a string"}, () => {someObject.bar = undefined});
-    undoHistory.addCommand(() => {someObject.foo += 40}, () => {someObject.foo -= 40});
-    undoHistory.addCommand(() => {someObject.baz = true}, () => {someObject.baz = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.bar = "a string"}, () => {someObject.bar = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 40}, () => {someObject.foo -= 40}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.baz = true}, () => {someObject.baz = undefined}));
 
     undoHistory.undoLastCommand();
 
-    undoHistory.addCommand(() => {someObject.brown = true}, () => {someObject.brown = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.brown = true}, () => {someObject.brown = undefined}));
 
     undoHistory.redoNextCommand();
 
@@ -187,11 +208,11 @@ var suite = [
 
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
 
     undoHistory.undoLastCommand();
 
-    undoHistory.addCommand(() => {someObject.brown = true}, () => {someObject.brown = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.brown = true}, () => {someObject.brown = undefined}));
 
     undoHistory.redoNextCommand();
 
@@ -204,17 +225,17 @@ var suite = [
 
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined});
-    undoHistory.addCommand(() => {someObject.bar = "a string"}, () => {someObject.bar = undefined});
-    undoHistory.addCommand(() => {someObject.foo += 40}, () => {someObject.foo -= 40});
-    undoHistory.addCommand(() => {someObject.baz = true}, () => {someObject.baz = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.bar = "a string"}, () => {someObject.bar = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 40}, () => {someObject.foo -= 40}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.baz = true}, () => {someObject.baz = undefined}));
 
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
 
-    undoHistory.addCommand(() => {someObject.brown = true}, () => {someObject.brown = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.brown = true}, () => {someObject.brown = undefined}));
 
     undoHistory.redoNextCommand();
 
@@ -227,12 +248,12 @@ var suite = [
 
     var someObject = {};
 
-    undoHistory.addCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
 
     undoHistory.undoLastCommand();
     undoHistory.redoNextCommand();
 
-    undoHistory.addCommand(() => {someObject.bar = 40}, () => {someObject.bar = undefined});
+    undoHistory.addCommand(makeTestCommand(() => {someObject.bar = 40}, () => {someObject.bar = undefined}));
 
     assertStrictEqual(25, someObject.foo);
     assertStrictEqual(40, someObject.bar);
