@@ -263,8 +263,8 @@ form .row input, form .row textarea, form .row select {
   /*max-width: 400px;*/
 
   /* Center the dialog */
-  top: 200px;
-  left: 50%;
+  top: 25%;
+  left: 25%;
 
   border: 1px solid #454545;
 }
@@ -571,6 +571,18 @@ form .row input, form .row textarea, form .row select {
   padding-left: 2px;
 }
 /* ================================*/
+
+/* ================================*/
+/*  EXPORTHIERARCHY                */
+/* ================================*/
+.export-hierarchy {
+  height: 50vh;
+}
+
+.export-hierarchy-display {
+  max-height: 79%;
+  overflow: auto;
+}
 
 /* ================================*/
 /*  EXPORTSELECTOR                 */

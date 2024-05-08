@@ -23,6 +23,11 @@ function element(object) {
   return angular.element(object).scope();
 }
 
+function __runTests() {
+  var testRunner = require('./test/testerMain');
+  testRunner.main();
+}
+
 
 keyboard = key.noConflict();
 app = {};
@@ -35,3 +40,6 @@ app.game = app.editor.canvas;
 app.settings = app.editor.settings;
 
 angular.bootstrap(document, ['app']);
+
+// COMMENT THIS OUT IN PRODUCTION VERSIONS.
+__runTests();

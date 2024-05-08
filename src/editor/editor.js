@@ -46,6 +46,7 @@ this.b3editor = this.b3editor || {};
     this.resetNodes();
     this.warnedNodes      = new Set();
     this.clipboard        = [];
+    this.exportCounter    = {};
 
     // WHOLE
     this.symbols          = {};
@@ -95,9 +96,6 @@ this.b3editor = this.b3editor || {};
 
     // Set exit handler.
     window.onbeforeunload = this.onExit(this);
-
-    // COMMENT THIS OUT IN PRODUCTION RELEASES!
-    this.runTests();
   };
 
   // INTERNAL =================================================================
@@ -478,6 +476,7 @@ this.b3editor = this.b3editor || {};
 
     this.resetNodes();
     this.importAllNodes(project.fileName, project.findNodes());
+    this.pruneExportHierarchy();
 
     this.reset();
 
@@ -622,6 +621,76 @@ this.b3editor = this.b3editor || {};
 
     // return hierarchy
   }
+  // Adds a node with `originDirectory` and `category` to the export hierarchy, increasing an internal counter 
+  // corresponding to that `originDirectory` and `category`.
+  p.addToExportHierarchy = function(originDirectory, category) {
+    // If the export counter map for the origin directory does not exist...
+    if (this.exportCounter[originDirectory] === undefined) {
+      this.exportCounter[originDirectory] = {};
+    }
+    
+    // If the counter for the category and origin directory does not exist...
+    if (this.exportCounter[originDirectory][category] === undefined) {
+      this.exportCounter[originDirectory][category] = 0;
+    }
+
+    // Increment counter.
+    this.exportCounter[originDirectory][category]++;
+
+    // Update export hierarchy too.
+    // If the origin directory is not registered in the export hierarchy...
+    if (this.project.nodesToExport[originDirectory] === undefined) {
+      this.project.nodesToExport[originDirectory] = {};
+    }
+
+    // If the category is not registered in the export hierarchy...
+    if (this.project.nodesToExport[originDirectory][category] === undefined) {
+      this.project.nodesToExport[originDirectory][category] = true;
+    }
+  }
+  // Deregisters a node with the given `originDirectory` and `category` from the export hierarchy, thus decrementing the
+  // corresponding counter. If the counter reaches 0, the entry gets removed as appropriate. If the corresponding 
+  // counter does not exist, this method will have no effect.
+  p.removeFromExportHierarchy = function(originDirectory, category) {
+    var exportHierarchy = this.project.nodesToExport;
+    // If the counter exists...
+    if (this.exportCounter[originDirectory] !== undefined && this.exportCounter[originDirectory][category] !== undefined) {
+      // Decrement it.
+      this.exportCounter[originDirectory][category]--;
+
+      // If there are no more nodes within this part of the hierarchy...
+      if (this.exportCounter[originDirectory][category] <= 0) {
+        delete this.exportCounter[originDirectory][category];
+        delete exportHierarchy[originDirectory][category];
+
+        // If the part of the export hierarchy corresponding to originDirectory no longer has categories...
+        if (Object.keys(this.exportCounter[originDirectory]).length == 0) {
+          delete this.exportCounter[originDirectory];
+          delete exportHierarchy[originDirectory];
+        }
+      }
+    }
+  }
+  // Clears all entries from the export hierarchy that do not have a corresponding counter.
+  p.pruneExportHierarchy = function() {
+    // For each originDirectory in the export hierarchy (going backwards)...
+    for (var originDirectory in this.project.nodesToExport) {
+      console.log(originDirectory);
+      // If no corresponding entry exists in the exportCounter...
+      if (!this.exportCounter[originDirectory]) {
+        delete this.project.nodesToExport[originDirectory];
+      } else {  // Otherwise...
+        // For each category in the export hierarchy for originDirectory...
+        for (var category in this.project.nodesToExport[originDirectory]) {
+          console.log(category);
+          // If no corresponding entry exists in the exportCounter...
+          if (!this.exportCounter[originDirectory][category]) {
+            delete this.project.nodesToExport[originDirectory][category];
+          }
+        }
+      }
+    }
+  }
   // json is the JSON contents of the .nodes file; originDirectory is the directory from which it originated.
   p.importNodes = function(json, originDirectory) {
     var nodes = JSON.parse(json);
@@ -672,14 +741,12 @@ this.b3editor = this.b3editor || {};
     tempClass.prototype.originDirectory = originDirectory;
 
     if (node.type == "action") {
-      // Update the export hierarchy
-      // If the corresponding origin directory is not defined...
-      if (this.project.nodesToExport[originDirectory] === undefined) {
-        this.project.nodesToExport[originDirectory] = {};
-      }
-      this.project.nodesToExport[originDirectory][node.category] = true;
+      var category = node.category || '';
 
-      tempClass.prototype.category = node.category || '';
+      // Update the export hierarchy
+      this.addToExportHierarchy(originDirectory, category);
+
+      tempClass.prototype.category = category;
       tempClass.prototype.script = node.script || '';
 
       tempClass.prototype.output = {}
@@ -721,6 +788,10 @@ this.b3editor = this.b3editor || {};
       return;
     }
 
+    // Remove the node from the export hierarchy.
+    this.removeFromExportHierarchy(this.nodes[oldName].prototype.originDirectory, 
+      this.nodes[oldName].prototype.category);
+
     delete this.nodes[oldName];
     this.nodes[newNode.name] = node;
 
@@ -732,11 +803,8 @@ this.b3editor = this.b3editor || {};
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
     if (node.prototype.type == "action") {
       // Update the export hierarchy
-      // If the corresponding origin directory is not defined...
-      if (this.project.nodesToExport[originDirectory] === undefined) {
-        this.project.nodesToExport[originDirectory] = {};
-      }
-      this.project.nodesToExport[originDirectory][node.category] = true;
+      this.addToExportHierarchy(originDirectory, node.prototype.category);
+
       if (newNode.output)
        node.prototype.output = JSON.parse(JSON.stringify(newNode.output));
       if (newNode.script)
@@ -771,6 +839,8 @@ this.b3editor = this.b3editor || {};
       }
     }
 
+    // Remove from the export hierarchy.
+    this.removeFromExportHierarchy(this.nodes[name].prototype.originDirectory, this.nodes[name].prototype.category);
     delete this.nodes[name];
     this.trigger('noderemoved', node);
   }
@@ -1266,11 +1336,6 @@ this.b3editor = this.b3editor || {};
     img.src = canvas.toDataURL();
 
     return img;
-  }
-
-  p.runTests = function() {
-    var testRunner = require('./test/testerMain');
-    testRunner.main();
   }
   // ==========================================================================
 

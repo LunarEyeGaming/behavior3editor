@@ -1,14 +1,14 @@
 <div id="addnode-modal" class="modal wide">
   <div class='modal-overlay' ng-click='close("Cancel")'></div>
   <div class="modal-dialog">
-    <div class="modal-dialog-content">
+    <div class="modal-dialog-content export-hierarchy">
       <a class="button modal-close" ng-click="close('Cancel')" data-dismiss="modal" aria-hidden="true" href="#">&times;</a>
 
       <div class="modal-header">
         <h1 class="modal-title">Export Nodes</h1>
       </div>
 
-      <div class="modal-body">
+      <div class="modal-body export-hierarchy-display">
         <ul>
           <li ng-repeat="(dir, categories) in exportHierarchy" class="export-selector-entry">
             <a href="#" ng-click="toggleExportDir(dir)" ng-class="getDisplayStyleDir(dir)">
@@ -20,7 +20,7 @@
                 <a href="#" ng-click="toggleExport(dir, category)" ng-class="getDisplayStyle(dir, category)">
                   {{getDisplaySymbol(dir, category)}}
                 </a>
-                {{category}}
+                {{category === "" ? "[other]" : category}}
               </li>
             </ul>
           </li>

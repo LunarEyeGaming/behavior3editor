@@ -41,6 +41,7 @@ var suite = [
     assertThrows("TypeError", () => undoHistory.addCommand(undefined));
     assertThrows("TypeError", () => undoHistory.addCommand(null));
     assertThrows("TypeError", () => undoHistory.addCommand("Not a Command"));
+    assertThrows("TypeError", () => undoHistory.addCommand(function() {return "Something!"}));
   }),
   makeTest("undoLastCommand basic functionality", () => {
     var undoHistory = new b3editor.UndoStack();
