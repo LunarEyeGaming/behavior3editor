@@ -461,6 +461,9 @@ this.b3editor = this.b3editor || {};
       }, function(filename) {
         editor.tree.path = filename;
 
+        // This should only be included here to let the filename display know that the save location has been updated.
+        editor.trigger("treesaved", editor.tree);
+
         editor.writeTreeFile();
       });
     } else {

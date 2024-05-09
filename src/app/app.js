@@ -1,6 +1,7 @@
 var app = angular.module('app', [
   'app.tabs',
   'app.sidebar',
+  'app.filename',
   'app.modal',
   'app.notification',
   'app.scrollable',
