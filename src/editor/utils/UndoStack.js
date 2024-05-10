@@ -69,13 +69,19 @@ this.b3editor = this.b3editor || {};
   }
 
   /**
-   * Reperforms the Command at the undo cursor and increments the cursor. If there are no actions to redo, this method
-   * will have no effect.
+   * Reperforms the Command at the undo cursor and increments the cursor. This involves either running the `redo()`
+   * method, if defined, or running the `run()` method otherwise. If there are no actions to redo, this method will have 
+   * no effect.
    */
   p.redoNextCommand = function() {
     // If the cursor is not at the end of the list...
     if (this.cursor < this.stack.length) {
-      this.stack[this.cursor].run();  // Redo the Command
+      // If the redo method is defined...
+      if (this.stack[this.cursor].redo) {
+        this.stack[this.cursor].redo();
+      } else {
+        this.stack[this.cursor].run();
+      }
       this.cursor++;  // And increment the cursor
     }
   }

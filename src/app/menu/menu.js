@@ -208,6 +208,14 @@ angular.module('app.menu', ['app.modal'])
     if (e) e.preventDefault();
     $window.app.editor.remove();
   }
+  $scope.onButtonUndo = function(e) {
+    if (e) e.preventDefault();
+    $window.app.editor.undo();
+  }
+  $scope.onButtonRedo = function(e) {
+    if (e) e.preventDefault();
+    $window.app.editor.redo();
+  }
   $scope.onButtonRemoveAllConnections = function(e) {
     if (e) e.preventDefault();
     $window.app.editor.removeConnections();

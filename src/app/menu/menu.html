@@ -18,6 +18,9 @@
       </li>
       <li><a href="#">Edit</a>
         <ul>
+          <li><a ng-click="onButtonUndo()" href="#">Undo<span class="shortcut">{{key_undo}}</span></a></li>
+          <li><a ng-click="onButtonRedo()" href="#">Redo<span class="shortcut">{{key_redo}}</span></a></li>
+          <li class="divider"></li>
           <li><a ng-click="onButtonCopy()" href="#">Copy<span class="shortcut">{{key_copy}}</span></a></li>
           <li><a ng-click="onButtonCut()" href="#">Cut<span class="shortcut">{{key_cut}}</span></a></li>
           <li><a ng-click="onButtonPaste()" href="#">Paste<span class="shortcut">{{key_paste}}</span></a></li>

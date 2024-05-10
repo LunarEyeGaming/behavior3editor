@@ -47,6 +47,7 @@ this.b3editor = this.b3editor || {};
     this.warnedNodes      = new Set();
     this.clipboard        = [];
     this.exportCounter    = {};
+    this.undoHistory      = new b3editor.UndoStack();
 
     // WHOLE
     this.symbols          = {};
@@ -108,6 +109,12 @@ this.b3editor = this.b3editor || {};
       event[key] = variables[key];
     }
     this.dispatchEvent(event);
+  }
+  // Adds a command with name `cmd` and arguments `args` to the undo history, automatically supplying the `editor` 
+  // argument as this current editor.
+  p.pushCommand = function(cmd, args) {
+    args.editor = this;
+    this.undoHistory.addCommand(new b3editor[cmd](args));
   }
   // node is the node to register
   p.registerNode = function(node) {
@@ -591,38 +598,6 @@ this.b3editor = this.b3editor || {};
   // with each origin directory.
   p.getNodeExportHierarchy = function() {
     return this.project.nodesToExport;
-    // // If the project has some nodes to export configured, use them instead.
-    // if (this.project.nodesToExport) {
-    //   return this.project.nodesToExport;
-    // }
-
-    // this.project.nodesToExport = {};
-
-    // var hierarchy = this.project.nodesToExport;
-
-    // // Go through each node...
-    // for (var nodeName in this.nodes) {
-    //   var node = this.nodes[nodeName];
-    //   var originDirectory = node.prototype.originDirectory;
-
-    //   // Skip if the origin directory or category is undefined (as is the case for the root node). It's also undesirable
-    //   // to display undefined categories and origin directories like that.
-    //   if (originDirectory === undefined || node.prototype.category === undefined) {
-    //     continue;
-    //   }
-
-    //   // If hierarchy does not contain an entry for the originDirectory...
-    //   if (hierarchy[originDirectory] === undefined) {
-    //     hierarchy[originDirectory] = {}
-    //   }
-
-    //   // If the category is not included in the originDirectory entry...
-    //   if (hierarchy[originDirectory][node.prototype.category] === undefined) {
-    //     hierarchy[originDirectory][node.prototype.category] = true
-    //   }
-    // }
-
-    // return hierarchy
   }
   // Adds a node with `originDirectory` and `category` to the export hierarchy, increasing an internal counter 
   // corresponding to that `originDirectory` and `category`.
@@ -678,14 +653,12 @@ this.b3editor = this.b3editor || {};
   p.pruneExportHierarchy = function() {
     // For each originDirectory in the export hierarchy (going backwards)...
     for (var originDirectory in this.project.nodesToExport) {
-      console.log(originDirectory);
       // If no corresponding entry exists in the exportCounter...
       if (!this.exportCounter[originDirectory]) {
         delete this.project.nodesToExport[originDirectory];
       } else {  // Otherwise...
         // For each category in the export hierarchy for originDirectory...
         for (var category in this.project.nodesToExport[originDirectory]) {
-          console.log(category);
           // If no corresponding entry exists in the exportCounter...
           if (!this.exportCounter[originDirectory][category]) {
             delete this.project.nodesToExport[originDirectory][category];
@@ -1052,24 +1025,44 @@ this.b3editor = this.b3editor || {};
     block.displayObject.x = x;
     block.displayObject.y = y;
 
-    this.blocks.push(block);
-    this.canvas.layerBlocks.addChild(block.displayObject);
+    this.deselectAll();  // We want just the block to add to be selected.
 
-    this.deselectAll()
-    this.select(block);
+    this.registerBlock(block);
 
     return block;
+  }
+  // Registers a Block object into the editor.
+  p.registerBlock = function(block) {
+    this.blocks.push(block);
+    this.canvas.layerBlocks.addChild(block.displayObject);
+  
+    this.select(block);
   }
   p.addConnection = function(inBlock, outBlock) {
     var connection = new b3editor.Connection(this);
 
     if (inBlock) {
       connection.addInBlock(inBlock);
-      inBlock.addOutConnection(connection);
     }
 
     if (outBlock) {
       connection.addOutBlock(outBlock);
+    }
+
+    this.registerConnection(connection);
+
+    return connection;
+  }
+  // Registers a connection (which has its inBlock and outBlock fields fully defined) into the editor.
+  p.registerConnection = function(connection) {
+    var inBlock = connection.inBlock;
+    var outBlock = connection.outBlock;
+
+    if (inBlock) {
+      inBlock.addOutConnection(connection);
+    }
+
+    if (outBlock) {
       outBlock.addInConnection(connection);
     }
 
@@ -1077,8 +1070,6 @@ this.b3editor = this.b3editor || {};
     this.canvas.layerConnections.addChild(connection.displayObject);
 
     connection.redraw();
-
-    return connection;
   }
   p.editBlock = function(block, template) {
     var oldValues = {
@@ -1118,18 +1109,20 @@ this.b3editor = this.b3editor || {};
   p.removeConnection = function(connection) {
     if (connection.inBlock) {
       connection.inBlock.removeOutConnection(connection);
-      connection.removeInBlock();
+      // connection.removeInBlock();
     }
 
     if (connection.outBlock) {
       connection.outBlock.removeInConnection();
-      connection.removeOutBlock();
+      // connection.removeOutBlock();
     }
 
     var index = this.connections.indexOf(connection);
     if (index > -1) this.connections.splice(index, 1);
 
     this.canvas.layerConnections.removeChild(connection.displayObject);
+
+    this.canvas.stage.update();
   }
   // ==========================================================================
 
@@ -1253,18 +1246,33 @@ this.b3editor = this.b3editor || {};
   }
   p.remove = function() {
     var root = null;
+    var blocksToRemove = [];
+
+    // Go through selected block and add it to the list of blocks to remove, except for the root.
     for (var i=0; i<this.selectedBlocks.length; i++) {
       if (this.selectedBlocks[i].type == 'root') {
         root = this.selectedBlocks[i];
       } else {
-        this.removeBlock(this.selectedBlocks[i]);
+        blocksToRemove.push(this.selectedBlocks[i]);
       }
     }
+
+    this.pushCommand('RemoveBlocks', {
+      blocks: blocksToRemove
+    });
 
     this.deselectAll();
     if (root) {
       this.select(root);
     }
+  }
+  // Moves back one command in the undo history for the editor.
+  p.undo = function() {
+    this.undoHistory.undoLastCommand();
+  }
+  // Moves forward one command in the undo history for the editor.
+  p.redo = function() {
+    this.undoHistory.redoNextCommand();
   }
 
   p.removeConnections = function() {

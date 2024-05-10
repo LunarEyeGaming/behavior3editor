@@ -70,21 +70,32 @@ this.b3editor = this.b3editor || {};
 
       // if not entity or entity but no block
       if (!block || block === this.entity.inBlock || block.type === 'root') {
+          // TODO: Make removing the connection a Command if the connection was already added.
           this.editor.removeConnection(this.entity);
       } else {
+          var prevInConnection = undefined;
+          var prevOutConnection = undefined;
+
           // if double parent on node
           if (block.inConnection) {
-              this.editor.removeConnection(block.inConnection);
+              prevInConnection = block.inConnection;
+              this.editor.removeConnection(prevInConnection);
           }
 
           // if double children on root
           if ((this.entity.inBlock.type === 'root' || this.entity.inBlock.type === 'decorator') &&
                   this.entity.inBlock.outConnections.length > 1) {
-              this.editor.removeConnection(this.entity.inBlock.outConnections[0]);
+              prevOutConnection = this.entity.inBlock.outConnections[0];
+              this.editor.removeConnection(prevOutConnection);
           }
 
-          this.entity.addOutBlock(block);
-          block.addInConnection(this.entity);
+          this.editor.pushCommand('AddConnection', {
+            connector: this.entity,
+            inBlock: this.entity.inBlock,
+            outBlock: block,
+            prevInConnection,
+            prevOutConnection
+          })
 
           this.entity.redraw();
       }
