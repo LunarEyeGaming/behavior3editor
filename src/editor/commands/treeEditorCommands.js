@@ -44,7 +44,22 @@ b3editor.RemoveBlocks = b3editor.defineCommand((_, p) => {
     this.editor = args.editor;
   
     this.blocks = args.blocks;
-    // TODO: store the connections that were removed by this command.
+    // Store the connections that will be removed.
+    this.connections = [];
+    this.blocks.forEach(block => {
+      // If the inConnection is defined and is not in the list of connections...
+      if (block.inConnection && this.connections.indexOf(block.inConnection) == -1) {
+        this.connections.push(block.inConnection);  // Add it.
+      }
+
+      // For each outConnection...
+      block.outConnections.forEach(connection => {
+        // If the connection is not in the list of connections...
+        if (this.connections.indexOf(connection) == -1) {
+          this.connections.push(connection);  // Add it.
+        }
+      })
+    })
   }
 
   p.run = function() {
@@ -56,6 +71,9 @@ b3editor.RemoveBlocks = b3editor.defineCommand((_, p) => {
 
   p.undo = function() {
     this.blocks.forEach(block => this.editor.registerBlock(block));
+
+    // The connections will have to be added back manually.
+    this.connections.forEach(connection => this.editor.registerConnection(connection));
 
     this.editor.canvas.stage.update();
   }

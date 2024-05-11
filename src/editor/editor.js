@@ -1191,33 +1191,32 @@ this.b3editor = this.b3editor || {};
   }
 
   p.copy = function() {
-    this.clipboard = [];
+    this.clipboard = {blocks: [], connections: []};
 
     for (var i=0; i<this.selectedBlocks.length; i++) {
       var block = this.selectedBlocks[i];
 
       if (block.type != 'root') {
-        this.clipboard.push(block)
+        this.clipboard.blocks.push(block);
       }
     }
   }
   p.cut = function() {
-    this.clipboard = [];
+    this.copy();
 
-    for (var i=0; i<this.selectedBlocks.length; i++) {
-      var block = this.selectedBlocks[i];
-
-      if (block.type != 'root') {
-        this.removeBlock(block);
-        this.clipboard.push(block)
-      }
-    }
+    // The blocks cut into the clipboard just happen to be the ones to remove, so we make a shallow copy of it to ensure
+    // that the list of blocks to remove doesn't change due to clipboard updates.
+    this.pushCommandTree('RemoveBlocks', {
+      blocks: [...this.clipboard.blocks]
+    })
     this.selectedBlocks = [];
   }
   p.paste = function() {
+    this.deselectAll();
+
     var newBlocks = [];
-    for (var i=0; i<this.clipboard.length; i++) {
-      var block = this.clipboard[i];
+    for (var i=0; i<this.clipboard.blocks.length; i++) {
+      var block = this.clipboard.blocks[i];
 
       // Copy the block
       var newBlock = block.copy();
@@ -1225,21 +1224,25 @@ this.b3editor = this.b3editor || {};
       newBlock.displayObject.y += 50;
 
       // Add block to container
-      this.blocks.push(newBlock)
-      this.canvas.layerBlocks.addChild(newBlock.displayObject);
+      // this.blocks.push(newBlock)
+      // this.canvas.layerBlocks.addChild(newBlock.displayObject);
+      // newBlocks.push(newBlock);
+      // newBlock.redraw();
+      this.registerBlock(newBlock);
       newBlocks.push(newBlock);
-      newBlock.redraw();
     }
 
     // Copy connections
     // TODO: cubic complexity here! How to make it better?
-    for (var i=0; i<this.clipboard.length; i++) {
-      var oldBlock = this.clipboard[i];
+    // TODO: Move this over to the copy code (and refactor accordingly) because otherwise, connections are lost while 
+    // cutting.
+    for (var i=0; i<this.clipboard.blocks.length; i++) {
+      var oldBlock = this.clipboard.blocks[i];
       var newBlock = newBlocks[i];
 
       for (var j=0; j<oldBlock.outConnections.length; j++) {
-        for (var k=0; k<this.clipboard.length; k++) {
-          if (oldBlock.outConnections[j].outBlock === this.clipboard[k]) {
+        for (var k=0; k<this.clipboard.blocks.length; k++) {
+          if (oldBlock.outConnections[j].outBlock === this.clipboard.blocks[k]) {
             this.addConnection(newBlock, newBlocks[k]);
             break;
           }
@@ -1248,10 +1251,10 @@ this.b3editor = this.b3editor || {};
     }
 
     // Deselect old blocks and select the new ones
-    this.deselectAll();
-    for (var i=0; i<newBlocks.length; i++) {
-      this.select(newBlocks[i]);
-    }
+    // this.deselectAll();
+    // for (var i=0; i<newBlocks.length; i++) {
+    //   this.select(newBlocks[i]);
+    // }
 
     this.snap(newBlocks);
   }
