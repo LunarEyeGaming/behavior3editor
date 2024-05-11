@@ -1208,8 +1208,9 @@ this.b3editor = this.b3editor || {};
     // that the list of blocks to remove doesn't change due to clipboard updates.
     this.pushCommandTree('RemoveBlocks', {
       blocks: [...this.clipboard.blocks]
-    })
-    this.selectedBlocks = [];
+    });
+
+    this.deselectAll();
   }
   p.paste = function() {
     this.deselectAll();
