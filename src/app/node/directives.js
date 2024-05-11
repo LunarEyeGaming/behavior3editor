@@ -44,7 +44,7 @@ angular.module('app.node')
 
         // TODO: encapsulate this inside the editor
         var point = $window.app.editor.canvas.getLocalMousePosition(e.clientX, e.clientY);
-        $window.app.editor.pushCommand('AddBlock', {
+        $window.app.editor.pushCommandTree('AddBlock', {
           blockName: data.replace('node-', ''), 
           xPos: point.x,
           yPos: point.y

@@ -47,7 +47,7 @@ this.b3editor = this.b3editor || {};
     this.warnedNodes      = new Set();
     this.clipboard        = [];
     this.exportCounter    = {};
-    this.undoHistory      = new b3editor.UndoStack();
+    this.treeUndoHistories = {};
 
     // WHOLE
     this.symbols          = {};
@@ -110,11 +110,13 @@ this.b3editor = this.b3editor || {};
     }
     this.dispatchEvent(event);
   }
-  // Adds a command with name `cmd` and arguments `args` to the undo history, automatically supplying the `editor` 
-  // argument as this current editor.
-  p.pushCommand = function(cmd, args) {
+  // Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the current tree, 
+  // automatically supplying the `editor` argument as this current editor.
+  p.pushCommandTree = function(cmd, args) {
     args.editor = this;
-    this.undoHistory.addCommand(new b3editor[cmd](args));
+    // Look up the undo history corresponding to the current tree and add the command with name `cmd` to that undo 
+    // history.
+    this.treeUndoHistories[this.tree.id].addCommand(new b3editor[cmd](args));
   }
   // node is the node to register
   p.registerNode = function(node) {
@@ -830,6 +832,9 @@ this.b3editor = this.b3editor || {};
     tree.blocks = [block];
     this.trees.push(tree);
 
+    // Make new tree undo history.
+    this.treeUndoHistories[tree.id] = new b3editor.UndoStack();
+
     this.trigger('treeadded', tree);
 
     this.selectTree(tree.id);
@@ -898,6 +903,9 @@ this.b3editor = this.b3editor || {};
     }
     if (index > -1) {
       this.trees.splice(index, 1);
+
+      // Delete the undo history corresponding to the tree that was removed.
+      this.treeUndoHistories[tree.id] = undefined;
 
       if (tree === this.tree) {
         var id_ = null;
@@ -993,6 +1001,10 @@ this.b3editor = this.b3editor || {};
       this.tree.id = this.blocks[0].id;
       this.tree.blocks = [this.blocks[0]];
     }
+
+    // Reset undo histories.
+    this.treeUndoHistories = {}
+    this.treeUndoHistories[this.tree.id] = new b3editor.UndoStack();
   }
   p.snap = function(blocks) {
     if (!blocks) {
@@ -1257,7 +1269,7 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    this.pushCommand('RemoveBlocks', {
+    this.pushCommandTree('RemoveBlocks', {
       blocks: blocksToRemove
     });
 
@@ -1268,11 +1280,11 @@ this.b3editor = this.b3editor || {};
   }
   // Moves back one command in the undo history for the editor.
   p.undo = function() {
-    this.undoHistory.undoLastCommand();
+    this.treeUndoHistories[this.tree.id].undoLastCommand();
   }
   // Moves forward one command in the undo history for the editor.
   p.redo = function() {
-    this.undoHistory.redoNextCommand();
+    this.treeUndoHistories[this.tree.id].redoNextCommand();
   }
 
   p.removeConnections = function() {
