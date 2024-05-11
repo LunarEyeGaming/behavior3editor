@@ -109,6 +109,79 @@ b3editor.AddConnection = b3editor.defineCommand((_, p) => {
 })
 
 /**
+ * A command representing removing a connection.
+ */
+b3editor.RemoveConnection = b3editor.defineCommand((_, p) => {
+  p.initialize = function(args) {
+    this.editor = args.editor;
+
+    this.connector = args.connector;
+    this.outBlock = args.outBlock;  // The outBlock that was disconnected.
+  }
+
+  p.run = function() {
+    this.editor.removeConnection(this.connector);
+  }
+
+  p.undo = function() {
+    this.connector.addOutBlock(this.outBlock);  // connector.outBlock was null upon first running the command.
+    this.editor.registerConnection(this.connector);
+  }
+})
+
+/**
+ * A command repseenting moving a connection.
+ */
+b3editor.MoveConnection = b3editor.defineCommand((_, p) => {
+  p.initialize = function(args) {
+    this.editor = args.editor;
+
+    this.connector = args.connector;
+    this.prevOutBlock = args.prevOutBlock;  // The outBlock that was disconnected as a consequence of the move.
+    this.outBlock = args.outBlock;  // The outBlock that was connected as a consequence of the move.
+    this.removedConnector = args.removedConnector;  // The connector that was removed due to the move (if any).
+  }
+
+  p.run = function() {
+    // Complete the moving of the connection.
+    this.connector.addOutBlock(this.outBlock);
+    this.outBlock.addInConnection(this.connector);
+  }
+
+  p.undo = function() {
+    // Move the connector back to its original outBlock.
+    this.connector.addOutBlock(this.prevOutBlock);
+    // Set the original outBlock's inConnection to the connector.
+    this.prevOutBlock.addInConnection(this.connector);
+    // Set the other outBlock's inConnection to nothing.
+    this.outBlock.removeInConnection();
+
+    this.connector.redraw();  // Forces the connector to update its appearance.
+
+    // Re-add the connection that was removed due to the movement if applicable.
+    if (this.removedConnector) {
+      this.editor.registerConnection(this.removedConnector);
+    }
+  }
+
+  p.redo = function() {
+    // Move the connector to the new outBlock.
+    this.connector.addOutBlock(this.outBlock);
+    // Set the new outBlock's inConnection to the connector.
+    this.outBlock.addInConnection(this.connector);
+    // Set the other outBlock's inConnection to nothing.
+    this.prevOutBlock.removeInConnection();
+
+    this.connector.redraw();  // Forces the connector to update its appearance.
+
+    // Redo the removal of the removed connection.
+    if (this.removedConnector) {
+      this.editor.removeConnection(this.removedConnector);
+    }
+  }
+})
+
+/**
  * Unfinished.
  */
 // b3editor.AddNodeProperty = b3editor.defineCommand((_, p) => {

@@ -1118,6 +1118,11 @@ this.b3editor = this.b3editor || {};
 
     this.canvas.layerBlocks.removeChild(block.displayObject);
   }
+  /**
+   * Removes `connection` from the editor. The original `connection` remains unmodified.
+   * 
+   * @param {Connection} connection the connection to remove
+   */
   p.removeConnection = function(connection) {
     if (connection.inBlock) {
       connection.inBlock.removeOutConnection(connection);

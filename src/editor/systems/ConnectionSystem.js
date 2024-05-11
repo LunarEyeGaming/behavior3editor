@@ -11,6 +11,7 @@ this.b3editor = this.b3editor || {};
     this.canvas = params['canvas'];
 
     this.entity = null;
+    this.prevOutBlock = null;  // The outBlock that was affected by a disconnection.
 
     this.canvas.stage.on('stagemousedown', this.onMouseDown, this);
     this.canvas.stage.on('stagemousemove', this.onMouseMove, this);
@@ -37,6 +38,9 @@ this.b3editor = this.b3editor || {};
       var connection = block.inConnection;
       if (!connection)
           return;
+
+      // Set the prevOutBlock attribute to note that an outBlock had been disconnected.
+      this.prevOutBlock = block;
 
       block.removeInConnection();
       connection.removeOutBlock();
@@ -70,8 +74,17 @@ this.b3editor = this.b3editor || {};
 
       // if not entity or entity but no block
       if (!block || block === this.entity.inBlock || block.type === 'root') {
-          // TODO: Make removing the connection a Command if the connection was already added.
-          this.editor.removeConnection(this.entity);
+          // If the connection previously had an outBlock (and implicitly is now disconnected)...
+          if (this.prevOutBlock) {
+            // Count this as an action as we are deleting a connection.
+            this.editor.pushCommandTree('RemoveConnection', {
+              connector: this.entity,
+              outBlock: this.prevOutBlock
+            });
+          } else {  // Otherwise...
+            // Remove the connection without counting it as an action.
+            this.editor.removeConnection(this.entity);
+          }
       } else {
           var prevInConnection = undefined;
           var prevOutConnection = undefined;
@@ -89,13 +102,26 @@ this.b3editor = this.b3editor || {};
               this.editor.removeConnection(prevOutConnection);
           }
 
-          this.editor.pushCommand('AddConnection', {
-            connector: this.entity,
-            inBlock: this.entity.inBlock,
-            outBlock: block,
-            prevInConnection,
-            prevOutConnection
-          })
+          // If the connection previously had an outBlock (and implicitly is now disconnected)...
+          if (this.prevOutBlock) {
+            // Count this as moving a connection.
+            this.editor.pushCommandTree('MoveConnection', {
+              connector: this.entity,
+              prevOutBlock: this.prevOutBlock,
+              outBlock: block,
+              removedConnector: prevInConnection
+            });
+          } else {  // Otherwise...
+            // Count this as adding a connection.
+            this.editor.pushCommandTree('AddConnection', {
+              connector: this.entity,
+              inBlock: this.entity.inBlock,
+              outBlock: block,
+              prevInConnection,
+              prevOutConnection
+            });
+          }
+          
 
           this.entity.redraw();
       }
