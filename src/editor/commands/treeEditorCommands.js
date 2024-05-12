@@ -5,6 +5,9 @@ this.b3editor = this.b3editor || {};
 // Due to most operations of comparison requiring reference equality, undo and redo methods MUST ensure that the 
 // original element affected by the operation is kept and no identical copies of the original element are created.
 
+// =====================================================================================================================
+// BLOCK COMMANDS
+// =====================================================================================================================
 /**
  * A command representing adding a node block to the behavior tree grid of the provided editor.
  */
@@ -80,6 +83,57 @@ b3editor.RemoveBlocks = b3editor.defineCommand((_, p) => {
 })
 
 /**
+ * A command representing moving some blocks.
+ * * movements: A list of objects each containing the following entries:
+ *   * block: the block that was moved
+ *   * startPos: the starting position of the block (as 2D coordinates, where x is the x coordinate and y is the y 
+ *     coordinate)
+ *   * endPos: the ending position of the block (as 2D coordinates, where x is the x coordinate and y is the y 
+ *     coordinate)
+ */
+b3editor.MoveBlocks = b3editor.defineCommand((_, p) => {
+  p.initialize = function(args) {
+    this.editor = args.editor;
+
+    this.movements = args.movements
+  }
+
+  p.run = function() {
+    // This is supposed to do nothing.
+  }
+
+  p.undo = function() {
+    // For each movement...
+    this.movements.forEach(movement => {
+      // Move the block back to its original position.
+      movement.block.displayObject.x = movement.startPos.x;
+      movement.block.displayObject.y = movement.startPos.y;
+
+      // Redraw the block and its connections.
+      movement.block.redraw();
+    })
+
+    // Update the canvas to reflect the change.
+    this.editor.canvas.stage.update();
+  }
+
+  p.redo = function() {
+    // For each movement...
+    this.movements.forEach(movement => {
+      // Move the block back to its new position.
+      movement.block.displayObject.x = movement.endPos.x;
+      movement.block.displayObject.y = movement.endPos.y;
+
+      // Redraw the block and its connections.
+      movement.block.redraw();
+    })
+  }
+})
+
+// =====================================================================================================================
+// CONNECTION COMMANDS
+// =====================================================================================================================
+/**
  * A command representing adding a connection.
  */
 b3editor.AddConnection = b3editor.defineCommand((_, p) => {
@@ -90,7 +144,8 @@ b3editor.AddConnection = b3editor.defineCommand((_, p) => {
     this.inBlock = this.connector.inBlock;
     this.outBlock = args.outBlock;
     this.prevInConnection = args.prevInConnection;  // Entering connection removed due to double parent on node
-    this.prevOutConnection = args.prevOutConnection;  // Exiting connection removed due to double child on decorator / root node
+    this.prevOutConnection = args.prevOutConnection;  // Exiting connection removed due to double child on decorator / 
+    // root node
   }
 
   p.run = function() {
@@ -198,6 +253,10 @@ b3editor.MoveConnection = b3editor.defineCommand((_, p) => {
     }
   }
 })
+
+// =====================================================================================================================
+// OTHER COMMANDS
+// =====================================================================================================================
 
 /**
  * A command representing pasting some blocks and corresponding connections.
