@@ -197,8 +197,30 @@ b3editor.RemoveConnection = b3editor.defineCommand((_, p) => {
   }
 
   p.undo = function() {
-    this.connector.addOutBlock(this.outBlock);  // connector.outBlock was null upon first running the command.
+    this.connector.addOutBlock(this.outBlock);  // connector.outBlock was null upon first running the command because
+    // the user has already dragged the connector out of the block.
     this.editor.registerConnection(this.connector);
+  }
+})
+
+/**
+ * A command representing removing multiple connections.
+ */
+b3editor.RemoveConnections = b3editor.defineCommand((_, p) => {
+  p.initialize = function(args) {
+    this.editor = args.editor;
+
+    this.connections = args.connections;
+  }
+
+  p.run = function() {
+    // Go through each connection and remove it.
+    this.connections.forEach(connection => this.editor.removeConnection(connection));
+  }
+
+  p.undo = function() {
+    // Go through each connection and add it back.
+    this.connections.forEach(connection => this.editor.registerConnection(connection));
   }
 })
 

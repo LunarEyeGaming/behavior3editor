@@ -1311,39 +1311,54 @@ this.b3editor = this.b3editor || {};
   }
 
   p.removeConnections = function() {
+    var connections = [];
+
+    // Go through each selected block and add all of the connections to remove.
     for (var i=0; i<this.selectedBlocks.length; i++) {
       var block = this.selectedBlocks[i];
 
       if (block.inConnection) {
-        this.removeConnection(block.inConnection);
+        connections.push(block.inConnection);
       }
 
       if (block.outConnections.length > 0) {
         for (var j=block.outConnections.length-1; j>=0; j--) {
-          this.removeConnection(block.outConnections[j]);
+          connections.push(block.outConnections[j]);
         }
       }
     }
+
+    this.pushCommandTree('RemoveConnections', {connections});
   }
   p.removeInConnections = function() {
+    var connections = [];
+
+    // Go through each selected block and add all of the in-connections to remove.
     for (var i=0; i<this.selectedBlocks.length; i++) {
       var block = this.selectedBlocks[i];
 
       if (block.inConnection) {
-        this.removeConnection(block.inConnection);
+        connections.push(block.inConnection);
       }
     }
+
+    this.pushCommandTree('RemoveConnections', {connections});
   }
   p.removeOutConnections = function() {
+    var connections = [];
+
+    // Go through each selected block and add all of the out-connections to remove.
     for (var i=0; i<this.selectedBlocks.length; i++) {
       var block = this.selectedBlocks[i];
 
       if (block.outConnections.length > 0) {
         for (var j=block.outConnections.length-1; j>=0; j--) {
-          this.removeConnection(block.outConnections[j]);
+          connections.push(block.outConnections[j]);
         }
       }
     }
+
+    this.pushCommandTree('RemoveConnections', {connections});
   }
 
   p.zoomIn = function() {
