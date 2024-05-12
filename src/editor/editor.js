@@ -1193,11 +1193,31 @@ this.b3editor = this.b3editor || {};
   p.copy = function() {
     this.clipboard = {blocks: [], connections: []};
 
+    // Copy blocks.
     for (var i=0; i<this.selectedBlocks.length; i++) {
       var block = this.selectedBlocks[i];
 
       if (block.type != 'root') {
         this.clipboard.blocks.push(block);
+      }
+    }
+
+    // Copy connections
+    // For each block in the clipboard...
+    for (var i=0; i<this.selectedBlocks.length; i++) {
+      var block = this.selectedBlocks[i];
+
+      // Skip the block that is the root.
+      if (block.type == 'root')
+        continue;
+
+      // For each child connector from the block...
+      for (var j=0; j<block.outConnections.length; j++) {
+        // If the block at the end of the connector is defined and selected...
+        // (connectors with no outBlock occur if the user copies while in the process of adding a node)
+        if (block.outConnections[j].outBlock && block.outConnections[j].outBlock.isSelected) {
+          this.clipboard.connections.push(block.outConnections[j]);
+        }
       }
     }
   }
@@ -1219,45 +1239,39 @@ this.b3editor = this.b3editor || {};
     for (var i=0; i<this.clipboard.blocks.length; i++) {
       var block = this.clipboard.blocks[i];
 
-      // Copy the block
+      // Copy the block (and offset it so that it doesn't overlap)
       var newBlock = block.copy();
       newBlock.displayObject.x += 50;
       newBlock.displayObject.y += 50;
 
       // Add block to container
-      // this.blocks.push(newBlock)
-      // this.canvas.layerBlocks.addChild(newBlock.displayObject);
-      // newBlocks.push(newBlock);
-      // newBlock.redraw();
-      this.registerBlock(newBlock);
       newBlocks.push(newBlock);
     }
 
-    // Copy connections
-    // TODO: cubic complexity here! How to make it better?
-    // TODO: Move this over to the copy code (and refactor accordingly) because otherwise, connections are lost while 
-    // cutting.
-    for (var i=0; i<this.clipboard.blocks.length; i++) {
-      var oldBlock = this.clipboard.blocks[i];
-      var newBlock = newBlocks[i];
+    var newConnections = [];
+    // For each connection in the list of copied connections...
+    this.clipboard.connections.forEach(connection => {
+      // Make a new connection (which will become a copy of the original connection).
+      var newConnection = new b3editor.Connection();
 
-      for (var j=0; j<oldBlock.outConnections.length; j++) {
-        for (var k=0; k<this.clipboard.blocks.length; k++) {
-          if (oldBlock.outConnections[j].outBlock === this.clipboard.blocks[k]) {
-            this.addConnection(newBlock, newBlocks[k]);
-            break;
-          }
-        }
-      }
-    }
+      // Find the index of the old blocks used in the connection and then use those indices to refer to the new blocks,
+      // which we will use as the new endpoints of the copied connection. This is not optimally efficient. Consider 
+      // optimizing if necessary.
+      // Note: This section of the code will cause an error if a connection with an endpoint that is not selected is 
+      // copied to the clipboard.
+      var idxIn = this.clipboard.blocks.indexOf(connection.inBlock);
+      var idxOut = this.clipboard.blocks.indexOf(connection.outBlock);
+      newConnection.addInBlock(newBlocks[idxIn]);
+      newConnection.addOutBlock(newBlocks[idxOut]);
 
-    // Deselect old blocks and select the new ones
-    // this.deselectAll();
-    // for (var i=0; i<newBlocks.length; i++) {
-    //   this.select(newBlocks[i]);
-    // }
+      newConnections.push(newConnection);
+    })
 
-    this.snap(newBlocks);
+    // At this point, the copied blocks and connections are not in the editor yet. The command below does that.
+    this.pushCommandTree('Paste', {
+      blocks: newBlocks,
+      connections: newConnections
+    });
   }
   p.duplicate = function() {
     var tempClipboard = this.clipboard;

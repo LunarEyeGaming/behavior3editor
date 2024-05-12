@@ -200,6 +200,42 @@ b3editor.MoveConnection = b3editor.defineCommand((_, p) => {
 })
 
 /**
+ * A command representing pasting some blocks and corresponding connections.
+ */
+b3editor.Paste = b3editor.defineCommand((_, p) => {
+  p.initialize = function(args) {
+    this.editor = args.editor;
+
+    this.blocks = args.blocks;
+    this.connections = args.connections;
+  }
+
+  p.run = function() {
+    // Snapping the blocks needs to occur only once, so that's why we have the redo method not do that (and call redo in
+    // the run method to do the rest of the work).
+    this.redo();
+
+    this.editor.snap(this.blocks);
+  }
+
+  p.undo = function() {
+    // Hides the blocks from the editor (which also hides the connections automatically).
+    this.blocks.forEach(block => this.editor.removeBlock(block));
+
+    // Make sure that the blocks disappear.
+    this.editor.canvas.stage.update();
+  }
+
+  p.redo = function() {
+    this.blocks.forEach(block => this.editor.registerBlock(block));
+    this.connections.forEach(connection => this.editor.registerConnection(connection));
+
+    // Make sure that the blocks reappear.
+    this.editor.canvas.stage.update();
+  }
+})
+
+/**
  * Unfinished.
  */
 // b3editor.AddNodeProperty = b3editor.defineCommand((_, p) => {
