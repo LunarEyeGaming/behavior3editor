@@ -9,4 +9,5 @@ var app = angular.module('app', [
   'app.node',
   'app.tree',
   'app.property',
+  'app.focus',
 ]);

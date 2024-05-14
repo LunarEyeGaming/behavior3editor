@@ -15,6 +15,7 @@
   <script src="assets/libs/b3bare.js" type="text/javascript"></script>
 
   <script src="app/app.js" type="text/javascript"></script>
+  <script src="app/common/focus/focus.js" type="text/javascript"></script>
   <script src="app/common/sidebar/sidebar.js" type="text/javascript"></script>
   <script src="app/common/tabs/tabs.js" type="text/javascript"></script>
   <script src="app/common/modal/modal.js" type="text/javascript"></script>
@@ -68,30 +69,44 @@
   <!-- APP PAGE -->
   <div id="page">
     <canvas id="game-canvas" width="640" height="480" droppable-node></canvas>
-    <menu></menu>
-    <sidebar class="left">
-      <div class="tabset" ng-controller="TabController">
-        <ul class="header">
-          <li><a href="#" ng-class="{active:visible(0)}" ng-click="select(0)">Trees</a></li>
-          <li><a href="#" ng-class="{active:visible(1)}" ng-click="select(1)">Nodes</a></li>
-        </ul>
+    <div focus-list>
+      <menu></menu>
+      <!-- I would have just put the canvas into a focusable here, but that causes the tree editor to stop working 
+        completely. -->
+      <remote-focusable focus-id="game-canvas">
+        <!-- Overlay when the editor screen is not focused. -->
+        <div class="canvas-overlay"></div>
+      </remote-focusable>
+      <focusable>
+        <sidebar class="left">
+          <div class="tabset" ng-controller="TabController">
+            <ul class="header">
+              <li><a href="#" ng-class="{active:visible(0)}" ng-click="select(0)">Trees</a></li>
+              <li><a href="#" ng-class="{active:visible(1)}" ng-click="select(1)">Nodes</a></li>
+            </ul>
+    
+            <div ng-show="visible(0)"><treepanel>0</treepanel></div>
+            <div ng-show="visible(1)"><nodepanel>1</nodepanel></div>
+          </div>
+        </sidebar>
+      </focusable>
 
-        <div ng-show="visible(0)"><treepanel>0</treepanel></div>
-        <div ng-show="visible(1)"><nodepanel>1</nodepanel></div>
-      </div>
-    </sidebar>
-    <sidebar class="right">
-      <div class="tabset" ng-controller="TabController">
-        <ul class="header">
-          <li><a href="#" ng-class="{active:visible(1)}" ng-click="select(1)">Properties</a></li>
-          <!-- <li><a href="#" ng-class="{active:visible(0)}" ng-click="select(0)">Help</a></li> -->
-        </ul>
-
-        <div ng-show="visible(1)"><propertypanel>1</propertypanel></div>
-        <!-- <div ng-show="visible(0)"><helppanel>2</helppanel></div> -->
-      </div>
-    </sidebar>
-    <filename/>
+      <focusable>
+        <sidebar class="right">
+          <div class="tabset" ng-controller="TabController">
+            <ul class="header">
+              <li><a href="#" ng-class="{active:visible(1)}" ng-click="select(1)">Properties</a></li>
+              <!-- <li><a href="#" ng-class="{active:visible(0)}" ng-click="select(0)">Help</a></li> -->
+            </ul>
+    
+            <div ng-show="visible(1)"><propertypanel>1</propertypanel></div>
+            <!-- <div ng-show="visible(0)"><helppanel>2</helppanel></div> -->
+          </div>
+        </sidebar>
+      </focusable>
+      <filename/>
+    </div>
+    
   </div>
   <!-- END APP PAGE -->
 
