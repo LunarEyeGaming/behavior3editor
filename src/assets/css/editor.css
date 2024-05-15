@@ -151,11 +151,13 @@ form .row input, form .row textarea, form .row select {
   position: absolute;
   top: 25px;
   left: 250px;  /* Required b/c the sidebar on the left will otherwise hide some of the text. */
-  width: 100%;
+  width: calc(100% - 510px);
   height: 25px;
   background-color: #ffffff;
   border-bottom: 1px solid #aaaaaa;
-  /* z-index: 100; */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 
@@ -306,6 +308,7 @@ form .row input, form .row textarea, form .row select {
   width: 50%;
 }
 .modal-dialog-content {
+  height: 50vh;
   padding: 10px;
   background-color: #ffffff;
   text-align: left;
@@ -336,6 +339,8 @@ form .row input, form .row textarea, form .row select {
   background-color: #ffffff;
   border: 1px solid #181818;
   padding: 15px;
+  height: calc(100% - 65px);
+  overflow: auto;
 }
 .modal-footer {
   background-color: #ffffff;
@@ -605,18 +610,6 @@ form .row input, form .row textarea, form .row select {
   padding-left: 2px;
 }
 /* ================================*/
-
-/* ================================*/
-/*  EXPORTHIERARCHY                */
-/* ================================*/
-.export-hierarchy {
-  height: 50vh;
-}
-
-.export-hierarchy-display {
-  max-height: 79%;
-  overflow: auto;
-}
 
 /* ================================*/
 /*  EXPORTSELECTOR                 */
