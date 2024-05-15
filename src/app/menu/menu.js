@@ -85,19 +85,24 @@ angular.module('app.menu', ['app.modal'])
     dialog.showOpenDialog({
       title: "Import nodes",
       filters : [
-        { name: "JSON", extensions: ['json']},
+        { name: "Nodes", extensions: ['nodes']},
         { name: "All files", extensions: ['*']}
-      ]
+      ],
+      properties: ["multiSelections"]
     }, function(filenames) {
       if (filenames) {
-        var filename = filenames[0];
-        fs.readFile(filename, function(err, data){
-          if (err) throw err;
-          $window.app.editor.importNodes(data);
-
-          editor.trigger('notification', name, {
-            level: 'success',
-            message: 'Imported Nodes'
+        // Go through each file and try to read it, importing the nodes into the editor when successful.
+        // TODO: Make a better system for handling errors.
+        filenames.forEach(filename => {
+          fs.readFile(filename, function(err, data) {
+            if (err) throw err;
+            var originDirectory = path.relative(editor.project.fileName, path.dirname(filename));
+            $window.app.editor.importNodes(data, originDirectory);
+  
+            editor.trigger('notification', name, {
+              level: 'success',
+              message: 'Imported Nodes'
+            });
           });
         });
       }
@@ -107,24 +112,6 @@ angular.module('app.menu', ['app.modal'])
   $scope.onButtonExportNodes = function(e) {
     if (e) e.preventDefault();
     $rootScope.$broadcast('onButtonExportNodes');
-    // var editor = $window.app.editor;
-    // var nodes = editor.getNodeExportData();
-    // if (editor.project == null) {
-    //   editor.trigger('notification', name, {
-    //     level: 'error',
-    //     message: 'Cannot export nodes. No project loaded.'
-    //   });
-    // }
-
-    // for (origin in nodes) {
-    //   var nodesInDir = nodes[origin];
-    //   for (category in nodesInDir) {
-    //     if (nodesInDir[category] !== null) {
-    //       // console.log("Category: " + category + ", Origin: " + origin);
-    //       fs.writeFileSync(path.join(path.resolve(editor.project.fileName, origin), category + ".nodes"), nodesInDir[category]); 
-    //     }
-    //   }
-    // }
     return false;
   }
 

@@ -487,7 +487,7 @@ this.b3editor = this.b3editor || {};
     this.project = project;
 
     this.resetNodes();
-    this.importAllNodes(project.fileName, project.findNodes());
+    this.importAllNodes(project.findNodes());
     this.pruneExportHierarchy();
 
     this.reset();
@@ -679,14 +679,13 @@ this.b3editor = this.b3editor || {};
     }
   }
   // Helper function. Shortcut for importing nodes during the loading of the project.
-  // projectLoc is the location of the behavior-project file to log the location of nodes that are imported.
   // nodesPathList is the list of nodes paths to import.
   // originDirectory is the directory from which the list of nodes originated (absolute).
-  p.importNodesInit = function(projectLoc, nodesPathList, originDirectory) {
+  p.importNodesInit = function(nodesPathList, originDirectory) {
     nodesPathList.forEach(file => {
-      this.logger.info("Import nodes from " + path.relative(projectLoc, file));
+      this.logger.info("Import nodes from " + path.relative(this.project.fileName, file));
       var json = fs.readFileSync(file);
-      this.importNodes(json, path.relative(projectLoc, originDirectory));
+      this.importNodes(json, path.relative(this.project.fileName, originDirectory));
     });
   }
   // node is the node to add; originDirectory is the directory from which it originated (relative).
@@ -749,11 +748,11 @@ this.b3editor = this.b3editor || {};
   // Imports all nodes nodesPaths from the result of Project.findNodes().
   // nodesPaths is an object containing a mainPath, a mainNodes, and a nodesAssoc field. The nodesAssoc field contains
   // an association list that associates each nodes directory with a list of .nodes files to import.
-  p.importAllNodes = function(projectLoc, nodesPaths) {
-    this.importNodesInit(projectLoc, nodesPaths.mainNodes, nodesPaths.mainPath);
+  p.importAllNodes = function(nodesPaths) {
+    this.importNodesInit(nodesPaths.mainNodes, nodesPaths.mainPath);
     nodesPaths.otherNodes.forEach(nodesAssoc => {
       var [nodesDir, nodesPathList] = nodesAssoc;
-      this.importNodesInit(projectLoc, nodesPathList, nodesDir);
+      this.importNodesInit(nodesPathList, nodesDir);
     })
   }
   // originDirectory is the updated directory in which to save the node.
