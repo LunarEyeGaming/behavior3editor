@@ -217,30 +217,92 @@ this.b3editor = this.b3editor || {};
     }
   }
   p.importBlock = function(node, parent) {
+    var isRegistered = true;
+    var nodeDef = this.nodes[node.name];
+
+    // If the node is not registered...
     if (this.nodes[node.name] == undefined) {
+      // Report the unregistered node.
       var nodeCopy = JSON.parse(JSON.stringify(node));
       if (nodeCopy.child) delete nodeCopy.child;
       if (nodeCopy.children) delete nodeCopy.children;
-      this.logger.error("Node \"" + node.name + "\" not registered. Loaded with config: \n" + JSON.stringify(nodeCopy, null, 2));
-      return;
+      this.logger.warn("Node \"" + node.name + "\" not registered.");
+
+      // Mark as not registered
+      isRegistered = false;
+      // Make node definition stub (because literally everything relies on the fact that the node definition exists).
+      nodeDef = {};
+      nodeDef.prototype = {
+        title: node.title,
+        type: node.type,
+        name: node.name,
+        properties: {},
+        output: {}
+      }
     }
 
-    var block = this.addBlock(node.name, 0, 0);
+    // Add the block based on the node itself.
+    var block = this.addBlock(nodeDef, 0, 0);
     block.id = b3.createUUID();
     block.title = node.title;
     block.description = node.description;
+    block.isRegistered = isRegistered;
     block.properties = {};
+
+    // If the node is registered...
+    if (isRegistered) {
+      // Fill in the block properties and output.
+      this.fillBlockAttributes(block, node);
+    }
+
+    // If a parent was specified, connect the block to it.
+    if (parent) {
+      var outBlock = this.getBlockById(parent);
+      this.addConnection(outBlock, block);
+    }
+
+    // If the node has children...
+    if (node.children) {
+      for (var i=0; i<node.children.length; i++) {
+        // Import each of the children.
+        this.importBlock(node.children[i], block.id);
+      }
+    }
+    // If the node has exactly one child...
+    if (node.child) {
+      // Import the child.
+      this.importBlock(node.child, block.id);
+    }
+
+    block.redraw();
+
+    return block
+  }
+  /**
+   * Copies the properties and output of the `node` to `block` based on the associated node definition. For this to 
+   * work, the corresponding definition of the node must be registered.
+   * 
+   * @param {b3editor.Block} block: the block of which to fill the properties and output
+   * @param {Object} node: the node from which to copy the properties and output.
+   */
+  p.fillBlockAttributes = function(block, node) {
     var proto = this.nodes[node.name].prototype;
+    // Define properties for the block given from the input node.
     for (var key in proto.properties) {
+      // If the node used to define the block has a defined key for the corresponding node definition property...
       if (node.parameters[key] !== undefined) {
+        // Copy it and set it to be a property of the block.
         block.properties[key] = JSON.parse(JSON.stringify(node.parameters[key]))
       } else {
+        // Set the property to have no value.
         block.properties[key] = {value: null}
       }
       block.properties[key].type = proto.properties[key].type
     }
 
+    // If the node is an action...
     if (node.type == 'action') {
+      // Define the output for the block given from the input node.
       block.output = {};
       node.output = node.output || {};
       for (var key in proto.output) {
@@ -248,7 +310,7 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    // Import properties
+    // Prune properties that are not given in the node definition provided by the block.
     for (var key in block.properties) {
       if (block.node.prototype.properties[key] === undefined) {
         this.logger.warn("Deleting property not specified in prototype from \""+node.name+"\": " + key);
@@ -256,7 +318,7 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    // Import output types
+    // Prune output types that are not given in the node definition provided by the block.
     if (block.type == 'action') {
       for (var key in block.output) {
         if (block.node.prototype.output[key] === undefined) {
@@ -265,35 +327,6 @@ this.b3editor = this.b3editor || {};
         }
       }
     }
-
-    if (parent) {
-      var outBlock = this.getBlockById(parent);
-      this.addConnection(outBlock, block);
-    }
-
-    var error = false;
-    if (node.children) {
-      for (var i=0; i<node.children.length; i++) {
-        var parent = error ? null : block.id;
-        if (!this.importBlock(node.children[i], parent)) {
-          error = true;
-        }
-      }
-    }
-    if (node.child) {
-      var parent = error ? null : block.id;
-      if (!this.importBlock(node.child, parent)) {
-        error = true;
-      }
-    }
-
-    if (error) {
-      return;
-    }
-
-    block.redraw();
-
-    return block
   }
   p.importFromJSON = function(json) {
     var data = JSON.parse(json);

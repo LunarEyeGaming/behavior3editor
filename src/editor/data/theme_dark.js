@@ -11,13 +11,28 @@ var THEME_DARK = {
     selection_color         : '#4bb2fd',
     
     // BLOCK
-    block_background_color  : '#EFEFEF',
-    block_border_color      : '#6d6d6d',
-    block_symbol_color      : '#333',
+    registered_block_colors : {
+        background_color : '#EFEFEF',
+        border_color     : '#6d6d6d',
+        symbol_color     : '#333',
+    },
+
+    unregistered_block_colors : {
+        background_color  : '#E26E64',
+        border_color      : '#4B1C18',
+        symbol_color      : '#322',
+    },
     
     // ANCHOR
-    anchor_background_color : '#EFEFEF',
-    anchor_border_color     : '#6d6d6d',
+    registered_anchor_colors : {
+        background_color : '#EFEFEF',
+        border_color     : '#6d6d6d',
+    },
+
+    unregistered_anchor_colors : {
+        background_color : '#E26E64',
+        border_color     : '#4B1C18',
+    },
     
     // CONNECTION
     connection_color        : '#6d6d6d',

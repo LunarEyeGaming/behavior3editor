@@ -26,6 +26,7 @@ this.b3editor = this.b3editor || {};
     this.inConnection   = null;
     this.outConnections = [];
     this.isSelected     = false;
+    this.isRegistered   = true;
     this.isDragging     = false;
     this.dragOffsetX    = 0;
     this.dragOffsetX    = 0;
@@ -61,6 +62,7 @@ this.b3editor = this.b3editor || {};
     block.description     = this.description;
     block.properties      = JSON.parse(JSON.stringify(this.properties));
     block.output          = this.output ? JSON.parse(JSON.stringify(this.output)) : null;
+    block.isRegistered    = this.isRegistered;
 
     return block;
   }
@@ -79,11 +81,11 @@ this.b3editor = this.b3editor || {};
     this.displayObject.removeAllChildren();
 
     // Draw symbol
-    this._symbolObject = symbol(this, settings);
+    this._symbolObject = symbol(this, settings, this.isRegistered ? 'registered' : 'unregistered');
 
     // Draw shape
     this._shapeObject.graphics.clear();
-    shape(this, settings);
+    shape(this, settings, this.isRegistered ? 'registered' : 'unregistered');
 
     // Add to display
     this.displayObject.addChild(this._shapeObject);

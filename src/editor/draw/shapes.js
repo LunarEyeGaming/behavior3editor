@@ -47,26 +47,33 @@ var makeRhombus = function(shape, w, h, bg_color, border_width, border_color) {
     shape.graphics.endFill();
 }
 
-b3editor.draw.rootShape = function(block, settings) {
+b3editor.draw.rootShape = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
+
     var w = block._width;
     var h = block._height;
     var anchorOffsetX = settings.get('anchor_offset_x');
     var shape = block._shapeObject;
 
+    var blockColors = settings.get(colorKind + '_block_colors');
+    var anchorColors = settings.get(colorKind + '_anchor_colors');
+
     makeAnchor(shape, w/2+anchorOffsetX, 0, 
         settings.get('anchor_radius'),
-        settings.get('anchor_background_color'),
+        anchorColors.background_color,
         settings.get('anchor_border_width'),
-        settings.get('anchor_border_color')
+        anchorColors.border_color
     );
     makeRect(shape, w, h, 15,
-        settings.get('block_background_color'),
+        blockColors.background_color,
         settings.get('block_border_width'),
-        settings.get('block_border_color')
+        blockColors.border_color
     );
 }
 
-b3editor.draw.compositeShape = function(block, settings) {
+b3editor.draw.compositeShape = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
+
     var bounds = block._symbolObject.getBounds();
     var _width = 0;
 
@@ -79,26 +86,31 @@ b3editor.draw.compositeShape = function(block, settings) {
     block._width = w;
     block._height = h;
 
+    var blockColors = settings.get(colorKind + '_block_colors');
+    var anchorColors = settings.get(colorKind + '_anchor_colors');
+
     makeAnchor(shape, -w/2-anchorOffsetX, 0, 
         settings.get('anchor_radius'),
-        settings.get('anchor_background_color'),
+        anchorColors.background_color,
         settings.get('anchor_border_width'),
-        settings.get('anchor_border_color')
+        anchorColors.border_color
     )
     makeAnchor(shape, w/2+anchorOffsetX, 0, 
         settings.get('anchor_radius'),
-        settings.get('anchor_background_color'),
+        anchorColors.background_color,
         settings.get('anchor_border_width'),
-        settings.get('anchor_border_color')
+        anchorColors.border_color
     )
     makeRect(shape, w, h, 15,
-        settings.get('block_background_color'),
+        blockColors.background_color,
         settings.get('block_border_width'),
-        settings.get('block_border_color')
+        blockColors.border_color
     )
 }
 
-b3editor.draw.decoratorShape = function(block, settings) {
+b3editor.draw.decoratorShape = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
+
     var bounds = block._symbolObject.getBounds();
 
     var w = Math.max(bounds.width+40, block._width);
@@ -108,26 +120,30 @@ b3editor.draw.decoratorShape = function(block, settings) {
     block._width = w;
     block._height = h;
 
+    var blockColors = settings.get(colorKind + '_block_colors');
+    var anchorColors = settings.get(colorKind + '_anchor_colors');
+
     makeAnchor(shape, -w/2-anchorOffsetX, 0, 
         settings.get('anchor_radius'),
-        settings.get('anchor_background_color'),
+        anchorColors.background_color,
         settings.get('anchor_border_width'),
-        settings.get('anchor_border_color')
+        anchorColors.border_color
     )
     makeAnchor(shape, w/2+anchorOffsetX, 0, 
         settings.get('anchor_radius'),
-        settings.get('anchor_background_color'),
+        anchorColors.background_color,
         settings.get('anchor_border_width'),
-        settings.get('anchor_border_color')
+        anchorColors.border_color
     )
     makeRhombus(shape, w, h, 15,
-        settings.get('block_background_color'),
+        blockColors.background_color,
         settings.get('block_border_width'),
-        settings.get('block_border_color')
+        blockColors.border_color
     )
 }
 
-b3editor.draw.actionShape = function(block, settings) {
+b3editor.draw.actionShape = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
 
     var bounds = block._symbolObject.getBounds();
 
@@ -140,20 +156,25 @@ b3editor.draw.actionShape = function(block, settings) {
     block._width = w;
     block._height = h;
 
+    var blockColors = settings.get(colorKind + '_block_colors');
+    var anchorColors = settings.get(colorKind + '_anchor_colors');
+
     makeAnchor(shape, -w/2-anchorOffsetX, 0, 
         settings.get('anchor_radius'),
-        settings.get('anchor_background_color'),
+        anchorColors.background_color,
         settings.get('anchor_border_width'),
-        settings.get('anchor_border_color')
+        anchorColors.border_color
     )
     makeRect(shape, w, h, 15,
-        settings.get('block_background_color'),
+        blockColors.background_color,
         settings.get('block_border_width'),
-        settings.get('block_border_color')
+        blockColors.border_color
     );
 }
 
-b3editor.draw.conditionShape = function(block, settings) {
+b3editor.draw.conditionShape = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
+
     var bounds = block._symbolObject.getBounds();
 
     var w = Math.max(bounds.width+15, block._width);
@@ -163,16 +184,19 @@ b3editor.draw.conditionShape = function(block, settings) {
     block._width = w;
     block._height = h;
 
+    var blockColors = settings.get(colorKind + '_block_colors');
+    var anchorColors = settings.get(colorKind + '_anchor_colors');
+
     makeAnchor(shape, -w/2-anchorOffsetX, 0, 
         settings.get('anchor_radius'),
-        settings.get('anchor_background_color'),
+        anchorColors.background_color,
         settings.get('anchor_border_width'),
-        settings.get('anchor_border_color')
+        anchorColors.border_color
     )
     makeEllipse(shape, w, h, 
-        settings.get('block_background_color'),
+        blockColors.background_color,
         settings.get('block_border_width'),
-        settings.get('block_border_color')
+        blockColors.border_color
     );
 }
 

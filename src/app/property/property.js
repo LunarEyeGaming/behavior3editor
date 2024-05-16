@@ -1,6 +1,11 @@
 angular.module('app.property', [])
 
 .controller('PropertyController', function($scope, $timeout, $compile, $window) {
+  // CONSTANTS (represent an enum for the type of screen to display).
+  $scope.SCRN_UNSELECTED = 0
+  $scope.SCRN_SELECTED = 1
+  $scope.SCRN_UNREGISTERED = 2
+
   // DYNAMIC ROW
   this.panel = angular.element(
     document.querySelector('#property-panel')
@@ -71,34 +76,44 @@ angular.module('app.property', [])
   // SELECTION/DESELECTION
   $scope.block = null;
   this.updateProperties = function() {
-    if ($window.app.editor.selectedBlocks.length === 1) {
-      var block = $window.app.editor.selectedBlocks[0];
+    var selectedBlocks = $window.app.editor.selectedBlocks;
+    // If exactly one block has been selected...
+    if (selectedBlocks.length === 1) {
+      // If the block is registered...
+      if (selectedBlocks[0].isRegistered) {
+        var block = selectedBlocks[0];
+        var screen = $scope.SCRN_SELECTED;
 
-      this_.table.html('');
-      this_.outputs.html('');
-      var domName = document.querySelector('#property-panel #name');
-      var domTitle = document.querySelector('#property-panel #title');
+        this_.table.html('');
+        this_.outputs.html('');
+        var domName = document.querySelector('#property-panel #name');
+        var domTitle = document.querySelector('#property-panel #title');
 
-      domName.value = block.name;
-      domTitle.value = block.title || '';
+        domName.value = block.name;
+        domTitle.value = block.title || '';
 
-      for (key in block.node.prototype.properties) {
-        $scope.addRow(key, block.properties[key]);
-      }
-
-      if (block.type == 'root') {
-        for (key in block.properties) {
-          $scope.addRootProperty(key, block.properties[key]);
+        for (key in block.node.prototype.properties) {
+          $scope.addRow(key, block.properties[key]);
         }
-      }
 
-      if (block.type == 'action') {
-        for (key in block.node.prototype.output) {
-          $scope.addOutput(key, block.output[key].key);
+        if (block.type == 'root') {
+          for (key in block.properties) {
+            $scope.addRootProperty(key, block.properties[key]);
+          }
         }
+
+        if (block.type == 'action') {
+          for (key in block.node.prototype.output) {
+            $scope.addOutput(key, block.output[key].key);
+          }
+        }
+      } else {  // Otherwise...
+        var block = null;
+        var screen = $scope.SCRN_UNREGISTERED;
       }
-    } else {
+    } else {  // Otherwise...
       var block = null;
+      var screen = $scope.SCRN_UNSELECTED;
     }
 
     // timeout needed due to apply function
@@ -106,6 +121,7 @@ angular.module('app.property', [])
     $timeout(function() {
       $scope.$apply(function() {
         $scope.block = block;
+        $scope.screen = screen;
       });
     }, 0, false);
   }

@@ -4,7 +4,8 @@ this.b3editor.draw = this.b3editor.draw || {};
 (function() {
     "use strict";
 
-b3editor.draw.rootSymbol = function(block, settings) {
+b3editor.draw.rootSymbol = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
     // var shape = block.displayObject;
     var shape = new createjs.Shape();
 
@@ -12,7 +13,7 @@ b3editor.draw.rootSymbol = function(block, settings) {
     var h = block._height;
     var swidth = h/20;
     var ssize = h/5;
-    var scolor = settings.get('block_symbol_color');
+    var scolor = settings.get(colorKind + '_block_colors').symbol_color;
 
     shape.graphics.setStrokeStyle(swidth, 'round');
     shape.graphics.beginStroke(scolor);
@@ -24,7 +25,9 @@ b3editor.draw.rootSymbol = function(block, settings) {
     return shape;
 };
 
-b3editor.draw.sequenceSymbol = function(block, settings) {
+b3editor.draw.sequenceSymbol = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
+
     // var shape = block.displayObject;
     // var shape = block._shapeObject;
     var shape = new createjs.Shape();
@@ -33,7 +36,7 @@ b3editor.draw.sequenceSymbol = function(block, settings) {
     var h = block._height;
     var swidth = h/20;
     var ssize = h/4;
-    var scolor = settings.get('block_symbol_color');
+    var scolor = settings.get(colorKind + '_block_colors').symbol_color;
 
     shape.graphics.setStrokeStyle(swidth, 'round');
     shape.graphics.beginStroke(scolor);
@@ -47,14 +50,16 @@ b3editor.draw.sequenceSymbol = function(block, settings) {
     return shape;
 };
 
-b3editor.draw.memsequenceSymbol = function(block, settings) {
+b3editor.draw.memsequenceSymbol = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
+
     var shape = new createjs.Shape();
 
     var w = block._width;
     var h = block._height;
     var swidth = h/20;
     var ssize = h/4;
-    var scolor = settings.get('block_symbol_color');
+    var scolor = settings.get(colorKind + '_block_colors').symbol_color;
 
     shape.graphics.setStrokeStyle(swidth, 'round');
     shape.graphics.beginStroke(scolor);
@@ -73,7 +78,9 @@ b3editor.draw.memsequenceSymbol = function(block, settings) {
     return shape;
 };
 
-b3editor.draw.prioritySymbol = function(block, settings) {
+b3editor.draw.prioritySymbol = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
+
     // var shape = block.displayObject;
     // var shape = block._shapeObject;
     var shape = new createjs.Shape();
@@ -82,7 +89,7 @@ b3editor.draw.prioritySymbol = function(block, settings) {
     var h = block._height;
     var swidth = h/20;
     var ssize = h/8;
-    var scolor = settings.get('block_symbol_color');
+    var scolor = settings.get(colorKind + '_block_colors').symbol_color;
 
     shape.graphics.setStrokeStyle(swidth, 'round');
     shape.graphics.beginStroke(scolor);
@@ -97,14 +104,16 @@ b3editor.draw.prioritySymbol = function(block, settings) {
     return shape;
 };
 
-b3editor.draw.memprioritySymbol = function(block, settings) {
+b3editor.draw.memprioritySymbol = function(block, settings, colorKind) {
+    var colorKind = colorKind || 'registered';
+
     var shape = new createjs.Shape();
 
     var w = block._width;
     var h = block._height;
     var swidth = h/20;
     var ssize = h/8;
-    var scolor = settings.get('block_symbol_color');
+    var scolor = settings.get(colorKind + '_block_colors').symbol_color;
 
     shape.graphics.setStrokeStyle(swidth, 'round');
     shape.graphics.beginStroke(scolor);
