@@ -112,7 +112,7 @@ button.alert:hover, .button.alert:hover {
   width: 100%;
   height: 100%;
   background-color:#000000;
-  opacity: 0.1;  /* Active by default. */
+  opacity: 0.2;  /* Active by default. */
   pointer-events: none;
 }
 
@@ -254,7 +254,7 @@ form .row input, form .row textarea, form .row select {
   position: absolute;
   z-index: 50;
   top: 0px;
-  background-color: #f4f4f4;
+  background-color: #ececec;
   border: 1px solid #aaaaaa;
   width: 250px;
   height: 100%;

@@ -247,7 +247,11 @@ angular.module('app.node', ['app.modal'])
     }
 
     if (newNode.name) {
-      $window.app.editor.addNode(newNode, originDirectory);
+      // Make the node class
+      var nodeClass = $window.app.editor.makeNode(newNode, originDirectory);
+
+      // Push the command to the editor.
+      $window.app.editor.pushCommandNode('AddNode', {node: nodeClass, isAction: newNode.type == "action"});
     }
   }
 })
@@ -397,7 +401,10 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.removeNode = function() {
-    $window.app.editor.removeNode(node);
+    $window.app.editor.pushCommandNode('RemoveNode', {
+      node,
+      isAction: $scope.node.prototype.type == 'action'
+    });
   }
 })
 

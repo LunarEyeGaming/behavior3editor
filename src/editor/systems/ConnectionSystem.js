@@ -31,7 +31,7 @@ this.b3editor = this.b3editor || {};
 
     if (block.mouseInRightAnchor(x, y)) {
       // if user clicked at the outAnchor
-      this.entity = this.editor.addConnection(block);
+      this.entity = this.editor.makeAndAddConnection(block);
 
     } else if (block.mouseInLeftAnchor(x, y)) {
       // if user clicked at the inAnchor

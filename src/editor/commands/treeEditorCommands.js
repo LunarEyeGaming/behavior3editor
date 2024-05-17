@@ -21,7 +21,7 @@ b3editor.AddBlock = b3editor.defineCommand((_, p) => {
   }
 
   p.run = function() {
-    this.block = this.editor.addBlock(this.blockName, this.xPos, this.yPos);
+    this.block = this.editor.makeAndAddBlock(this.blockName, this.xPos, this.yPos);
   }
 
   p.undo = function() {
@@ -33,7 +33,7 @@ b3editor.AddBlock = b3editor.defineCommand((_, p) => {
   }
 
   p.redo = function() {
-    this.editor.registerBlock(this.block);
+    this.editor.addBlock(this.block);
 
     this.editor.canvas.stage.update();
   }
@@ -73,10 +73,10 @@ b3editor.RemoveBlocks = b3editor.defineCommand((_, p) => {
   }
 
   p.undo = function() {
-    this.blocks.forEach(block => this.editor.registerBlock(block));
+    this.blocks.forEach(block => this.editor.addBlock(block));
 
     // The connections will have to be added back manually.
-    this.connections.forEach(connection => this.editor.registerConnection(connection));
+    this.connections.forEach(connection => this.editor.addConnection(connection));
 
     this.editor.canvas.stage.update();
   }
@@ -159,16 +159,16 @@ b3editor.AddConnection = b3editor.defineCommand((_, p) => {
 
     // If prevInConnection is defined...
     if (this.prevInConnection) {
-      this.editor.registerConnection(this.prevInConnection);
+      this.editor.addConnection(this.prevInConnection);
     }
     // If prevOutConnection is defined...
     if (this.prevOutConnection) {
-      this.editor.registerConnection(this.prevOutConnection);
+      this.editor.addConnection(this.prevOutConnection);
     }
   }
 
   p.redo = function() {
-    this.editor.registerConnection(this.connector);
+    this.editor.addConnection(this.connector);
 
     // If prevInConnection is defined...
     if (this.prevInConnection) {
@@ -199,7 +199,7 @@ b3editor.RemoveConnection = b3editor.defineCommand((_, p) => {
   p.undo = function() {
     this.connector.addOutBlock(this.outBlock);  // connector.outBlock was null upon first running the command because
     // the user has already dragged the connector out of the block.
-    this.editor.registerConnection(this.connector);
+    this.editor.addConnection(this.connector);
   }
 })
 
@@ -220,7 +220,7 @@ b3editor.RemoveConnections = b3editor.defineCommand((_, p) => {
 
   p.undo = function() {
     // Go through each connection and add it back.
-    this.connections.forEach(connection => this.editor.registerConnection(connection));
+    this.connections.forEach(connection => this.editor.addConnection(connection));
   }
 })
 
@@ -255,7 +255,7 @@ b3editor.MoveConnection = b3editor.defineCommand((_, p) => {
 
     // Re-add the connection that was removed due to the movement if applicable.
     if (this.removedConnector) {
-      this.editor.registerConnection(this.removedConnector);
+      this.editor.addConnection(this.removedConnector);
     }
   }
 
@@ -308,8 +308,8 @@ b3editor.Paste = b3editor.defineCommand((_, p) => {
   }
 
   p.redo = function() {
-    this.blocks.forEach(block => this.editor.registerBlock(block));
-    this.connections.forEach(connection => this.editor.registerConnection(connection));
+    this.blocks.forEach(block => this.editor.addBlock(block));
+    this.connections.forEach(connection => this.editor.addConnection(connection));
 
     // Make sure that the blocks reappear.
     this.editor.canvas.stage.update();

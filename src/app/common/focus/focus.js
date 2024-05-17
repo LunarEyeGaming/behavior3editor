@@ -9,8 +9,9 @@ angular.module('app.focus', [])
 .directive('focusList', function() {
   return {
     transclude: true,
-    controller: ['$scope', function FocusListController($scope) {
+    controller: ['$scope', '$window', function FocusListController($scope, $window) {
       $scope.focusables = [];
+      $scope.focusableIds = [];  // Array parallel to focusables
       $scope.focusedElement = null;
 
       this.select = function(focusable) {
@@ -25,13 +26,15 @@ angular.module('app.focus', [])
 
         // Make new focusedElement focused.
         focusable.isFocused = true;
+
+        // Tell the editor about it.
+        $window.app.editor.onFocusChange($scope.focusableIds[$scope.focusedElement]);
       };
 
-      this.addFocusable = function(focusable) {
+      this.addFocusable = function(focusable, id) {
         $scope.focusables.push(focusable);
-        // if ($scope.focusables.length === 1) {
-          this.select(focusable);
-        // }
+        $scope.focusableIds.push(id);
+        this.select(focusable);
       };
     }],
     templateUrl: "app/common/focus/focusList.html"
@@ -49,17 +52,25 @@ angular.module('app.focus', [])
     transclude: true,
     scope: {},
     link: function(scope, element, _, focusListCtrl) {
-      focusListCtrl.addFocusable(scope);
-      // TODO: Put a variable here to only fire these events when the focus level changes.
+      focusListCtrl.addFocusable(scope, element[0].id);
+
+      var isFocused = false;
+
       $document.on("click", function(e) {
         // If the element that was clicked on is the current element or it is an element inside of the current 
         // element...
         if (element === e.target || element[0].contains(e.target)) {
-          // $apply is needed to make sure that the element updates accordingly.
-          scope.$apply(function() {
-            // Select this as the focused element.
-            focusListCtrl.select(scope);
-          })
+          // If the focusable is not already focused...
+          if (!isFocused) {
+            // $apply is needed to make sure that the element updates accordingly.
+            scope.$apply(function() {
+              // Select this as the focused element.
+              focusListCtrl.select(scope);
+              isFocused = true;
+            });
+          }
+        } else {
+          isFocused = false;
         }
       });
     },
@@ -78,19 +89,27 @@ angular.module('app.focus', [])
     scope: {
       focusId: "@"
     },
-    link: function(scope, _, _, focusListCtrl) {
+    link: function(scope, ownElement, _, focusListCtrl) {
       var element = document.getElementById(scope.focusId);
-      focusListCtrl.addFocusable(scope);
-      // TODO: Put a variable here to only fire these events when the focus level changes.
+
+      focusListCtrl.addFocusable(scope, ownElement[0].id);
+      
+      var isFocused = false;
       $document.on("click", function(e) {
         // If the element that was clicked on is the current element or it is an element inside of the current 
         // element...
         if (element === e.target || element.contains(e.target)) {
-          // $apply is needed to make sure that the element updates accordingly.
-          scope.$apply(function() {
-            // Select this as the focused element.
-            focusListCtrl.select(scope);
-          })
+          // If the focusable is not already focused...
+          if (!isFocused) {
+            // $apply is needed to make sure that the element updates accordingly.
+            scope.$apply(function() {
+              // Select this as the focused element.
+              focusListCtrl.select(scope);
+              isFocused = true;
+            });
+          }
+        } else {
+          isFocused = false;
         }
       });
     },

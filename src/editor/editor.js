@@ -48,6 +48,7 @@ this.b3editor = this.b3editor || {};
     this.clipboard        = [];
     this.exportCounter    = {};
     this.treeUndoHistories = {};
+    this.globalNodeUndoHistory = new b3editor.UndoStack();  // undo history for the list of nodes.
 
     // WHOLE
     this.symbols          = {};
@@ -118,6 +119,17 @@ this.b3editor = this.b3editor || {};
     // history.
     this.treeUndoHistories[this.tree.id].addCommand(new b3editor[cmd](args));
   }
+  // Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the list of nodes in the
+  // editor, automatically supplying the `editor` argument as this current editor.
+  p.pushCommandNode = function(cmd, args) {
+    args.editor = this;
+    // Add the command with name `cmd` to the undo history corresponding to the list of nodes.
+    this.globalNodeUndoHistory.addCommand(new b3editor[cmd](args));
+  }
+  // Do something about the change in the element that is focused.
+  p.onFocusChange = function(id) {
+    this.currentFocusedElement = id;
+  }
   // node is the node to register
   p.registerNode = function(node) {
     // TODO: raise error if node is invalid
@@ -128,18 +140,11 @@ this.b3editor = this.b3editor || {};
     if (category) {
       this.categories[category] = true;
     }
-
-    // TODO: make a less dumb way of representing origin directories.
-    var origin = node.prototype.originDirectory;
-    if (origin) {
-      this.originDirectories[origin] = true;
-    }
   }
 
   p.resetNodes = function() {
     this.nodes = {};
     this.categories = {};
-    this.originDirectories = {};
     this.registerNode(b3editor.Root);
   }
 
@@ -242,7 +247,7 @@ this.b3editor = this.b3editor || {};
     }
 
     // Add the block based on the node itself.
-    var block = this.addBlock(nodeDef, 0, 0);
+    var block = this.makeAndAddBlock(nodeDef, 0, 0);
     block.id = b3.createUUID();
     block.title = node.title;
     block.description = node.description;
@@ -258,7 +263,7 @@ this.b3editor = this.b3editor || {};
     // If a parent was specified, connect the block to it.
     if (parent) {
       var outBlock = this.getBlockById(parent);
-      this.addConnection(outBlock, block);
+      this.makeAndAddConnection(outBlock, block);
     }
 
     // If the node has children...
@@ -343,7 +348,7 @@ this.b3editor = this.b3editor || {};
       description: data.description || "",
       properties: data.parameters || {}
     })
-    this.addConnection(root, dataRoot);
+    this.makeAndAddConnection(root, dataRoot);
 
     var editor = this
     var treeModuleParameters = function(treeParameters) {
@@ -367,7 +372,7 @@ this.b3editor = this.b3editor || {};
         title: '',
         properties: treeModuleParameters(data.parameters)
       }
-      this.addNode(newNode);
+      this.makeAndAddNode(newNode);
     }
 
     this.organize(true);
@@ -708,7 +713,7 @@ this.b3editor = this.b3editor || {};
     for (var name in nodes) {
       var node = nodes[name];
 
-      this.addNode(node, originDirectory);
+      this.makeAndAddNode(node, originDirectory);
     }
   }
   // Helper function. Shortcut for importing nodes during the loading of the project.
@@ -721,8 +726,9 @@ this.b3editor = this.b3editor || {};
       this.importNodes(json, path.relative(this.project.fileName, originDirectory));
     });
   }
-  // node is the node to add; originDirectory is the directory from which it originated (relative).
-  p.addNode = function(node, originDirectory) {
+  // Creates and returns a node definition from a provided raw `node` definition (given by a modal) and an 
+  // `originDirectory`.
+  p.makeNode = function(node, originDirectory) {
     if (this.nodes[node.name]) {
       this.logger.error('Node named "'+node.name+'" already registered.')
       return;
@@ -751,12 +757,7 @@ this.b3editor = this.b3editor || {};
     tempClass.prototype.originDirectory = originDirectory;
 
     if (node.type == "action") {
-      var category = node.category || '';
-
-      // Update the export hierarchy
-      this.addToExportHierarchy(originDirectory, category);
-
-      tempClass.prototype.category = category;
+      tempClass.prototype.category = node.category || '';
       tempClass.prototype.script = node.script || '';
 
       tempClass.prototype.output = {}
@@ -775,8 +776,33 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    this.registerNode(tempClass);
-    this.trigger('nodeadded', tempClass);
+    return tempClass;
+  }
+  // Creates and adds a node to the editor.
+  // node is the node to add; originDirectory is the directory from which it originated (relative); isCommand is whether
+  // or not this function call counts as a command (i.e., can be undone).
+  p.makeAndAddNode = function(node, originDirectory) {
+    var nodeClass = this.makeNode(node, originDirectory);
+    var isAction = node.type == "action";
+
+    this.addNode(nodeClass, isAction);
+  }
+  // Adds a `node` to the editor, updating the export hierarchy if `isAction` is true and updating the register status 
+  // of all blocks if `updateBlocks` is true.
+  p.addNode = function(node, isAction, updateBlocks) {
+    this.registerNode(node);
+    this.trigger('nodeadded', node);
+
+    // If we should update the blocks' register status...
+    if (updateBlocks) {
+      this.updateBlockRegisterStatus(node.prototype.name, true);
+    }
+
+    // If the node is an action...
+    if (isAction) {
+      // Update the export hierarchy
+      this.addToExportHierarchy(node.prototype.originDirectory, node.prototype.category);
+    }
   }
   // Imports all nodes nodesPaths from the result of Project.findNodes().
   // nodesPaths is an object containing a mainPath, a mainNodes, and a nodesAssoc field. The nodesAssoc field contains
@@ -836,21 +862,20 @@ this.b3editor = this.b3editor || {};
 
     this.trigger('nodechanged', node);
   }
-  p.removeNode = function(name) {
+  p.removeNode = function(name, isAction) {
     // TODO: verify if it is b3 node
     this.deselectAll();
 
     var node = this.nodes[name];
 
-    for (var i=this.blocks.length-1; i>=0; i--) {
-      var block = this.blocks[i];
-      if (block.node === node) {
-        this.removeBlock(block);
-      }
+    this.updateBlockRegisterStatus(name, false);
+
+    // If the node is an action...
+    if (isAction) {
+      // Update the export hierarchy.
+      this.removeFromExportHierarchy(this.nodes[name].prototype.originDirectory, this.nodes[name].prototype.category);
     }
 
-    // Remove from the export hierarchy.
-    this.removeFromExportHierarchy(this.nodes[name].prototype.originDirectory, this.nodes[name].prototype.category);
     delete this.nodes[name];
     this.trigger('noderemoved', node);
   }
@@ -1029,7 +1054,7 @@ this.b3editor = this.b3editor || {};
     this.canvas.camera.scaleY = 1;
 
     if (!all) {
-      this.addBlock('Root', 0, 0);
+      this.makeAndAddBlock('Root', 0, 0);
       this.tree.id = this.blocks[0].id;
       this.tree.blocks = [this.blocks[0]];
     }
@@ -1055,7 +1080,8 @@ this.b3editor = this.b3editor || {};
       block.displayObject.y -= block.displayObject.y%snap_y;
     }
   }
-  p.addBlock = function(name, x, y) {
+  // Constructs a Block from a node definition, which is either provided by name (a string) or by a raw definition.
+  p.makeAndAddBlock = function(name, x, y) {
     x = x || 0;
     y = y || 0;
 
@@ -1071,18 +1097,28 @@ this.b3editor = this.b3editor || {};
 
     this.deselectAll();  // We want just the block to add to be selected.
 
-    this.registerBlock(block);
+    this.addBlock(block);
 
     return block;
   }
-  // Registers a Block object into the editor.
-  p.registerBlock = function(block) {
+  // Registers a Block object into the editor, updating its register status based on whether or not the corresponding 
+  // node definition is registered in the editor.
+  p.addBlock = function(block) {
+    var temp = block.isRegistered;
+    block.isRegistered = this.nodes[block.name] != undefined;  // Update register status (the loose equal is important)
+
+    // If register status changed...
+    if (temp !== block.isRegistered) {
+      // Force a redraw.
+      block.redraw();
+    }
+
     this.blocks.push(block);
     this.canvas.layerBlocks.addChild(block.displayObject);
   
     this.select(block);
   }
-  p.addConnection = function(inBlock, outBlock) {
+  p.makeAndAddConnection = function(inBlock, outBlock) {
     var connection = new b3editor.Connection(this);
 
     if (inBlock) {
@@ -1093,12 +1129,12 @@ this.b3editor = this.b3editor || {};
       connection.addOutBlock(outBlock);
     }
 
-    this.registerConnection(connection);
+    this.addConnection(connection);
 
     return connection;
   }
   // Registers a connection (which has its inBlock and outBlock fields fully defined) into the editor.
-  p.registerConnection = function(connection) {
+  p.addConnection = function(connection) {
     var inBlock = connection.inBlock;
     var outBlock = connection.outBlock;
 
@@ -1149,6 +1185,23 @@ this.b3editor = this.b3editor || {};
     }
 
     this.canvas.layerBlocks.removeChild(block.displayObject);
+  }
+  /**
+   * Sets all blocks with name `name` to have their `isRegistered` attribute to `status`.
+   * @param {string} name the name of the blocks to target
+   * @param {boolean} status whether the blocks will be considered "registered"
+   */
+  p.updateBlockRegisterStatus = function(name, status) {
+    // Go through each block...
+    this.blocks.forEach(block => {
+      // If the block has name "name"...
+      if (block.name == name) {
+        // Update its register status.
+        block.isRegistered = status;
+
+        block.redraw();
+      }
+    })
   }
   /**
    * Removes `connection` from the editor. The original `connection` remains unmodified.
@@ -1230,7 +1283,8 @@ this.b3editor = this.b3editor || {};
       var block = this.selectedBlocks[i];
 
       if (block.type != 'root') {
-        this.clipboard.blocks.push(block);
+        // Making a copy of the block protects it from outside alterations.
+        this.clipboard.blocks.push(block.copy());
       }
     }
 
@@ -1333,13 +1387,36 @@ this.b3editor = this.b3editor || {};
       this.select(root);
     }
   }
+  // Returns the undo stack corresponding to the currently focused element. Logs an error and returns null if no 
+  // corresponding undo stack exists.
+  p.getFocusedUndoStack = function() {
+    switch (this.currentFocusedElement) {
+      case "left-panel":  // The node / tree panel
+        return this.globalNodeUndoHistory;
+      case "tree-editor":  // The canvas for editing trees
+        return this.treeUndoHistories[this.tree.id];
+      default:
+        this.logger.error("INTERNAL ERROR: No undo stack defined for element with id '" + this.currentFocusedElement + "'");
+        return null;
+    }
+  }
   // Moves back one command in the undo history for the editor.
   p.undo = function() {
-    this.treeUndoHistories[this.tree.id].undoLastCommand();
+    var undoHist = this.getFocusedUndoStack();
+
+    // If the undo history to refer to is defined...
+    if (undoHist) {
+      undoHist.undoLastCommand();
+    }
   }
   // Moves forward one command in the undo history for the editor.
   p.redo = function() {
-    this.treeUndoHistories[this.tree.id].redoNextCommand();
+    var undoHist = this.getFocusedUndoStack();
+
+    // If the undo history to refer to is defined...
+    if (undoHist) {
+      undoHist.redoNextCommand();
+    }
   }
 
   p.removeConnections = function() {

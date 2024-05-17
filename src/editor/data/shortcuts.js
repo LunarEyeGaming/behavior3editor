@@ -9,6 +9,9 @@ var SHORTCUTS = {
     key_deselect_all     : 'ctrl+shift+a',
     key_invert_selection : 'ctrl+i',
 
+    key_undo             : 'ctrl+z',
+    key_redo             : 'ctrl+y',
+
     key_copy             : 'ctrl+c',
     key_cut              : 'ctrl+x',
     key_paste            : 'ctrl+v',

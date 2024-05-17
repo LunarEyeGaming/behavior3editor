@@ -73,11 +73,11 @@
       <menu></menu>
       <!-- I would have just put the canvas into a focusable here, but that causes the tree editor to stop working 
         completely. -->
-      <remote-focusable focus-id="game-canvas">
+      <remote-focusable id="tree-editor" focus-id="game-canvas">
         <!-- Overlay when the editor screen is not focused. -->
         <div class="canvas-overlay"></div>
       </remote-focusable>
-      <focusable>
+      <focusable id="left-panel">
         <sidebar class="left">
           <div class="tabset" ng-controller="TabController">
             <ul class="header">
@@ -91,7 +91,7 @@
         </sidebar>
       </focusable>
 
-      <focusable>
+      <focusable id="right-panel">
         <sidebar class="right">
           <div class="tabset" ng-controller="TabController">
             <ul class="header">

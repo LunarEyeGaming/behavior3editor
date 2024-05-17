@@ -17,6 +17,8 @@ angular.module('app.menu', ['app.modal'])
     }, 0, false);
 
     // UPDATE CALLBACKS
+    $window.keyboard(settings.get('key_undo'), function(e) {$scope.onButtonUndo(e)});
+    $window.keyboard(settings.get('key_redo'), function(e) {$scope.onButtonRedo(e)});
     $window.keyboard(settings.get('key_copy'), function(e) {$scope.onButtonCopy(e)});
     $window.keyboard(settings.get('key_cut'), function(e) {$scope.onButtonCut(e)});
     $window.keyboard(settings.get('key_paste'), function(e) {$scope.onButtonPaste(e)});
