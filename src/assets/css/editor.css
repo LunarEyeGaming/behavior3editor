@@ -142,7 +142,9 @@ form .row input, form .row textarea, form .row select {
   padding: 3px;
 }
 
-
+/* ================================*/
+/* FILENAME DISPLAY                */
+/* ================================*/
 .filename-display {
   font-size: 25px;
   margin: 0px;
@@ -155,9 +157,23 @@ form .row input, form .row textarea, form .row select {
   height: 25px;
   background-color: #ffffff;
   border-bottom: 1px solid #aaaaaa;
+  overflow: hidden;
+  display: inline;
+}
+
+.filename-display .treename-display {
+  float: left;
+  padding-right: 12px;
+}
+
+.filename-display .path-display {
+  padding: 0px 4px;
+  float: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #aaaaaa;
+  direction: rtl;
 }
 
 

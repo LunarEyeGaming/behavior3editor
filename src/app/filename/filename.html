@@ -1,3 +1,4 @@
 <div class="filename-display" ng-controller="FilenameController">
-  {{filename}}{{path ? " (" + path + ")" : ""}}
+  <div class="treename-display">{{filename}}</div>
+  <div ng-show="path" class="path-display">{{path}}</div>
 </div>
