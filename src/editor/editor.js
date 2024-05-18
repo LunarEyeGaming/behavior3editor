@@ -373,6 +373,7 @@ this.b3editor = this.b3editor || {};
         properties: treeModuleParameters(data.parameters)
       }
       this.makeAndAddNode(newNode);
+      this.updateBlockRegisterStatus(data.name, true);
     }
 
     this.organize(true);
@@ -884,20 +885,22 @@ this.b3editor = this.b3editor || {};
       this.addToExportHierarchy(originDirectory, node.prototype.category);
     }
 
-    // Update names of blocks.
-    for (var i=this.blocks.length-1; i>=0; i--) {
-      var block = this.blocks[i];
-      if (block.node === node) {
-        // Update name
-        block.name = newNode.name;
-        if (block.title === oldTitle || block.title === oldName) {
-          block.title = newNode.title || newNode.name;
+    // Across all trees...
+    this.trees.forEach(tree => {
+      // Update names of blocks
+      tree.blocks.forEach(block => {
+        if (block.node === node) {
+          // Update name
+          block.name = newNode.name;
+          if (block.title === oldTitle || block.title === oldName) {
+            block.title = newNode.title || newNode.name;
+          }
+  
+          // Force redraw
+          block.redraw();
         }
-
-        // Force redraw
-        block.redraw();
-      }
-    }
+      });
+    });
 
     // Update register statuses of blocks (because renaming the node could result in some unregistered nodes becoming 
     // registered).
@@ -1252,16 +1255,19 @@ this.b3editor = this.b3editor || {};
    * @param {boolean} status whether the blocks will be considered "registered"
    */
   p.updateBlockRegisterStatus = function(name, status) {
-    // Go through each block...
-    this.blocks.forEach(block => {
-      // If the block has name "name"...
-      if (block.name == name) {
-        // Update its register status.
-        block.isRegistered = status;
+    // Go through each tree...
+    this.trees.forEach(tree => {
+      // Go through each block...
+      tree.blocks.forEach(block => {
+        // If the block has name "name"...
+        if (block.name == name) {
+          // Update its register status.
+          block.isRegistered = status;
 
-        block.redraw();
-      }
-    })
+          block.redraw();
+        }
+      })
+    });
   }
   /**
    * Removes `connection` from the editor. The original `connection` remains unmodified.
