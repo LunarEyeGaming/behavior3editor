@@ -476,7 +476,6 @@ form .row input, form .row textarea, form .row select {
   background-color: #ffffff;
 }
 .item-list2 a.header {
-  text-transform: uppercase;
   font-weight: 600!important;
   color: #333333;
   font-size: 1.5em;

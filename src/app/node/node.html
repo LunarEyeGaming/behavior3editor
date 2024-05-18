@@ -1,7 +1,7 @@
 <div class="node-panel panel" scrollable>
   <ul class="item-list2">
     <li ng-repeat="(dirName, nodesInDir) in nodes">
-      <a class="header" href="#">{{dirName}}</a>
+      <a class="header" href="#">{{dirName === 'undefined' ? '[No Save Location]' : dirName}}</a>
       <ul class="item-list">
         <li>
           <a class="header" href="#">Composite</a>

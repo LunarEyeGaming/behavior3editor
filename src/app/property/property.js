@@ -104,7 +104,8 @@ angular.module('app.property', [])
 
         if (block.type == 'action') {
           for (key in block.node.prototype.output) {
-            $scope.addOutput(key, block.output[key].key);
+            // The tertiary statement is necessary because block.output[key] can be undefined.
+            $scope.addOutput(key, block.output[key] ? block.output[key].key : undefined);
           }
         }
       } else {  // Otherwise...
@@ -193,16 +194,16 @@ angular.module('app.property', [])
         var value = domValues[i].value;
         if (value == '') value = null;
 
-        if (valueType != 'string') {
-          try {
-            value = JSON.parse(value);
-          } catch (e){
-            $window.app.editor.trigger('notification', name, {
-              level: 'error',
-              message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
-            });
-          }
-        }
+        // if (valueType != 'string') {
+        //   try {
+        //     value = JSON.parse(value);
+        //   } catch (e){
+        //     $window.app.editor.trigger('notification', name, {
+        //       level: 'error',
+        //       message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+        //     });
+        //   }
+        // }
 
         newNode.output[key] = {
           type: node.prototype.output[key].type,
@@ -211,7 +212,10 @@ angular.module('app.property', [])
       }
     }
 
-    $window.app.editor.editBlock($scope.block, newNode)
+    $window.app.editor.pushCommandTree('EditBlock', {
+      block: $scope.block, 
+      changes: newNode
+    });
   }
 })
 

@@ -99,7 +99,7 @@ angular.module('app.menu', ['app.modal'])
           fs.readFile(filename, function(err, data) {
             if (err) throw err;
             var originDirectory = path.relative(editor.project.fileName, path.dirname(filename));
-            $window.app.editor.importNodes(data, originDirectory);
+            $window.app.editor.importNodes(data, originDirectory, true);
   
             editor.trigger('notification', name, {
               level: 'success',

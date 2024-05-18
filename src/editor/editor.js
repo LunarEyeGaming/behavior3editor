@@ -708,12 +708,32 @@ this.b3editor = this.b3editor || {};
     }
   }
   // json is the JSON contents of the .nodes file; originDirectory is the directory from which it originated.
-  p.importNodes = function(json, originDirectory) {
+  // isCommand is whether or not to treat the act of importing the nodes as a command.
+  p.importNodes = function(json, originDirectory, isCommand) {
     var nodes = JSON.parse(json);
+    var nodesImported = [];
+
+    // Go through each node, try to construct it, and add it to the list of nodes to add, nodesImported.
     for (var name in nodes) {
       var node = nodes[name];
+      var nodeClass = this.makeNode(node, originDirectory);
 
-      this.makeAndAddNode(node, originDirectory);
+      // If the node class is defined...
+      if (nodeClass) {
+        nodesImported.push({nodeClass, isAction: node.type == 'action'});
+      }
+    }
+
+    // If any nodes are constructed...
+    if (nodesImported.length > 0) {
+      // If this method call is meant to be a command...
+      if (isCommand) {
+        // Add the command.
+        this.pushCommandNode('ImportNodes', {nodes: nodesImported})
+      } else {  // Otherwise...
+        // Add the nodes individually.
+        nodesImported.forEach(node => this.addNode(node.nodeClass, node.isAction));
+      }
     }
   }
   // Helper function. Shortcut for importing nodes during the loading of the project.
@@ -753,8 +773,8 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    // Indicate the directory of origin
-    tempClass.prototype.originDirectory = originDirectory;
+    // Indicate the directory of origin (undefined means that no save location was specified).
+    tempClass.prototype.originDirectory = originDirectory || undefined;
 
     if (node.type == "action") {
       tempClass.prototype.category = node.category || '';
@@ -778,14 +798,20 @@ this.b3editor = this.b3editor || {};
 
     return tempClass;
   }
-  // Creates and adds a node to the editor.
+  // Creates and adds a node to the editor. Returns the node that was added.
   // node is the node to add; originDirectory is the directory from which it originated (relative); isCommand is whether
   // or not this function call counts as a command (i.e., can be undone).
   p.makeAndAddNode = function(node, originDirectory) {
     var nodeClass = this.makeNode(node, originDirectory);
-    var isAction = node.type == "action";
 
-    this.addNode(nodeClass, isAction);
+    // If a node class was returned...
+    if (nodeClass) {
+      var isAction = node.type == "action";
+
+      this.addNode(nodeClass, isAction);
+    }
+
+    return nodeClass;
   }
   // Adds a `node` to the editor, updating the export hierarchy if `isAction` is true and updating the register status 
   // of all blocks if `updateBlocks` is true.
@@ -815,19 +841,31 @@ this.b3editor = this.b3editor || {};
     })
   }
   // originDirectory is the updated directory in which to save the node.
-  p.editNode = function(oldName, newNode, originDirectory) {
-    var node = this.nodes[oldName];
-    if (!node) return;
+  // isCommand is whether or not the action should be counted as a command.
+  p.editNode = function(oldName, newNode, originDirectory, isCommand) {
+    if (!this.nodes[oldName]) return;
 
     if (oldName !== newNode.name && this.nodes[newNode.name]) {
       this.logger.error('Node named "'+newNode.name+'" already registered.');
       return;
     }
 
+    // If the action is a command...
+    if (isCommand) {
+      this.pushCommandNode('EditNode', {oldName, newNode, originDirectory});
+    } else {
+      this.editNodeForce(oldName, newNode, originDirectory);
+    }
+  }
+  // Actually makes the changes that need to be made.
+  p.editNodeForce = function(oldName, newNode, originDirectory) {
+    var node = this.nodes[oldName];
+
     // Remove the node from the export hierarchy.
     this.removeFromExportHierarchy(this.nodes[oldName].prototype.originDirectory, 
       this.nodes[oldName].prototype.category);
 
+    // Remove old node from the node definition list.
     delete this.nodes[oldName];
     this.nodes[newNode.name] = node;
 
@@ -838,27 +876,32 @@ this.b3editor = this.b3editor || {};
     if (newNode.properties)
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
     if (node.prototype.type == "action") {
+      node.prototype.output = JSON.parse(JSON.stringify(newNode.output));
+      node.prototype.script = newNode.script;
+      node.prototype.category = newNode.category;
+
       // Update the export hierarchy
       this.addToExportHierarchy(originDirectory, node.prototype.category);
-
-      if (newNode.output)
-       node.prototype.output = JSON.parse(JSON.stringify(newNode.output));
-      if (newNode.script)
-       node.prototype.script = newNode.script;
-      if (newNode.category)
-        node.prototype.category = newNode.category;
     }
 
+    // Update names of blocks.
     for (var i=this.blocks.length-1; i>=0; i--) {
       var block = this.blocks[i];
       if (block.node === node) {
+        // Update name
         block.name = newNode.name;
         if (block.title === oldTitle || block.title === oldName) {
           block.title = newNode.title || newNode.name;
         }
+
+        // Force redraw
         block.redraw();
       }
     }
+
+    // Update register statuses of blocks (because renaming the node could result in some unregistered nodes becoming 
+    // registered).
+    this.updateBlockRegisterStatus(newNode.name, true);
 
     this.trigger('nodechanged', node);
   }
@@ -1014,6 +1057,13 @@ this.b3editor = this.b3editor || {};
 
   // VIEWER ===================================================================
   p.zoom = function(factor) {
+    // Scale the camera's position relative to the mouse's position.
+    // This makes it so that everything seems to scale relative to the mouse's position after applying the scale values.
+    var oldScale = this.canvas.camera.scaleX;  // Assuming scaling is the same for both axes.
+    this.canvas.camera.x = (this.canvas.camera.x - this.canvas.stage.mouseX) / oldScale * factor + this.canvas.stage.mouseX;
+    this.canvas.camera.y = (this.canvas.camera.y - this.canvas.stage.mouseY) / oldScale * factor + this.canvas.stage.mouseY;
+
+    // This does the actual zooming.
     this.canvas.camera.scaleX = factor;
     this.canvas.camera.scaleY = factor;
   }
@@ -1101,22 +1151,32 @@ this.b3editor = this.b3editor || {};
 
     return block;
   }
-  // Registers a Block object into the editor, updating its register status based on whether or not the corresponding 
-  // node definition is registered in the editor.
+  // Registers a Block object into the editor.
   p.addBlock = function(block) {
-    var temp = block.isRegistered;
-    block.isRegistered = this.nodes[block.name] != undefined;  // Update register status (the loose equal is important)
-
-    // If register status changed...
-    if (temp !== block.isRegistered) {
-      // Force a redraw.
-      block.redraw();
-    }
-
     this.blocks.push(block);
     this.canvas.layerBlocks.addChild(block.displayObject);
   
     this.select(block);
+  }
+  // Registers a Block object into the editor and then updates its register status as well as its title.
+  p.addAndUpdateBlock = function(block) {
+    var wasRegistered = block.isRegistered;
+    var oldTitle = block.title;
+    block.isRegistered = this.nodes[block.name] != undefined;  // Update register status (the loose equal is important)
+
+    // If the block is registered...
+    if (block.isRegistered) {
+      // Update the title.
+      block.title = this.nodes[block.name].prototype.title;
+    }
+
+    // If register status or title changed...
+    if (wasRegistered !== block.isRegistered || oldTitle !== block.title) {
+      // Force a redraw.
+      block.redraw();
+    }
+
+    this.addBlock(block);
   }
   p.makeAndAddConnection = function(inBlock, outBlock) {
     var connection = new b3editor.Connection(this);
@@ -1275,8 +1335,11 @@ this.b3editor = this.b3editor || {};
     this.canvas.stage.update();
   }
 
+  // Copies the selected blocks (and connections) to the clipboard and returns the original blocks that were copied.
   p.copy = function() {
     this.clipboard = {blocks: [], connections: []};
+
+    var copiedBlocks = [];  // The original blocks that were copied.
 
     // Copy blocks.
     for (var i=0; i<this.selectedBlocks.length; i++) {
@@ -1285,6 +1348,8 @@ this.b3editor = this.b3editor || {};
       if (block.type != 'root') {
         // Making a copy of the block protects it from outside alterations.
         this.clipboard.blocks.push(block.copy());
+
+        copiedBlocks.push(block);
       }
     }
 
@@ -1306,15 +1371,13 @@ this.b3editor = this.b3editor || {};
         }
       }
     }
+
+    return copiedBlocks;
   }
   p.cut = function() {
-    this.copy();
+    var blocksToRemove = this.copy();
 
-    // The blocks cut into the clipboard just happen to be the ones to remove, so we make a shallow copy of it to ensure
-    // that the list of blocks to remove doesn't change due to clipboard updates.
-    this.pushCommandTree('RemoveBlocks', {
-      blocks: [...this.clipboard.blocks]
-    });
+    this.pushCommandTree('RemoveBlocks', {blocks: blocksToRemove});
 
     this.deselectAll();
   }
@@ -1354,10 +1417,7 @@ this.b3editor = this.b3editor || {};
     })
 
     // At this point, the copied blocks and connections are not in the editor yet. The command below does that.
-    this.pushCommandTree('Paste', {
-      blocks: newBlocks,
-      connections: newConnections
-    });
+    this.pushCommandTree('Paste', {blocks: newBlocks, connections: newConnections});
   }
   p.duplicate = function() {
     var tempClipboard = this.clipboard;

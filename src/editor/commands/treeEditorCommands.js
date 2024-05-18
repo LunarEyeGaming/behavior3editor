@@ -33,9 +33,36 @@ b3editor.AddBlock = b3editor.defineCommand((_, p) => {
   }
 
   p.redo = function() {
-    this.editor.addBlock(this.block);
+    // This forces a redraw of the block if something about the corresponding node definition changed.
+    this.editor.addAndUpdateBlock(this.block);
 
     this.editor.canvas.stage.update();
+  }
+})
+
+/**
+ * A command representing editing a node block in the behavior tree grid of the provided editor.
+ */
+b3editor.EditBlock = b3editor.defineCommand((_, p) => {
+  p.initialize = function(args) {
+    this.editor = args.editor;
+
+    this.block = args.block;  // The block to modify
+    this.oldChanges = {  // The original fields
+      title: this.block.title,
+      description: this.block.description,
+      properties: this.block.properties,
+      output: this.block.output
+    };
+    this.changes = args.changes;  // The new values that the fields of the block will take on
+  }
+
+  p.run = function() {
+    this.editor.editBlock(this.block, this.changes);
+  }
+
+  p.undo = function() {
+    this.editor.editBlock(this.block, this.oldChanges);
   }
 })
 
@@ -73,7 +100,8 @@ b3editor.RemoveBlocks = b3editor.defineCommand((_, p) => {
   }
 
   p.undo = function() {
-    this.blocks.forEach(block => this.editor.addBlock(block));
+    // This forces a redraw of the blocks if something about the corresponding node definitions changed.
+    this.blocks.forEach(block => this.editor.addAndUpdateBlock(block));
 
     // The connections will have to be added back manually.
     this.connections.forEach(connection => this.editor.addConnection(connection));
@@ -308,7 +336,8 @@ b3editor.Paste = b3editor.defineCommand((_, p) => {
   }
 
   p.redo = function() {
-    this.blocks.forEach(block => this.editor.addBlock(block));
+    // This forces a redraw of the blocks if something about the corresponding node definitions changed.
+    this.blocks.forEach(block => this.editor.addAndUpdateBlock(block));
     this.connections.forEach(connection => this.editor.addConnection(connection));
 
     // Make sure that the blocks reappear.

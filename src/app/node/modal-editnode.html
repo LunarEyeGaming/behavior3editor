@@ -42,11 +42,6 @@
             </table>
           </div>
 
-          <div class="row">
-            <label>Save Location</label>
-            <input id="save-location" type="text" placeholder="save location" value="{{node.prototype.originDirectory}}"/>
-          </div>
-
           <div class="row" id="editnode-output" ng-show="node.prototype.type == 'action'">
             <label class="clearfix">
               <span class="left">Output</span>
@@ -67,6 +62,11 @@
                   </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="row">
+            <label>Save Location</label>
+            <input id="save-location" type="text" placeholder="save location" value="{{node.prototype.originDirectory}}"/>
           </div>
 
           <div class="row" ng-show="node.prototype.type == 'action'">

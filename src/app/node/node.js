@@ -247,11 +247,14 @@ angular.module('app.node', ['app.modal'])
     }
 
     if (newNode.name) {
-      // Make the node class
+      // Attempt to make the node class
       var nodeClass = $window.app.editor.makeNode(newNode, originDirectory);
 
-      // Push the command to the editor.
-      $window.app.editor.pushCommandNode('AddNode', {node: nodeClass, isAction: newNode.type == "action"});
+      // If a node class was returned...
+      if (nodeClass) {
+        // Push the command to the editor.
+        $window.app.editor.pushCommandNode('AddNode', {node: nodeClass, isAction: newNode.type == "action"});
+      }
     }
   }
 })
@@ -320,7 +323,7 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.addOutput = function() {
-    var template = this_.propertyTemplate.format(type, key, value);
+    var template = this_.propertyTemplate.format();
     var outputTable = angular.element(
       document.querySelectorAll('#editnode-output-table>tbody')
     );
@@ -350,12 +353,9 @@ angular.module('app.node', ['app.modal'])
       var domCategory = document.querySelector('#editnode-modal #category');
       var domScript = document.querySelector('#editnode-modal #script');
 
-      if (domScript.value != '')
-        newNode.script = domScript.value;
-      if (domCategory.value != '')
-        newNode.category = domCategory.value;
-      if (domOutputKeys.length > 0)
-        newNode.output = {};
+      newNode.script = domScript.value;
+      newNode.category = domCategory.value;
+      newNode.output = {};
 
       for (var i=0; i<domOutputKeys.length; i++) {
         var type = domOutputTypes[i].value;
@@ -396,7 +396,7 @@ angular.module('app.node', ['app.modal'])
     }
 
     if (newNode.name) {
-      $window.app.editor.editNode(node, newNode, originDirectory);
+      $window.app.editor.editNode(node, newNode, originDirectory, true);
     }
   }
 
@@ -534,7 +534,9 @@ angular.module('app.node', ['app.modal'])
     link: function(scope, element, attrs) {
       element.bind('click', function() {
         element.parent().parent().remove();
-        scope.updateProperties();
+        if (scope.updateProperties) {
+          scope.updateProperties();
+        }
       });
     }
   };

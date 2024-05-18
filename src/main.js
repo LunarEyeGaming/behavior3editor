@@ -42,4 +42,4 @@ app.settings = app.editor.settings;
 angular.bootstrap(document, ['app']);
 
 // COMMENT THIS OUT IN PRODUCTION VERSIONS.
-__runTests();
+// __runTests();
