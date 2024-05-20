@@ -48,12 +48,7 @@ b3editor.EditBlock = b3editor.defineCommand((_, p) => {
     this.editor = args.editor;
 
     this.block = args.block;  // The block to modify
-    this.oldChanges = {  // The original fields
-      title: this.block.title,
-      description: this.block.description,
-      properties: this.block.properties,
-      output: this.block.output
-    };
+    this.oldChanges = this.block.getNodeAttributes();  // The original values of the fields.
     this.changes = args.changes;  // The new values that the fields of the block will take on
   }
 

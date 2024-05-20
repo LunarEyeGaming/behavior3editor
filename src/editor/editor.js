@@ -221,11 +221,22 @@ this.b3editor = this.b3editor || {};
       this.connections[i].applySettings(settings);
     }
   }
+  // this.projectTrees = this.project.findTrees() should be called before calling this method.
   p.importBlock = function(node, parent) {
     var isRegistered = true;
+
+    // If the node is a module and it is not registered...
+    if (node.type === "module" && this.nodes[node.name] == undefined) {
+      // Try to find and import it.
+      var moduleData = this.findModule(node.name);
+      if (moduleData) {
+        this.importModule(moduleData);
+      }
+    }
+
     var nodeDef = this.nodes[node.name];
 
-    // If the node is not registered...
+    // If the node is not registered (even if it's a module and we tried to resolve it)...
     if (this.nodes[node.name] == undefined) {
       // Report the unregistered node.
       var nodeCopy = JSON.parse(JSON.stringify(node));
@@ -235,6 +246,7 @@ this.b3editor = this.b3editor || {};
 
       // Mark as not registered
       isRegistered = false;
+
       // Make node definition stub (because literally everything relies on the fact that the node definition exists).
       nodeDef = {};
       nodeDef.prototype = {
@@ -252,12 +264,12 @@ this.b3editor = this.b3editor || {};
     block.title = node.title;
     block.description = node.description;
     block.isRegistered = isRegistered;
-    block.properties = {};
 
     // If the node is registered...
     if (isRegistered) {
-      // Fill in the block properties and output.
       this.fillBlockAttributes(block, node);
+    } else {  // Otherwise...
+      this.fillBlockAttributesNoProto(block, node);
     }
 
     // If a parent was specified, connect the block to it.
@@ -291,6 +303,8 @@ this.b3editor = this.b3editor || {};
    * @param {Object} node: the node from which to copy the properties and output.
    */
   p.fillBlockAttributes = function(block, node) {
+    block.properties = {};
+
     var proto = this.nodes[node.name].prototype;
     // Define properties for the block given from the input node.
     for (var key in proto.properties) {
@@ -333,9 +347,40 @@ this.b3editor = this.b3editor || {};
       }
     }
   }
+  /**
+   * Copies the properties and output of the `node` to `block`. This method is to be used instead of 
+   * fillBlockAttributes() if the associated node definition does not exist (and thus the block is unregistered). Using
+   * it on registered blocks will cause errors in functions that rely on the block having an associated node definition.
+   * 
+   * @param {b3editor.Block} block: the block of which to fill the properties and output
+   * @param {Object} node: the node from which to copy the properties and output.
+   */
+  p.fillBlockAttributesNoProto = function(block, node) {
+    block.properties = {};
+
+    // Define properties for the block given from the input node.
+    for (var key in node.parameters) {
+      block.properties[key] = JSON.parse(JSON.stringify(node.parameters[key]));
+    }
+
+    // If the node is an action...
+    if (node.type == 'action') {
+      // Define the output for the block given from the input node.
+      block.output = {};
+      node.output = node.output || {};
+      for (var key in node.output) {
+        block.output[key] = {type: null, key: node.output[key] || null}
+      }
+    }
+  }
   p.importFromJSON = function(json) {
     var data = JSON.parse(json);
+
     this.logger.info("Import tree "+data.name);
+
+    // Refresh the list of tree paths found before importing the block.
+    this.projectTrees = this.project.findTrees();
+
     var dataRoot = this.importBlock(data.root);
     if (!dataRoot) {
       this.logger.error("Failed to import tree "+data.name);
@@ -350,7 +395,13 @@ this.b3editor = this.b3editor || {};
     })
     this.makeAndAddConnection(root, dataRoot);
 
-    var editor = this
+    this.importModule(data);
+
+    this.organize(true);
+    return true;
+  }
+  // Imports a module node definition based on the provided `data`.
+  p.importModule = function(data) {
     var treeModuleParameters = function(treeParameters) {
       var params = {}
       for (var key in treeParameters) {
@@ -375,9 +426,40 @@ this.b3editor = this.b3editor || {};
       this.makeAndAddNode(newNode);
       this.updateBlockRegisterStatus(data.name, true);
     }
+  }
+  // Finds a module with name `name` and returns the JSON data for it, or null if no such module exists. The programmer
+  // must set the variable this.projectTrees to the result of project.findTrees() before beginning a series of 
+  // findModule() calls.
+  p.findModule = function(name) {
+    // For each tree path found within the directory containing the project file...
+    for (var i = 0; i < this.projectTrees.length; i++) {
+      var treePath = this.projectTrees[i];
 
-    this.organize(true);
-    return true;
+      // Attempt to load the file.
+      try {
+        var treeContents = fs.readFileSync(treePath);
+      } catch (err) {  // If an error occurred...
+        // Report it and abort processing this tree.
+        this.logger.warn("Error while reading file '" + treePath + "': " + err);
+        continue;
+      }
+
+      // Attempt to parse the file.
+      try {
+        var treeData = JSON.parse(treeContents);
+      } catch (err) {  // If an error occurred...
+        // Report it and abort processing this tree.
+        this.logger.warn("Error while parsing file '" + treePath + "': " + err);
+        continue;
+      }
+
+      // If the name of the tree matches `name`...
+      if (treeData.name === name) {
+        return treeData;  // Return the tree.
+      }
+    }
+
+    return null;  // This value is returned if no trees matching `name` are found.
   }
   p.openTreeFile = function(filename) {
     for (var i=0; i<this.trees.length; i++) {
@@ -530,10 +612,6 @@ this.b3editor = this.b3editor || {};
     this.pruneExportHierarchy();
 
     this.reset();
-
-    // project.findTrees().forEach(file => {
-    //   this.openTreeFile(file);
-    // });
 
     this.logger.info("Successfully loaded project")
   }
@@ -815,14 +893,48 @@ this.b3editor = this.b3editor || {};
     return nodeClass;
   }
   // Adds a `node` to the editor, updating the export hierarchy if `isAction` is true and updating the register status 
-  // of all blocks if `updateBlocks` is true.
+  // and prototype of all blocks if `updateBlocks` is true. Returns an object containing sufficient data to reverse the
+  // changes made to the blocks if `updateBlocks` is true. Otherwise, returns undefined. The object returned contains:
+  //   connections: the list of connections that were removed in the process, which may be empty.
+  //   originalBlocks: a list (which may be empty) of objects each containing the following:
+  //    block: a reference to the block that was modified.
+  //    originalData: an object containing the original title, type, name, description, properties, and output of the 
+  //      block 
   p.addNode = function(node, isAction, updateBlocks) {
     this.registerNode(node);
     this.trigger('nodeadded', node);
 
-    // If we should update the blocks' register status...
+    var rollbackData;
+
+    // If we should update the blocks' register status and prototypes...
     if (updateBlocks) {
+      rollbackData = {connections: [], originalBlocks: []};
+
       this.updateBlockRegisterStatus(node.prototype.name, true);
+  
+      // To update the prototypes, go through each tree...
+      this.trees.forEach(tree => {
+        // Go through each block...
+        tree.blocks.forEach(block => {
+          // If the block has the same name as that of the updated prototype...
+          if (block.name == node.prototype.name) {
+            // Store a backup of the block's original data.
+            rollbackData.originalBlocks.push({block, originalData: block.getNodeAttributes()});
+
+            var removedConnections = block.loadNodeDef(node);  // Update its node definition.
+
+            // If there are any removed connections...
+            if (removedConnections) {
+              // Finish removing the connections.
+              removedConnections.forEach(connection => this.removeConnection(connection));
+              // Add them to the list of all removed connections.
+              rollbackData.connections = rollbackData.connections.concat(removedConnections);
+            }
+
+            block.redraw();
+          }
+        })
+      });
     }
 
     // If the node is an action...
@@ -830,6 +942,8 @@ this.b3editor = this.b3editor || {};
       // Update the export hierarchy
       this.addToExportHierarchy(node.prototype.originDirectory, node.prototype.category);
     }
+
+    return rollbackData;
   }
   // Imports all nodes nodesPaths from the result of Project.findNodes().
   // nodesPaths is an object containing a mainPath, a mainNodes, and a nodesAssoc field. The nodesAssoc field contains
@@ -1215,12 +1329,8 @@ this.b3editor = this.b3editor || {};
     connection.redraw();
   }
   p.editBlock = function(block, template) {
-    var oldValues = {
-      title       : block.title,
-      description : block.description,
-      properties  : block.properties,
-      output      : block.output
-    }
+    var oldValues = block.getNodeAttributes();
+
     block.title       = template.title;
     block.description = template.description;
     block.properties  = template.properties;

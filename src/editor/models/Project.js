@@ -87,6 +87,7 @@ this.b3editor = this.b3editor || {};
     }
   }
 
+  // TODO: consider making a method that does this but caches the result for a certain amount of time afterwards.
   p.findTrees = function() {
     return this.walk(path.dirname(this.fileName), /\.behavior$/);
   }

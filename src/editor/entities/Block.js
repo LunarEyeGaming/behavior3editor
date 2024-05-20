@@ -7,21 +7,8 @@ this.b3editor = this.b3editor || {};
   var p = Block.prototype;
 
   p.initialize = function(node) {
-    var dict = node.prototype;
-
-    if (!dict) {
-      dict = node;
-    }
-
     this.id             = b3.createUUID();
-    this.node           = node;
-    this.name           = dict.name;
-    this.type       = dict.type;
-    this.title          = dict.title || this.name;
-    this.description    = dict.description || '';
-    this.properties     = b3editor.extend({}, dict.properties);
-    this.output         = b3editor.extend({}, dict.output);
-
+    
     this.displayObject  = new createjs.Container();
     this.inConnection   = null;
     this.outConnections = [];
@@ -37,7 +24,65 @@ this.b3editor = this.b3editor || {};
     this._shadowObject  = null;
     this._symbolObject  = null;
 
+    this.loadNodeDef(node);
+
     this.applySettings(app.settings);
+  }
+
+  /**
+   * Loads a node definition into the block. It is assumed that the name of the node being defined matches that of the 
+   * current block. Based on this assumption, the title of the block will not be set if it is already defined. All
+   * properties that are not defined or do not match in type are replaced. Any outputs that are not defined are also
+   * replaced. If the block's new type is "action" or "module", it will lose all of its outConnections and return them.
+   * It is up to the programmer to fully remove such connections from the editor.
+   * 
+   * @param {*} node the node definition to load
+   * @returns the outConnections that were removed if the block became an action or module and had connections, 
+   * null otherwise
+   */
+  p.loadNodeDef = function(node) {
+    var dict = node.prototype;
+
+    if (!dict) {
+      dict = node;
+    }
+
+    this.node           = node;
+    this.name           = dict.name;
+    this.type       = dict.type;
+    this.title          = this.title || dict.title || this.name;  // Will not replace the title if already defined.
+    this.description    = dict.description || '';
+
+    // If the properties are already defined...
+    if (this.properties) {
+      // For each property in the node definition...
+      for (var key in dict.properties) {
+        var property = dict.properties[key];
+
+        // If the block does not have an equivalent property...
+        if (!this.properties[key]) {
+          // Set the block's property to be a deep copy of the node definition equivalent property.
+          this.properties[key] = JSON.parse(JSON.stringify(property));
+        }
+      }
+    } else {  // Otherwise...
+      this.properties = b3editor.extend({}, dict.properties);
+    }
+
+    // This is what allows for dict.output to effectively define keys in this.output that are undefined.
+    this.output         = b3editor.extend({}, dict.output, this.output || {});
+
+    // If the new type of the block is "action" or "module" and the block has outConnections...
+    if ((dict.type === "action" || dict.type === "module") && (this.outConnections.length > 0)) {
+      var oldOutConnections = this.outConnections;
+
+      // Delete all of them.
+      this.outConnections = [];
+    } else {  // Otherwise...
+      var oldOutConnections = null;
+    }
+
+    return oldOutConnections;
   }
 
   p.applySettings = function(settings) {
@@ -67,6 +112,7 @@ this.b3editor = this.b3editor || {};
     return block;
   }
 
+  // Note: This operation is expensive to run. Use sparingly.
   p.redraw = function() {
     // Set variables
     var settings = this.settings;
@@ -111,6 +157,31 @@ this.b3editor = this.b3editor || {};
       else
         return match;
     });
+  }
+
+  /**
+   * Returns the name, type, title, description, properties, and output of the block.
+   * 
+   * @returns the name, type, title, description, properties, and output of the block
+   */
+  p.getNodeAttributes = function() {
+    return {
+      name: this.name,
+      type: this.type,
+      title: this.title,
+      description: this.description,
+      properties: this.properties,
+      output: this.output
+    }
+  }
+
+  p.setNodeAttributes = function(attrs) {
+    this.name = attrs.name;
+    this.type = attrs.type;
+    this.title = attrs.title;
+    this.description = attrs.description;
+    this.properties = JSON.parse(JSON.stringify(attrs.properties));  // Deep copy
+    this.output = JSON.parse(JSON.stringify(attrs.output));  // Deep copy
   }
 
   // SELECTION ==============================================================

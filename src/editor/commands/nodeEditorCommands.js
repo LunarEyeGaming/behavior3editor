@@ -14,12 +14,23 @@ b3editor.AddNode = b3editor.defineCommand((_, p) => {
   }
 
   p.run = function() {
-    // Add the node, forcing the blocks to update their register status.
-    this.editor.addNode(this.node, this.isAction, true);
+    // Add the node, forcing the blocks to update their register status. Store the resulting rollback data.
+    this.rollbackData = this.editor.addNode(this.node, this.isAction, true);
   }
 
   p.undo = function() {
+    // Remove the node.
     this.editor.removeNode(this.node.prototype.name, this.node.prototype.isAction);
+
+    // Reverse the changes made by adding the node.
+    // Reset the data for each affected block.
+    this.rollbackData.originalBlocks.forEach(originalBlock => {
+      originalBlock.block.setNodeAttributes(originalBlock.originalData);
+      originalBlock.block.redraw();
+    });
+    
+    // Re-add the connections that were removed.
+    this.rollbackData.connections.forEach(connection => this.editor.addConnection(connection));
   }
 })
 
@@ -31,16 +42,29 @@ b3editor.ImportNodes = b3editor.defineCommand((_, p) => {
     this.editor = args.editor;
 
     this.nodes = args.nodes;  // A list of objects each with the node to add and whether or not said node is an action.
+    this.rollbackDataList = [];  // A list of rollback data objects from each addNode operation.
   }
 
   p.run = function() {
-    // Add the nodes.
-    this.nodes.forEach(node => this.editor.addNode(node.nodeClass, node.isAction));
+    // Add the nodes and get the rollback data from each operation.
+    this.nodes.forEach(node => this.rollbackDataList.push(this.editor.addNode(node.nodeClass, node.isAction, true)));
   }
 
   p.undo = function() {
     // Remove the nodes.
     this.nodes.forEach(node => this.editor.removeNode(node.nodeClass.prototype.name, node.isAction));
+
+    // Reverse the changes made by adding the nodes.
+    this.rollbackDataList.forEach(rollbackData => {
+      // Reset the data for each affected block.
+      rollbackData.originalBlocks.forEach(originalBlock => {
+        originalBlock.block.setNodeAttributes(originalBlock.originalData);
+        originalBlock.block.redraw();
+      });
+      
+      // Re-add the connections that were removed.
+      rollbackData.connections.forEach(connection => this.editor.addConnection(connection));
+    });
   }
 })
 
