@@ -1,0 +1,41 @@
+<div id="newproject-modal" class="modal wide">
+  <div class='modal-overlay' ng-click='close("Cancel")'></div>
+  <div class="modal-dialog">
+    <div class="modal-dialog-content">
+      <a class="button modal-close" ng-click="close('Cancel')" data-dismiss="modal" aria-hidden="true" href="#">&times;</a>
+
+      <div class="modal-header">
+        <h1 class="modal-title">Create New Project</h1>
+      </div>
+
+      <div class="modal-body">
+        <form>
+          <div class="row">
+            <label>Project Save Path</label>
+            <b3-file-input class="abbreviated-dir" id="newproject-projectpath" dialog-title="Save Project" mode="save" filters="Behavior project/behavior-project"/>
+          </div>
+
+          <div class="row" id="newproject-nodedirs">
+            <label class="clearfix">
+              <span class="left">Node Loading Directories</span>
+              <a href="#" ng-click="addNodeDir()" class="button success right">+</a>
+            </label>
+
+            <table id="newproject-nodedirs-table">
+              <tbody>
+                <tr>
+                  <td><b3-file-input class="abbreviated-dir" dialog-title="Select Path for Nodes" mode="open" type="folder"/></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <a href="#" ng-click="close('No')" class="button secondary" data-dismiss="modal">Cancel</a>
+      <a href="#" ng-click="createProject()" class="button" data-dismiss="modal">Create Project</a>
+    </div>
+  </div>
+</div>

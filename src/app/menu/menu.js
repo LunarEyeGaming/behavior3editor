@@ -98,7 +98,13 @@ angular.module('app.menu', ['app.modal'])
         filenames.forEach(filename => {
           fs.readFile(filename, function(err, data) {
             if (err) throw err;
-            var originDirectory = path.relative(editor.project.fileName, path.dirname(filename));
+
+            // If a project is loaded...
+            if (editor.project) {
+              var originDirectory = path.relative(editor.project.fileName, path.dirname(filename));
+            } else {
+              var originDirectory = undefined;
+            }
             $window.app.editor.importNodes(data, originDirectory, true);
   
             editor.trigger('notification', name, {
@@ -119,33 +125,40 @@ angular.module('app.menu', ['app.modal'])
 
   $scope.onButtonNewProject = function(e) {
     if (e) e.preventDefault();
-    dialog.showOpenDialog({
-      title: "Select path for nodes",
-      filters : [
-      ],
-      properties: [ "openDirectory" ]
-    }, function(filenames) {
-      if (filenames) {
-        var project = new b3editor.Project();
-        project.nodesPath = filenames[0];
-
-        dialog.showSaveDialog({
-          title: "Save project",
-          filters : [
-            { name: "Behavior project", extensions: ['.behavior-project']}
-          ]
-        }, function(filename) {
-          project.fileName = filename;
-
-          var editor = $window.app.editor;
-          fs.writeFile(filename, project.save(), function(err){
-            if (err) throw err;
-
-            editor.loadProject(project);
-          });
-        });
-      }
+    ModalService.showModal({
+      templateUrl: "app/project/modal-newproject.html",
+      controller: 'NewProjectModalController',
+      // inputs: {'node': node}
+    }).then(function(modal) {
+      modal.close.then(function(result) {});
     });
+    // dialog.showOpenDialog({
+    //   title: "Select path for nodes",
+    //   filters : [
+    //   ],
+    //   properties: [ "openDirectory" ]
+    // }, function(filenames) {
+    //   if (filenames) {
+    //     var project = new b3editor.Project();
+    //     project.nodesPath = filenames[0];
+
+    //     dialog.showSaveDialog({
+    //       title: "Save project",
+    //       filters : [
+    //         { name: "Behavior project", extensions: ['.behavior-project']}
+    //       ]
+    //     }, function(filename) {
+    //       project.fileName = filename;
+
+    //       var editor = $window.app.editor;
+    //       fs.writeFile(filename, project.save(), function(err){
+    //         if (err) throw err;
+
+    //         editor.loadProject(project);
+    //       });
+    //     });
+    //   }
+    // });
     return false;
   }
 

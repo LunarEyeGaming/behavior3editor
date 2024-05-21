@@ -696,12 +696,6 @@ this.b3editor = this.b3editor || {};
   // mapped to an origin directory.
   p.exportNodes = function(categoriesToExport) {
     var nodes = this.getNodeExportData(categoriesToExport);
-    if (this.project == null) {
-      this.trigger('notification', name, {
-        level: 'error',
-        message: 'Cannot export nodes. No project loaded.'
-      });
-    }
     for (var origin in nodes) {
       var nodesInDir = nodes[origin];
       for (var category in nodesInDir) {
@@ -719,8 +713,13 @@ this.b3editor = this.b3editor || {};
     return this.project.nodesToExport;
   }
   // Adds a node with `originDirectory` and `category` to the export hierarchy, increasing an internal counter 
-  // corresponding to that `originDirectory` and `category`.
+  // corresponding to that `originDirectory` and `category`. Has no effect if no project is loaded.
   p.addToExportHierarchy = function(originDirectory, category) {
+    // If no project is loaded...
+    if (!this.project) {
+      return;  // Abort.
+    }
+
     // If the export counter map for the origin directory does not exist...
     if (this.exportCounter[originDirectory] === undefined) {
       this.exportCounter[originDirectory] = {};
@@ -1167,7 +1166,10 @@ this.b3editor = this.b3editor || {};
 
       // TODO: consider cases where writing fails.
       // Currently just saves the project on quitting.
-      fs.writeFileSync(this_.project.fileName, this_.project.save());
+      // If a project is loaded...
+      if (this_.project) {
+        fs.writeFileSync(this_.project.fileName, this_.project.save());
+      }
     }
   }
   // ==========================================================================

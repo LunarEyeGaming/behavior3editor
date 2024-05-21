@@ -10,4 +10,6 @@ var app = angular.module('app', [
   'app.tree',
   'app.property',
   'app.focus',
+  'app.fileinput',
+  'app.project'
 ]);

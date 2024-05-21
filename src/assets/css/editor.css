@@ -369,9 +369,55 @@ form .row input, form .row textarea, form .row select {
   margin: 0px;
   margin-left: 5px;
 }
+.modal .row .button {
+  padding: 1px 20px;
+  font-size: inherit; 
+  margin: 0px;
+  width: 20px;
+}
+.modal label .button {
+  margin-right: 1px !important;
+}
+.modal table {
+  width: 100%;
+}
+.modal table input, 
+.modal table select  {
+  width: 90%;
+  padding: 3px 2px !important;
+}
+.modal table .button {
+  width: 20px;
+  /*height: 23px;*/
+}
+.modal table td {
+  padding: 1px;
+}
+.modal table td:nth-child(1) {
+  width: 32%;
+}
+.modal table td:nth-child(2) {
+  width: 32%;
+}
+.modal table td:nth-child(3) {
+  width: 32%;
+}
+.modal table td:nth-child(4) {
+  vertical-align: middle;
+  width: 20px;
+  padding-left: 2px;
+}
 
-
-
+.abbreviated-dir span {
+  position: relative;
+  top: 5px;
+  display: inline-block;
+  width: 65%; /*This width is very important to making sure that no line breaks occur*/
+  white-space: nowrap;
+  overflow: hidden;
+  direction: rtl;
+  text-overflow: ellipsis;
+}
 
 
 /* ================================*/
@@ -584,45 +630,6 @@ form .row input, form .row textarea, form .row select {
 .preview {
   position: absolute;
   z-index: 500;
-}
-/* ADD NODE */
-#addnode-modal .row .button {
-  padding: 1px 20px;
-  font-size: inherit; 
-  margin: 0px;
-  width: 20px;
-}
-#addnode-modal label .button {
-  margin-right: 1px !important;
-}
-#addnode-modal table {
-  width: 100%;
-}
-#addnode-modal table input, 
-#addnode-modal table select  {
-  width: 90%;
-  padding: 3px 2px !important;
-}
-#addnode-modal table .button {
-  width: 20px;
-  /*height: 23px;*/
-}
-#addnode-modal table td {
-  padding: 1px;
-}
-#addnode-modal table td:nth-child(1) {
-  width: 32%;
-}
-#addnode-modal table td:nth-child(2) {
-  width: 32%;
-}
-#addnode-modal table td:nth-child(3) {
-  width: 32%;
-}
-#addnode-modal table td:nth-child(4) {
-  vertical-align: middle;
-  width: 20px;
-  padding-left: 2px;
 }
 /* ================================*/
 

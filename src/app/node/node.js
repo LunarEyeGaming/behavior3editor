@@ -99,12 +99,25 @@ angular.module('app.node', ['app.modal'])
   }
   // --------------------------------------------------------------------------
 
+  // ON BUTTON "EXPORT NODES" -------------------------------------------------
+  this.onButtonExportNodes = function() {
+    if ($window.app.editor.project == null) {
+      $window.app.editor.trigger('notification', name, {
+        level: 'error',
+        message: 'Cannot export nodes. No project loaded.'
+      });
+    } else {
+      $scope.showExportNodesModal();
+    }
+  }
+  // --------------------------------------------------------------------------
+
   // REGISTER EVENTS ----------------------------------------------------------
   $window.app.editor.on('nodeadded', this.updateNodes, this);
   $window.app.editor.on('noderemoved', this.updateNodes, this);
   $window.app.editor.on('nodechanged', this.updateNodes, this);
   $rootScope.$on('onButtonNewNode', $scope.showAddNodeModal);
-  $rootScope.$on('onButtonExportNodes', $scope.showExportNodesModal);
+  $rootScope.$on('onButtonExportNodes', this.onButtonExportNodes);
   // --------------------------------------------------------------------------
 
   // INITIALIZE ELEMENTS ------------------------------------------------------
