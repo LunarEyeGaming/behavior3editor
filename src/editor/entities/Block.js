@@ -6,7 +6,18 @@ this.b3editor = this.b3editor || {};
   var Block = b3.Class();
   var p = Block.prototype;
 
-  p.initialize = function(node) {
+  /**
+   * Initializes the Block, optionally rendering the block on initialization.
+   * 
+   * @param {*} node the node definition to use in the Block's initialization
+   * @param {boolean} shouldRender (optional) whether or not the Block should automatically be rendered. true by default
+   */
+  p.initialize = function(args) {
+    var node = args.node;
+    var shouldRender = args.shouldRender;
+
+    shouldRender = shouldRender !== undefined ? shouldRender : true;
+
     this.id             = b3.createUUID();
     
     this.displayObject  = new createjs.Container();
@@ -26,7 +37,7 @@ this.b3editor = this.b3editor || {};
 
     this.loadNodeDef(node);
 
-    this.applySettings(app.settings);
+    this.applySettings(app.settings, shouldRender);
   }
 
   /**
@@ -85,17 +96,26 @@ this.b3editor = this.b3editor || {};
     return oldOutConnections;
   }
 
-  p.applySettings = function(settings) {
+  /**
+   * Applies the given `settings` to the current block, optionally redrawing it afterwards.
+   * 
+   * @param {*} settings the settings to apply
+   * @param {boolean} shouldRedraw (optional) whether or not the block should be redrawn. true by default.
+   */
+  p.applySettings = function(settings, shouldRedraw) {
+    shouldRedraw = shouldRedraw !== undefined ? shouldRedraw : true;
+
     this.settings = settings || this.settings;
     this._shadowObject = new createjs.Shadow(
       this.settings.get('selection_color'), 0, 0, 5
     );
 
-    this.redraw();
+    if (shouldRedraw)
+      this.redraw(false);
   }
   
   p.copy = function() {
-    var block = new b3editor.Block(this.node);
+    var block = new b3editor.Block({node: this.node});
 
     block.displayObject.x = this.displayObject.x;
     block.displayObject.y = this.displayObject.y;
@@ -113,7 +133,10 @@ this.b3editor = this.b3editor || {};
   }
 
   // Note: This operation is expensive to run. Use sparingly.
-  p.redraw = function() {
+  // redrawConnections specifies whether or not the connections should be redrawn too. Defaults to true.
+  p.redraw = function(redrawConnections) {
+    redrawConnections = redrawConnections !== undefined ? redrawConnections : true;
+
     // Set variables
     var settings = this.settings;
     var name = this.name;
@@ -137,14 +160,21 @@ this.b3editor = this.b3editor || {};
     this.displayObject.addChild(this._shapeObject);
     this.displayObject.addChild(this._symbolObject);
 
-    //Redraw connections
+    // If the block should redraw connections...
+    if (redrawConnections) {
+      this.redrawConnections();
+    }
+
+    app.game.stage.update();
+  }
+
+  // Redraws all connections associated with the block.
+  p.redrawConnections = function() {
     if (this.inConnection)
       this.inConnection.redraw();
     for (var i=0; i<this.outConnections.length; i++) {
       this.outConnections[i].redraw();
     }
-
-    app.game.stage.update();
   }
 
   p.getTitle = function() {

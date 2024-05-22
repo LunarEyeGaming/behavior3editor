@@ -191,8 +191,6 @@ b3editor.AddConnection = b3editor.defineCommand((_, p) => {
   }
 
   p.redo = function() {
-    this.editor.addConnection(this.connector);
-
     // If prevInConnection is defined...
     if (this.prevInConnection) {
       this.editor.removeConnection(this.prevInConnection);
@@ -201,6 +199,8 @@ b3editor.AddConnection = b3editor.defineCommand((_, p) => {
     if (this.prevOutConnection) {
       this.editor.removeConnection(this.prevOutConnection);
     }
+
+    this.editor.addConnection(this.connector);
   }
 })
 
@@ -267,12 +267,13 @@ b3editor.MoveConnection = b3editor.defineCommand((_, p) => {
   }
 
   p.undo = function() {
+    // Set the other outBlock's inConnection to nothing.
+    this.outBlock.removeInConnection();
+
     // Move the connector back to its original outBlock.
     this.connector.addOutBlock(this.prevOutBlock);
     // Set the original outBlock's inConnection to the connector.
     this.prevOutBlock.addInConnection(this.connector);
-    // Set the other outBlock's inConnection to nothing.
-    this.outBlock.removeInConnection();
 
     this.connector.redraw();  // Forces the connector to update its appearance.
 
@@ -283,19 +284,19 @@ b3editor.MoveConnection = b3editor.defineCommand((_, p) => {
   }
 
   p.redo = function() {
-    // Move the connector to the new outBlock.
-    this.connector.addOutBlock(this.outBlock);
-    // Set the new outBlock's inConnection to the connector.
-    this.outBlock.addInConnection(this.connector);
-    // Set the other outBlock's inConnection to nothing.
-    this.prevOutBlock.removeInConnection();
-
-    this.connector.redraw();  // Forces the connector to update its appearance.
-
     // Redo the removal of the removed connection.
     if (this.removedConnector) {
       this.editor.removeConnection(this.removedConnector);
     }
+
+    // Set the other outBlock's inConnection to nothing.
+    this.prevOutBlock.removeInConnection();
+    // Move the connector to the new outBlock.
+    this.connector.addOutBlock(this.outBlock);
+    // Set the new outBlock's inConnection to the connector.
+    this.outBlock.addInConnection(this.connector);
+
+    this.connector.redraw();  // Forces the connector to update its appearance.
   }
 })
 
@@ -341,18 +342,55 @@ b3editor.Paste = b3editor.defineCommand((_, p) => {
 })
 
 /**
- * Unfinished.
+ * A command representing organizing the entire tree.
  */
-// b3editor.AddNodeProperty = b3editor.defineCommand((_, p) => {
-//   p.initialize = function(args) {
-//     this.editor = args.editor;
+b3editor.Organize = b3editor.defineCommand((_, p) => {
+  p.initialize = function(args) {
+    this.editor = args.editor;
 
-//     this.type = args.type;
-//     this.name = args.name;
-//     this.value = args.value;
-//   }
+    // true if blocks should be ordered by index in connection list; false if blocks should be ordered by y position.
+    this.orderByIndex = args.orderByIndex;
+    this.originalBlockPositions = this.getBlockPositions();  // Store original positions
+  }
 
-//   p.run = function() {
+  p.run = function() {
+    this.connections = this.editor.organize(this.orderByIndex);
+  }
 
-//   }
-// })
+  p.undo = function() {
+    this.setBlockPositions(this.originalBlockPositions);
+
+    // Redraw the connections.
+    this.connections.forEach(connection => connection.redraw());
+  }
+
+  /**
+   * Returns a list of blocks and their corresponding positions.
+   * 
+   * @returns a list of objects each containing the `block` and associated `position` (an object containing coordinates)
+   *   like `{x: 1, y: 2}`.
+   */
+  p.getBlockPositions = function() {
+    // For each block in the editor...
+    return this.editor.blocks.map(block => {
+      // Put in the position and block.
+      return {
+        block: block,
+        position: {x: block.displayObject.x, y: block.displayObject.y}
+      }
+    });
+  }
+  
+  /**
+   * Sets the positions of blocks based on the `target` parameter.
+   * 
+   * @param {*} targets a list in the same format as the return value of `getBlockPositions()` (see associated 
+   *   documentation)
+   */
+  p.setBlockPositions = function(targets) {
+    targets.forEach(target => {
+      target.block.displayObject.x = target.position.x;
+      target.block.displayObject.y = target.position.y;
+    })
+  }
+})

@@ -87,6 +87,8 @@ this.b3editor = this.b3editor || {};
     for (var i=0; i<this.connections.length; i++) {
       this.connections[i].redraw();
     }
+
+    return this.connections;
   }
 
   b3editor.Organizer = Organizer;

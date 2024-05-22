@@ -8,7 +8,7 @@
          onmouseover="this.lastElementChild.style.display='inline-block';"
          onmouseout="this.lastElementChild.style.display='none';">
         {{tree.name}}
-        <button href="#" class="edit right" ng-show="canEditTree();" ng-click="showEditTreeModal(tree.id)" style="display: none;">Edit</button>
+        <button href="#" title="Remove Tree From Editor" class="edit right" ng-show="canEditTree();" ng-click="showEditTreeModal(tree.id)" style="display: none;">&times;</button>
       </a>
     </li>
   </ul>
