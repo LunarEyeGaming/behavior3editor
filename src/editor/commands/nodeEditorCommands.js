@@ -19,14 +19,14 @@ b3editor.AddNode = b3editor.defineCommand((_, p) => {
   }
 
   p.undo = function() {
-    // Remove the node.
-    this.editor.removeNode(this.node.prototype.name, this.node.prototype.isAction);
+    // Remove the node (blocks are redrawn later, so removeNode is forced not to redraw them).
+    this.editor.removeNode(this.node.prototype.name, this.node.prototype.isAction, false);
 
     // Reverse the changes made by adding the node.
-    // Reset the data for each affected block.
+    // Reset the data for each affected block (and redraw it).
     this.rollbackData.originalBlocks.forEach(originalBlock => {
       originalBlock.block.setNodeAttributes(originalBlock.originalData);
-      originalBlock.block.redraw();
+      originalBlock.block.redraw(false);
     });
     
     // Re-add the connections that were removed.
@@ -59,7 +59,7 @@ b3editor.ImportNodes = b3editor.defineCommand((_, p) => {
       // Reset the data for each affected block.
       rollbackData.originalBlocks.forEach(originalBlock => {
         originalBlock.block.setNodeAttributes(originalBlock.originalData);
-        originalBlock.block.redraw();
+        originalBlock.block.redraw(false);
       });
       
       // Re-add the connections that were removed.

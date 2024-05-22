@@ -52,7 +52,7 @@ angular.module('app.menu', ['app.modal'])
   $scope.onButtonOpenTree = function(e) {
     if (e) e.preventDefault();
 
-    dialog.showOpenDialog({
+    dialog.showOpenDialog(remote.getCurrentWindow(), {
       title: "Open Behavior File",
       filters : [
         { name: "Behavior", extensions: ['behavior']},
@@ -70,21 +70,20 @@ angular.module('app.menu', ['app.modal'])
   $scope.onButtonSaveTree = function(e) {
     if (e) e.preventDefault();
 
-    $window.app.editor.saveTree();
+    $window.app.editor.saveTree(true);
     return false;
   }
   $scope.onButtonSaveAs = function(e) {
     if (e) e.preventDefault();
 
-    $window.app.editor.tree.path = "";
-    $window.app.editor.saveTree();
+    $window.app.editor.saveTree(false);
     return false;
   }
   $scope.onButtonImportNodes = function(e) {
     if (e) e.preventDefault();
 
     var editor = $window.app.editor;
-    dialog.showOpenDialog({
+    dialog.showOpenDialog(remote.getCurrentWindow(), {
       title: "Import nodes",
       filters : [
         { name: "Nodes", extensions: ['nodes']},
@@ -125,6 +124,7 @@ angular.module('app.menu', ['app.modal'])
 
   $scope.onButtonNewProject = function(e) {
     if (e) e.preventDefault();
+
     ModalService.showModal({
       templateUrl: "app/project/modal-newproject.html",
       controller: 'NewProjectModalController',
@@ -132,33 +132,7 @@ angular.module('app.menu', ['app.modal'])
     }).then(function(modal) {
       modal.close.then(function(result) {});
     });
-    // dialog.showOpenDialog({
-    //   title: "Select path for nodes",
-    //   filters : [
-    //   ],
-    //   properties: [ "openDirectory" ]
-    // }, function(filenames) {
-    //   if (filenames) {
-    //     var project = new b3editor.Project();
-    //     project.nodesPath = filenames[0];
 
-    //     dialog.showSaveDialog({
-    //       title: "Save project",
-    //       filters : [
-    //         { name: "Behavior project", extensions: ['.behavior-project']}
-    //       ]
-    //     }, function(filename) {
-    //       project.fileName = filename;
-
-    //       var editor = $window.app.editor;
-    //       fs.writeFile(filename, project.save(), function(err){
-    //         if (err) throw err;
-
-    //         editor.loadProject(project);
-    //       });
-    //     });
-    //   }
-    // });
     return false;
   }
 
@@ -166,7 +140,7 @@ angular.module('app.menu', ['app.modal'])
     if (e) e.preventDefault();
 
     var editor = $window.app.editor;
-    dialog.showOpenDialog({
+    dialog.showOpenDialog(remote.getCurrentWindow(), {
       title: "Open project",
       filters : [
         { name: "Behavior project", extensions: ['behavior-project']},
@@ -232,7 +206,7 @@ angular.module('app.menu', ['app.modal'])
   }
   $scope.onButtonAutoOrganize = function(e) {
     if (e) e.preventDefault();
-    $window.app.editor.organize();
+    $window.app.editor.pushCommandTree('Organize', {});
   }
   $scope.onButtonZoomIn = function(e) {
     if (e) e.preventDefault();

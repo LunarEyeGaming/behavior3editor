@@ -36,7 +36,6 @@ angular.module('app.project', ['app.fileinput'])
     var domProjectPath = document.querySelector("#newproject-projectpath #b3-file-input-value");
     var domNodeDirs = document.querySelectorAll("#newproject-nodedirs #b3-file-input-value");
 
-    // TODO: Handle nodesPaths having no value.
     var projectPath = domProjectPath.value;
     // If the project path is not defined...
     if (!projectPath) {

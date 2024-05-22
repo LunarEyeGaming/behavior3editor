@@ -21,8 +21,7 @@ html, body {
   width: 100%;
 }
 .grabbing {
-  cursor: url(assets/img/closedhand.cur);
-  cursor: url(assets/img/closedhand.cur) 8 8, move;
+  cursor: url(../img/closedhand.cur) 8 8, move;
 }
 .clearfix:after {
   content: ".";
@@ -57,7 +56,7 @@ button, .button {
   padding: 2px 5px;
   background-color: #008CBA;
   border-color: #007095;
-  color: #333333;
+  color: #ffffff;
   padding-top: 0.375rem;
   padding-right: 1.75rem;
   padding-bottom: 0.4375rem;
@@ -66,9 +65,7 @@ button, .button {
 }
 button:hover, .button:hover {
   background-color: #007095;
-}
-button:hover, .button:hover {
-  color: #333333;
+  color: #ffffff;
 }
 button.secondary, .button.secondary {
   background-color: #e7e7e7;
@@ -77,8 +74,6 @@ button.secondary, .button.secondary {
 }
 button.secondary:hover, .button.secondary:hover {
   background-color: #b9b9b9;
-}
-button.secondary:hover, .button.secondary:hover {
   color: #333333;
 }
 button.success, .button.success {
@@ -557,6 +552,7 @@ form .row input, form .row textarea, form .row select {
   padding: 0px 5px;
   margin: 0px 1px;
   background-color: #ffffff;
+  color: #333333;
 }
 /* ================================*/
 
@@ -618,6 +614,7 @@ form .row input, form .row textarea, form .row select {
   padding: 0px 5px;
   margin: 0px 1px;
   background-color: #ffffff;
+  color: #333333;
 }
 /* ================================*/
 

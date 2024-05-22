@@ -230,7 +230,9 @@ this.b3editor = this.b3editor || {};
       // Try to find and import it.
       var moduleData = this.findModule(node.name);
       if (moduleData) {
-        this.importModule(moduleData);
+        // Import module (it is necessary to redraw all blocks since a module could later be found that did not exist 
+        // before)
+        this.importModule(moduleData, true);
       }
     }
 
@@ -258,8 +260,8 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    // Add the block based on the node itself.
-    var block = this.makeAndAddBlock(nodeDef, 0, 0);
+    // Add the block based on the node itself (disable initial rendering and selection).
+    var block = this.makeAndAddBlock(nodeDef, 0, 0, false, false);
     block.id = b3.createUUID();
     block.title = node.title;
     block.description = node.description;
@@ -275,7 +277,8 @@ this.b3editor = this.b3editor || {};
     // If a parent was specified, connect the block to it.
     if (parent) {
       var outBlock = this.getBlockById(parent);
-      this.makeAndAddConnection(outBlock, block);
+      // Connections will be redrawn during the organize stage, so do not render them yet.
+      this.makeAndAddConnection(outBlock, block, false);
     }
 
     // If the node has children...
@@ -291,7 +294,8 @@ this.b3editor = this.b3editor || {};
       this.importBlock(node.child, block.id);
     }
 
-    block.redraw();
+    // Connections will be redrawn during the organize stage, so do not render them yet.
+    block.redraw(false);
 
     return block
   }
@@ -401,7 +405,10 @@ this.b3editor = this.b3editor || {};
     return true;
   }
   // Imports a module node definition based on the provided `data`.
-  p.importModule = function(data) {
+  // `redrawBlocks` is whether or not all blocks should be redrawn. `true` by default.
+  p.importModule = function(data, redrawBlocks) {
+    redrawBlocks = redrawBlocks !== undefined ? redrawBlocks : true;
+
     var treeModuleParameters = function(treeParameters) {
       var params = {}
       for (var key in treeParameters) {
@@ -424,7 +431,9 @@ this.b3editor = this.b3editor || {};
         properties: treeModuleParameters(data.parameters)
       }
       this.makeAndAddNode(newNode);
-      this.updateBlockRegisterStatus(data.name, true);
+
+      // Update the register status of each block and redraw (if instructed to do so).
+      this.updateBlockRegisterStatus(data.name, true, redrawBlocks);
     }
   }
   // Finds a module with name `name` and returns the JSON data for it, or null if no such module exists. The programmer
@@ -577,30 +586,43 @@ this.b3editor = this.b3editor || {};
       });
     }
   }
-  p.saveTree = function() {
+  p.saveTree = function(useExistingPath) {
     var path = this.tree.path;
 
-    if (path == "") {
+    // If we should not use the existing path or the path is an empty string (i.e., not defined)...
+    if (!useExistingPath || path == "") {
       var editor = this;
-      dialog.showSaveDialog({
+      dialog.showSaveDialog(remote.getCurrentWindow(), {
         title: "Save Behavior File",
         filters : [
           { name: "Behavior", extensions: ['behavior']},
           { name: "All files", extensions: ['*']}
         ]
       }, function(filename) {
-        editor.tree.path = filename;
+        if (filename) {
+          editor.tree.path = filename;
 
-        // This should only be included here to let the filename display know that the save location has been updated.
-        editor.trigger("treesaved", editor.tree);
+          // This should only be included here to let the filename display know that the save location has been updated.
+          editor.trigger("treesaved", editor.tree);
 
-        editor.writeTreeFile();
+          editor.writeTreeFile();
+        }
       });
     } else {
       this.writeTreeFile();
     }
   }
   p.loadProject = function(project) {
+    // If a project is loaded...
+    if (this.project) {
+      try {
+        // Save the project.
+        fs.writeFileSync(this.project.fileName, this.project.save());
+      } catch (err) {
+        // Report error.
+        this.logger.error("Error occurred while saving project: " + err);
+      }
+    }
     this.settings.set("last_project", project.fileName);
     this.saveSettings();
 
@@ -713,10 +735,11 @@ this.b3editor = this.b3editor || {};
     return this.project.nodesToExport;
   }
   // Adds a node with `originDirectory` and `category` to the export hierarchy, increasing an internal counter 
-  // corresponding to that `originDirectory` and `category`. Has no effect if no project is loaded.
+  // corresponding to that `originDirectory` and `category`. Has no effect if no project is loaded or the origin 
+  // directory evaluates to a falsy value (i.e., is an empty string, null, or undefined)
   p.addToExportHierarchy = function(originDirectory, category) {
-    // If no project is loaded...
-    if (!this.project) {
+    // If no project is loaded or the origin directory is falsy...
+    if (!this.project || !originDirectory) {
       return;  // Abort.
     }
 
@@ -909,7 +932,8 @@ this.b3editor = this.b3editor || {};
     if (updateBlocks) {
       rollbackData = {connections: [], originalBlocks: []};
 
-      this.updateBlockRegisterStatus(node.prototype.name, true);
+      // Update the blocks' register status without redrawing them (b/c they will be redrawn later).
+      this.updateBlockRegisterStatus(node.prototype.name, true, false);
   
       // To update the prototypes, go through each tree...
       this.trees.forEach(tree => {
@@ -986,7 +1010,7 @@ this.b3editor = this.b3editor || {};
     var oldTitle = node.prototype.title;
     node.prototype.name = newNode.name;
     node.prototype.title = newNode.title;
-    node.prototype.originDirectory = originDirectory;
+    node.prototype.originDirectory = originDirectory || undefined;  // undefined forces into "No Save Location" bin
     if (newNode.properties)
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
     if (node.prototype.type == "action") {
@@ -1009,7 +1033,8 @@ this.b3editor = this.b3editor || {};
             block.title = newNode.title || newNode.name;
           }
   
-          // Force redraw
+          // Because the size of the block can change due to renames, both the blocks AND the connections need to be
+          // redrawn.
           block.redraw();
         }
       });
@@ -1021,13 +1046,22 @@ this.b3editor = this.b3editor || {};
 
     this.trigger('nodechanged', node);
   }
-  p.removeNode = function(name, isAction) {
+  /**
+   * Removes a node from the editor. This marks all blocks with that node's name as unregistered.
+   * 
+   * @param {string} name the name of the node to remove
+   * @param {boolean} isAction whether or not the node to remove is an action
+   * @param {boolean} redrawBlocks (optional) whether or not affected blocks should be redrawn. `true` by default.
+   */
+  p.removeNode = function(name, isAction, redrawBlocks) {
+    redrawBlocks = redrawBlocks !== undefined ? redrawBlocks : true;
+
     // TODO: verify if it is b3 node
     this.deselectAll();
 
     var node = this.nodes[name];
 
-    this.updateBlockRegisterStatus(name, false);
+    this.updateBlockRegisterStatus(name, false, redrawBlocks);
 
     // If the node is an action...
     if (isAction) {
@@ -1039,7 +1073,7 @@ this.b3editor = this.b3editor || {};
     this.trigger('noderemoved', node);
   }
   p.addTree = function() {
-    var block = new b3editor.Block(this.nodes['Root']);
+    var block = new b3editor.Block({node: this.nodes['Root']});
     block.displayObject.x = 0;
     block.displayObject.y = 0;
 
@@ -1174,6 +1208,18 @@ this.b3editor = this.b3editor || {};
   }
   // ==========================================================================
 
+  // RENDERING UTILITY ========================================================
+  /**
+   * Redraws all blocks in `blocks`, optionally redrawing connections too.
+   * 
+   * @param {Block[]} blocks the list of blocks to redraw
+   * @param {boolean} redrawConnections (optional) whether or not connections should be redrawn too.
+   */
+  p.redrawBlocks = function(blocks, redrawConnections) {
+    blocks.forEach(block => block.redraw(redrawConnections));
+  }
+  // ==========================================================================
+
   // VIEWER ===================================================================
   p.zoom = function(factor) {
     // Scale the camera's position relative to the mouse's position.
@@ -1200,7 +1246,7 @@ this.b3editor = this.b3editor || {};
     this.setcam(hw, hh);
   }
   p.organize = function(orderByIndex) {
-    this.organizer.organize(this.getRoot(), orderByIndex);
+    return this.organizer.organize(this.getRoot(), orderByIndex);
   }
   p.reset = function(all) {
     // REMOVE BLOCKS
@@ -1225,7 +1271,7 @@ this.b3editor = this.b3editor || {};
     if (!all) {
       this.makeAndAddBlock('Root', 0, 0);
       this.tree.id = this.blocks[0].id;
-      this.tree.blocks = [this.blocks[0]];
+      this.tree.blocks = this.blocks;
     }
 
     // Reset undo histories.
@@ -1250,7 +1296,12 @@ this.b3editor = this.b3editor || {};
     }
   }
   // Constructs a Block from a node definition, which is either provided by name (a string) or by a raw definition.
-  p.makeAndAddBlock = function(name, x, y) {
+  // `shouldRender` is whether or not the block should be redrawn on creation. `true` by default.
+  // `shouldSelect` is whether or not the block should be selected on creation. `true` by default.
+  p.makeAndAddBlock = function(name, x, y, shouldRender, shouldSelect) {
+    shouldRender = shouldRender !== undefined ? shouldRender : true;
+    shouldSelect = shouldSelect !== undefined ? shouldSelect : true;
+
     x = x || 0;
     y = y || 0;
 
@@ -1260,22 +1311,25 @@ this.b3editor = this.b3editor || {};
       var node = name;
     }
 
-    var block = new b3editor.Block(node);
+    var block = new b3editor.Block({node, shouldRender});
     block.displayObject.x = x;
     block.displayObject.y = y;
 
-    this.deselectAll();  // We want just the block to add to be selected.
+    if (shouldSelect)
+      this.deselectAll();  // We want just the block to add to be selected.
 
-    this.addBlock(block);
+    this.addBlock(block, shouldSelect);
 
     return block;
   }
-  // Registers a Block object into the editor.
-  p.addBlock = function(block) {
+  // Registers a Block object into the editor and optionally selects it.
+  p.addBlock = function(block, shouldSelect) {
+
     this.blocks.push(block);
     this.canvas.layerBlocks.addChild(block.displayObject);
   
-    this.select(block);
+    if (shouldSelect)
+      this.select(block);
   }
   // Registers a Block object into the editor and then updates its register status as well as its title.
   p.addAndUpdateBlock = function(block) {
@@ -1295,9 +1349,16 @@ this.b3editor = this.b3editor || {};
       block.redraw();
     }
 
-    this.addBlock(block);
+    this.addBlock(block, true);
   }
-  p.makeAndAddConnection = function(inBlock, outBlock) {
+  // Creates and adds a connection.
+  // `inBlock` is the starting block to use
+  // `outBlock` is the ending block to use
+  // `shouldRender` determines whether or not the connection should be rendered (in case something will be done that 
+  // requires re-rendering anyways). true by default.
+  p.makeAndAddConnection = function(inBlock, outBlock, shouldRender) {
+    shouldRender = shouldRender !== undefined ? shouldRender : true;
+
     var connection = new b3editor.Connection(this);
 
     if (inBlock) {
@@ -1308,12 +1369,17 @@ this.b3editor = this.b3editor || {};
       connection.addOutBlock(outBlock);
     }
 
-    this.addConnection(connection);
+    this.addConnection(connection, shouldRender);
 
     return connection;
   }
   // Registers a connection (which has its inBlock and outBlock fields fully defined) into the editor.
-  p.addConnection = function(connection) {
+  // `connection` is the connection to add.
+  // `shouldRender` determines whether or not the connection should be rendered (in case something will be done that 
+  // requires re-rendering anyways). true by default.
+  p.addConnection = function(connection, shouldRender) {
+    shouldRender = shouldRender !== undefined ? shouldRender : true;
+
     var inBlock = connection.inBlock;
     var outBlock = connection.outBlock;
 
@@ -1328,7 +1394,8 @@ this.b3editor = this.b3editor || {};
     this.connections.push(connection);
     this.canvas.layerConnections.addChild(connection.displayObject);
 
-    connection.redraw();
+    if (shouldRender)
+      connection.redraw();
   }
   p.editBlock = function(block, template) {
     var oldValues = block.getNodeAttributes();
@@ -1362,21 +1429,30 @@ this.b3editor = this.b3editor || {};
     this.canvas.layerBlocks.removeChild(block.displayObject);
   }
   /**
-   * Sets all blocks with name `name` to have their `isRegistered` attribute to `status`.
+   * Sets all blocks with name `name` to have their `isRegistered` attribute to `status`, optionally redrawing the 
+   * affected blocks.
+   * 
    * @param {string} name the name of the blocks to target
    * @param {boolean} status whether the blocks will be considered "registered"
+   * @param {boolean} shouldRedraw (optional) whether the changed blocks should be redrawn. `true` by default
    */
-  p.updateBlockRegisterStatus = function(name, status) {
+  p.updateBlockRegisterStatus = function(name, status, shouldRedraw) {
+    shouldRedraw = shouldRedraw !== undefined ? shouldRedraw : true;
+
     // Go through each tree...
     this.trees.forEach(tree => {
       // Go through each block...
       tree.blocks.forEach(block => {
         // If the block has name "name"...
         if (block.name == name) {
+          var temp = block.isRegistered;
+
           // Update its register status.
           block.isRegistered = status;
 
-          block.redraw();
+          // If the block should be redrawn and the register status changed...
+          if (shouldRedraw && temp !== block.isRegistered)
+            block.redraw(false);
         }
       })
     });
@@ -1485,7 +1561,20 @@ this.b3editor = this.b3editor || {};
         // If the block at the end of the connector is defined and selected...
         // (connectors with no outBlock occur if the user copies while in the process of adding a node)
         if (block.outConnections[j].outBlock && block.outConnections[j].outBlock.isSelected) {
-          this.clipboard.connections.push(block.outConnections[j]);
+          var connection = block.outConnections[j];
+          // Make a new connection so that we have a connection between the copied blocks.
+          var newConnection = new b3editor.Connection();
+
+          // Find the indices of the blocks corresponding to the old connection, then use them to find their 
+          // corresponding copies, which the new connection will have as endpoints.
+          // Note: This section of the code will cause an error if a connection with an endpoint that is not selected is 
+          // copied to the clipboard.
+          var idxIn = copiedBlocks.indexOf(connection.inBlock);
+          var idxOut = copiedBlocks.indexOf(connection.outBlock);
+          newConnection.addInBlock(this.clipboard.blocks[idxIn]);
+          newConnection.addOutBlock(this.clipboard.blocks[idxOut]);
+
+          this.clipboard.connections.push(newConnection);
         }
       }
     }
@@ -1495,7 +1584,11 @@ this.b3editor = this.b3editor || {};
   p.cut = function() {
     var blocksToRemove = this.copy();
 
-    this.pushCommandTree('RemoveBlocks', {blocks: blocksToRemove});
+    // If there are blocks to remove...
+    if (blocksToRemove.length > 0) {
+      // Register the command to remove those blocks.
+      this.pushCommandTree('RemoveBlocks', {blocks: blocksToRemove});
+    }
 
     this.deselectAll();
   }
@@ -1556,9 +1649,13 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    this.pushCommandTree('RemoveBlocks', {
-      blocks: blocksToRemove
-    });
+    // If there are blocks to remove...
+    if (blocksToRemove.length > 0) {
+      // Register the command to remove those blocks.
+      this.pushCommandTree('RemoveBlocks', {
+        blocks: blocksToRemove
+      });
+    }
 
     this.deselectAll();
     if (root) {
@@ -1615,7 +1712,9 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    this.pushCommandTree('RemoveConnections', {connections});
+    // If any connections will be removed...
+    if (connections.length > 0)
+      this.pushCommandTree('RemoveConnections', {connections});
   }
   p.removeInConnections = function() {
     var connections = [];
@@ -1629,7 +1728,9 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    this.pushCommandTree('RemoveConnections', {connections});
+    // If any connections will be removed...
+    if (connections.length > 0)
+      this.pushCommandTree('RemoveConnections', {connections});
   }
   p.removeOutConnections = function() {
     var connections = [];
@@ -1645,7 +1746,9 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    this.pushCommandTree('RemoveConnections', {connections});
+    // If any connections will be removed...
+    if (connections.length > 0)
+      this.pushCommandTree('RemoveConnections', {connections});
   }
 
   p.zoomIn = function() {
@@ -1672,7 +1775,7 @@ this.b3editor = this.b3editor || {};
     canvas.setAttribute('class', 'preview grabbing');
 
     var node = this.nodes[name];
-    var block = new b3editor.Block(node);
+    var block = new b3editor.Block({node});
     var shape = block.displayObject;
     shape.x = 200;
     shape.y = 100;

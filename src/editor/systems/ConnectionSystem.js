@@ -33,6 +33,9 @@ this.b3editor = this.b3editor || {};
       // if user clicked at the outAnchor
       this.entity = this.editor.makeAndAddConnection(block);
 
+      // Set the prevOutBlock attribute to null.
+      this.prevOutBlock = null;
+
     } else if (block.mouseInLeftAnchor(x, y)) {
       // if user clicked at the inAnchor
       var connection = block.inConnection;
