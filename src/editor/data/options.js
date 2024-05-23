@@ -16,6 +16,7 @@ var OPTIONS = {
     snap_y        : 16,
     snap_offset_x : 0,
     snap_offset_y : 0,
+    max_stored_commands : 2500,
 
     // CONNECTION
     connection_width       : 2,

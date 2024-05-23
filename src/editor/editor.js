@@ -32,6 +32,8 @@ this.b3editor = this.b3editor || {};
     app.settings= this.settings;
     app.game = this.canvas;
 
+    this.maxStoredCommands = this.settings.get("max_stored_commands");
+
     // MODELS
     this.project = null;
     this.tree = null
@@ -48,7 +50,8 @@ this.b3editor = this.b3editor || {};
     this.clipboard        = [];
     this.exportCounter    = {};
     this.treeUndoHistories = {};
-    this.globalNodeUndoHistory = new b3editor.UndoStack();  // undo history for the list of nodes.
+    // undo history for the list of nodes.
+    this.globalNodeUndoHistory = new b3editor.UndoStack({maxLength: this.maxStoredCommands});
 
     // WHOLE
     this.symbols          = {};
@@ -112,12 +115,19 @@ this.b3editor = this.b3editor || {};
     this.dispatchEvent(event);
   }
   // Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the current tree, 
-  // automatically supplying the `editor` argument as this current editor.
-  p.pushCommandTree = function(cmd, args) {
+  // automatically supplying the `editor` argument as this current editor. If `fromPropertyPanel` is true, sets the 
+  // current focused element to the property panel. Otherwise, sets it to the tree editor canvas.
+  p.pushCommandTree = function(cmd, args, fromPropertyPanel) {
     args.editor = this;
     // Look up the undo history corresponding to the current tree and add the command with name `cmd` to that undo 
     // history.
     this.treeUndoHistories[this.tree.id].addCommand(new b3editor[cmd](args));
+
+    // If the call came from the property panel...
+    if (fromPropertyPanel)
+      this.trigger('changefocus', "right-panel");  // Set the focus to the property panel.
+    else  // Otherwise...
+      this.trigger('changefocus', "tree-editor");  // Set the focus ot the tree editor.
   }
   // Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the list of nodes in the
   // editor, automatically supplying the `editor` argument as this current editor.
@@ -125,6 +135,8 @@ this.b3editor = this.b3editor || {};
     args.editor = this;
     // Add the command with name `cmd` to the undo history corresponding to the list of nodes.
     this.globalNodeUndoHistory.addCommand(new b3editor[cmd](args));
+
+    this.trigger('changefocus', "left-panel");  // Set the focus to the node / tree panel.
   }
   // Do something about the change in the element that is focused.
   p.onFocusChange = function(id) {
@@ -1083,7 +1095,7 @@ this.b3editor = this.b3editor || {};
     this.trees.push(tree);
 
     // Make new tree undo history.
-    this.treeUndoHistories[tree.id] = new b3editor.UndoStack();
+    this.treeUndoHistories[tree.id] = new b3editor.UndoStack({maxLength: this.maxStoredCommands});
 
     this.trigger('treeadded', tree);
 
@@ -1276,7 +1288,7 @@ this.b3editor = this.b3editor || {};
 
     // Reset undo histories.
     this.treeUndoHistories = {}
-    this.treeUndoHistories[this.tree.id] = new b3editor.UndoStack();
+    this.treeUndoHistories[this.tree.id] = new b3editor.UndoStack({maxLength: this.maxStoredCommands});
   }
   p.snap = function(blocks) {
     if (!blocks) {
@@ -1668,7 +1680,8 @@ this.b3editor = this.b3editor || {};
     switch (this.currentFocusedElement) {
       case "left-panel":  // The node / tree panel
         return this.globalNodeUndoHistory;
-      case "tree-editor":  // The canvas for editing trees
+      case "tree-editor":  // The canvas for editing trees (FALL THROUGH)
+      case "right-panel":  // The properties panel
         return this.treeUndoHistories[this.tree.id];
       default:
         this.logger.error("INTERNAL ERROR: No undo stack defined for element with id '" + this.currentFocusedElement + "'");

@@ -116,6 +116,22 @@ var suite = [
     var someObject = {};
 
     undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    undoHistory.redoNextCommand();
+
+    // redoNextCommand should have redone exactly one action.
+    assertStrictEqual(50, someObject.foo);
+  }),
+  makeTest("redoNextCommand corner case: add one command, undo it, then redo it", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
     undoHistory.undoLastCommand();
 
     undoHistory.redoNextCommand();
@@ -258,7 +274,199 @@ var suite = [
 
     assertStrictEqual(25, someObject.foo);
     assertStrictEqual(40, someObject.bar);
-  })
+  }),
+  makeTest("maxLength basic functionality", () => {
+    var undoHistory = new b3editor.UndoStack({maxLength: 3});
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+
+    // This one should cause the first command to get deleted.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+
+    // All commands should be undone except the first one.
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(25, someObject.foo);
+  }),
+  makeTest("maxLength invalid input handling", () => {
+    assertThrows("TypeError", () => new b3editor.UndoStack({maxLength: "Not a Number!"}));
+    assertThrows("RangeError", () => new b3editor.UndoStack({maxLength: -555}));
+    assertThrows("RangeError", () => new b3editor.UndoStack({maxLength: -1}));
+    assertThrows("RangeError", () => new b3editor.UndoStack({maxLength: 0}));
+    assertThrows("TypeError", () => new b3editor.UndoStack({maxLength: NaN}));
+  }),
+  makeTest("length is properly tracked when culling the stack", () => {
+    var undoHistory = new b3editor.UndoStack({maxLength: 3});
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    // This one should not cause the first command to get deleted. Length = 2 now.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 11}, () => {someObject.foo -= 11}));
+
+    // All commands should be undone.
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(undefined, someObject.foo);
+
+    // Redoing and then adding more commands should not cause issues.
+    undoHistory.redoNextCommand();
+    undoHistory.redoNextCommand();
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 13}, () => {someObject.foo -= 13}));
+
+    // Should cause the first command to get deleted.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 13}, () => {someObject.foo -= 13}));
+
+    assertStrictEqual(62, someObject.foo);
+
+    // All commands except the first should be undone
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(25, someObject.foo);
+  }),
+  makeTest("length is properly tracked when culling the stack (and after undoing all commands)", () => {
+    var undoHistory = new b3editor.UndoStack({maxLength: 3});
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    // This one should not cause the first command to get deleted. Length = 2 now.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 11}, () => {someObject.foo -= 11}));
+
+    // All commands should be undone.
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(undefined, someObject.foo);
+
+    // Redoing and then adding more commands should not cause issues.
+    undoHistory.redoNextCommand();
+    undoHistory.redoNextCommand();
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 13}, () => {someObject.foo -= 13}));
+
+    // Should cause the first command to get deleted.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 13}, () => {someObject.foo -= 13}));
+
+    assertStrictEqual(62, someObject.foo);
+
+    // All commands except the first should be undone
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(25, someObject.foo);
+  }),
+  makeTest("length is properly tracked when maxLength is exceeded", () => {
+    var undoHistory = new b3editor.UndoStack({maxLength: 3});
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+
+    // This one should cause the first command to get deleted. At this point, length should be 3 (not 4).
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 11}, () => {someObject.foo -= 11}));
+
+    // Length should still be 3 after this series of actions. No commands should be deleted.
+    undoHistory.undoLastCommand();
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 19}, () => {someObject.foo -= 19}));
+
+    // All commands should be undone except the first one.
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(25, someObject.foo);
+  }),
+  makeTest("maxLength = 1: Basic functionality", () => {
+    var undoHistory = new b3editor.UndoStack({maxLength: 1});
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+
+    // This one should cause the first command to get deleted.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+
+    // Only the second command should be undone.
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(25, someObject.foo);
+  }),
+  makeTest("maxLength = 1: Undo", () => {
+    var undoHistory = new b3editor.UndoStack({maxLength: 1});
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.undoLastCommand();
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 16}, () => {someObject.foo = undefined}));
+
+    // The second command should have been added without issue.
+    assertStrictEqual(16, someObject.foo);
+
+    // This one should cause the first command to get deleted.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 25}, () => {someObject.foo -= 25}));
+
+    // Only the third command should be undone.
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(16, someObject.foo);
+  }),
+  makeTest("maxLength = 1: Undo mixed with redo", () => {
+    var undoHistory = new b3editor.UndoStack({maxLength: 1});
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.undoLastCommand();
+    undoHistory.redoNextCommand();
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+
+    // The second command should have been added without issue.
+    assertStrictEqual(41, someObject.foo);
+
+    // Only the second command should be undone.
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assertStrictEqual(25, someObject.foo);
+  }),
 ]
 
 module.exports = {testUndoStack: suite}

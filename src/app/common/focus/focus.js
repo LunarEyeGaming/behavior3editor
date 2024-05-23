@@ -14,6 +14,17 @@ angular.module('app.focus', [])
       $scope.focusableIds = [];  // Array parallel to focusables
       $scope.focusedElement = null;
 
+      this.focusCallbacks = [];
+
+      // // Variable that should keep the editor from going into an infinite focus change chain.
+      // this.isChangingFocus = false;
+
+      /**
+       * Sets the current focused element to `focusable`, invokes all callbacks in `focusCallbacks`, and sets the
+       * focusable's `isFocused` attribute to `true.`
+       * 
+       * @param {*} focusable the focusable to select
+       */
       this.select = function(focusable) {
         // If the focusedElement is defined...
         if ($scope.focusedElement !== null) {
@@ -27,8 +38,37 @@ angular.module('app.focus', [])
         // Make new focusedElement focused.
         focusable.isFocused = true;
 
-        // Tell the editor about it.
-        $window.app.editor.onFocusChange($scope.focusableIds[$scope.focusedElement]);
+        // // The following code segment is intended to protect from infinite recursion.
+        // // If the focus level is not already being changed...
+        // if (!this.isChangingFocus) {
+        //   this.isChangingFocus = true;
+
+        //   // Trigger callbacks.
+        //   this.focusCallbacks.forEach(callback => callback($scope.focusableIds[$scope.focusedElement]));
+
+        //   this.isChangingFocus = false;
+        // } else {
+        //   throw new EvalError("Emitting 'changefocus' events is not allowed while selecting element to focus.");
+        // }
+
+        // Trigger callbacks.
+        this.focusCallbacks.forEach(callback => callback($scope.focusableIds[$scope.focusedElement]));
+      };
+
+      /**
+       * Does the same thing as the `select()` method, except using the ID instead of the `focusable` directly. Has no
+       * effect if the current `FocusListController` does not have a focusable corresponding to the ID `focusId`.
+       * 
+       * @param {string} focusId the ID of the focusable to select
+       */
+      this.selectById = function(focusId) {
+        // Find the index of the focusable to select.
+        var focusedElementIdx = $scope.focusableIds.indexOf(focusId);
+
+        // If the focusable was found...
+        if (focusedElementIdx != -1)
+          this.select($scope.focusables[focusedElementIdx]);
+        // Otherwise, do nothing.
       };
 
       this.addFocusable = function(focusable, id) {
@@ -36,6 +76,15 @@ angular.module('app.focus', [])
         $scope.focusableIds.push(id);
         this.select(focusable);
       };
+
+      /**
+       * Adds a function to call (passing in the `focusId`) when a focusable is selected.
+       * 
+       * @param {(string) => void} callback the function to call when a focusable is selected.
+       */
+      this.bindFocusCallback = function(callback) {
+        this.focusCallbacks.push(callback);
+      }
     }],
     templateUrl: "app/common/focus/focusList.html"
   }
@@ -114,5 +163,28 @@ angular.module('app.focus', [])
       });
     },
     templateUrl: "app/common/focus/focusable.html"
+  }
+})
+
+/**
+ * A directive that talks between a focus list and the editor. Due to the nature of this directive, calls by the editor
+ * to set the focus ID will automatically invoke the editor's `onFocusChange()` method. Consequently, the programmer
+ * should not attempt to make any calls
+ */
+.directive('focusEditorLinker', function($window) {
+  return {
+    restrict: "E",
+    require: "^^focusList",
+    transclude: true,
+    scope: {},
+    link: function(scope, element, _, focusListCtrl) {
+      // Tell the editor about it.
+      focusListCtrl.bindFocusCallback(focusableId => $window.app.editor.onFocusChange(focusableId));
+
+      $window.app.editor.on('changefocus', function(e) {
+        // _target is expected to be the ID of the focusable to select.
+        focusListCtrl.selectById(e._target);
+      });
+    }
   }
 });

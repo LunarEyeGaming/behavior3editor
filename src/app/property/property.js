@@ -215,7 +215,7 @@ angular.module('app.property', [])
     $window.app.editor.pushCommandTree('EditBlock', {
       block: $scope.block, 
       changes: newNode
-    });
+    }, true);
   }
 })
 
