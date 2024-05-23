@@ -80,7 +80,17 @@ angular.module('app.notification', [])
     element.bind('click', fadeOut);
 
     // remove in time
-    setTimeout(fadeOut, this.showTime);
+    var timeoutId = setTimeout(fadeOut, this.showTime);
+
+    // Cancel fadeOut timeout event on mouseenter.
+    element.bind('mouseenter', function() {
+      clearTimeout(timeoutId);
+    });
+
+    // Reapply fadeOut timeout event on mouseleave.
+    element.bind('mouseleave', function() {
+      timeoutId = setTimeout(fadeOut, this_.showTime);
+    });
 
     // appear
     setTimeout(function() {
