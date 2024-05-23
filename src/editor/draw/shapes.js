@@ -47,6 +47,25 @@ var makeRhombus = function(shape, w, h, bg_color, border_width, border_color) {
     shape.graphics.endFill();
 }
 
+/**
+ * Draws an X with width `w`, height `h`, thickness `line_thickness`, and color `line_color` using shape `shape`.
+ * 
+ * @param {*} shape the shape to draw with
+ * @param {number} w the width of the "X"
+ * @param {number} h the height of the "X"
+ * @param {number} line_thickness the thickness of the "X"
+ * @param {string} line_color the color of the "X"
+ */
+var makeX = function(shape, w, h, line_thickness, line_color) {
+    shape.graphics.beginStroke(line_color);
+    shape.graphics.setStrokeStyle(line_thickness, 'round');
+    shape.graphics.moveTo(w / 2, h / 2);  // Jump to one corner.
+    shape.graphics.lineTo(-w / 2, -h / 2);  // Draw to opposite corner.
+    shape.graphics.moveTo(-w / 2, h / 2);  // Jump to the other corner.
+    shape.graphics.lineTo(w / 2, -h / 2);  // Draw to opposite corner.
+    shape.graphics.endStroke();
+}
+
 b3editor.draw.rootShape = function(block, settings, colorKind) {
     var colorKind = colorKind || 'registered';
 
@@ -198,6 +217,17 @@ b3editor.draw.conditionShape = function(block, settings, colorKind) {
         settings.get('block_border_width'),
         blockColors.border_color
     );
+}
+
+/**
+ * Draws an X over a `block` using the provided `settings`.
+ * 
+ * @param {b3editor.Block} block the block over which to draw the "invalid" overlay
+ * @param {*} settings the settings with which to draw the overlay
+ */
+b3editor.draw.invalidOverlay = function(block, settings) {
+    makeX(block._invalidOverlay, block._width, block._height, settings.get("invalid_overlay_stroke_thickness"), 
+    settings.get("invalid_overlay_color"));
 }
 
 }());

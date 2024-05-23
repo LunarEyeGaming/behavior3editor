@@ -259,15 +259,22 @@ angular.module('app.node', ['app.modal'])
       }
     }
 
+    // If the name is not empty or otherwise undefined...
     if (newNode.name) {
-      // Attempt to make the node class
+      // Attempt to make the node class.
       var nodeClass = $window.app.editor.makeNode(newNode, originDirectory);
 
-      // If a node class was returned...
+      // If a node class was returned (i.e., the operation succeeded)...
       if (nodeClass) {
         // Push the command to the editor.
         $window.app.editor.pushCommandNode('AddNode', {node: nodeClass, isAction: newNode.type == "action"});
+        $scope.close("Yes");
       }
+    } else {
+      $window.app.editor.trigger('notification', name, {
+        level: 'error',
+        message: "Please enter a name for your node."
+      });
     }
   }
 })

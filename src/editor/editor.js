@@ -601,28 +601,48 @@ this.b3editor = this.b3editor || {};
   p.saveTree = function(useExistingPath) {
     var path = this.tree.path;
 
-    // If we should not use the existing path or the path is an empty string (i.e., not defined)...
-    if (!useExistingPath || path == "") {
-      var editor = this;
-      dialog.showSaveDialog(remote.getCurrentWindow(), {
-        title: "Save Behavior File",
-        filters : [
-          { name: "Behavior", extensions: ['behavior']},
-          { name: "All files", extensions: ['*']}
-        ]
-      }, function(filename) {
-        if (filename) {
-          editor.tree.path = filename;
+    var editor = this;
 
-          // This should only be included here to let the filename display know that the save location has been updated.
-          editor.trigger("treesaved", editor.tree);
+    var saveTreeHelper = function() {
+      // If we should not use the existing path or the path is an empty string (i.e., not defined)...
+      if (!useExistingPath || path == "") {
+        dialog.showSaveDialog(remote.getCurrentWindow(), {
+          title: "Save Behavior File",
+          filters : [
+            { name: "Behavior", extensions: ['behavior']},
+            { name: "All files", extensions: ['*']}
+          ]
+        }, function(filename) {
+          if (filename) {
+            editor.tree.path = filename;
 
-          editor.writeTreeFile();
+            // This should only be included here to let the filename display know that the save location has been updated.
+            editor.trigger("treesaved", editor.tree);
+
+            editor.writeTreeFile();
+          }
+        });
+      } else {
+        editor.writeTreeFile();
+      }
+    }
+    
+    // If the tree contains any invalid blocks...
+    if (this.hasInvalidBlocks())
+      dialog.showMessageBox({
+        message: "This tree contains node type conflicts. Are you sure you want to save?",
+        type: "warning",
+        buttons: ["Yes", "No"]
+      }, function(result) {
+        switch (result) {
+          case 0:  // Yes
+            saveTreeHelper();
+            break;
+          // "No" does nothing.
         }
       });
-    } else {
-      this.writeTreeFile();
-    }
+    else
+      saveTreeHelper();
   }
   p.loadProject = function(project) {
     // If a project is loaded...
@@ -863,7 +883,14 @@ this.b3editor = this.b3editor || {};
   // `originDirectory`.
   p.makeNode = function(node, originDirectory) {
     if (this.nodes[node.name]) {
-      this.logger.error('Node named "'+node.name+'" already registered.')
+      this.logger.error('Node named "'+node.name+'" already registered.');
+      return;
+    }
+
+    // If the node has corresponding (unregistered) blocks that differ in type...
+    if (this.hasMismatchedBlocks(node.name, node.type)) {
+      // Report it and abort
+      this.logger.error("Node type '" + node.type + "' conflicts with type of existing node. Hint: Did you input the correct type?");
       return;
     }
 
@@ -929,7 +956,6 @@ this.b3editor = this.b3editor || {};
   // Adds a `node` to the editor, updating the export hierarchy if `isAction` is true and updating the register status 
   // and prototype of all blocks if `updateBlocks` is true. Returns an object containing sufficient data to reverse the
   // changes made to the blocks if `updateBlocks` is true. Otherwise, returns undefined. The object returned contains:
-  //   connections: the list of connections that were removed in the process, which may be empty.
   //   originalBlocks: a list (which may be empty) of objects each containing the following:
   //    block: a reference to the block that was modified.
   //    originalData: an object containing the original title, type, name, description, properties, and output of the 
@@ -942,7 +968,7 @@ this.b3editor = this.b3editor || {};
 
     // If we should update the blocks' register status and prototypes...
     if (updateBlocks) {
-      rollbackData = {connections: [], originalBlocks: []};
+      rollbackData = {originalBlocks: []};
 
       // Update the blocks' register status without redrawing them (b/c they will be redrawn later).
       this.updateBlockRegisterStatus(node.prototype.name, true, false);
@@ -956,17 +982,8 @@ this.b3editor = this.b3editor || {};
             // Store a backup of the block's original data.
             rollbackData.originalBlocks.push({block, originalData: block.getNodeAttributes()});
 
-            var removedConnections = block.loadNodeDef(node);  // Update its node definition.
-
-            // If there are any removed connections...
-            if (removedConnections) {
-              // Finish removing the connections.
-              removedConnections.forEach(connection => this.removeConnection(connection));
-              // Add them to the list of all removed connections.
-              rollbackData.connections = rollbackData.connections.concat(removedConnections);
-            }
-
-            block.redraw();
+            block.loadNodeDef(node);  // Update its node definition.
+            block.redraw(false);  // No need to redraw connections because the size of the blocks won't change.
           }
         })
       });
@@ -979,6 +996,51 @@ this.b3editor = this.b3editor || {};
     }
 
     return rollbackData;
+  }
+  /**
+   * Returns whether or not there exists a block `block` in all loaded trees such that `block.name === nodeName` and
+   * `block.type !== nodeType`.
+   * 
+   * @param {string} nodeName the names of the blocks to check
+   * @param {string} nodeType the type of the node to check
+   * @returns true if a block is found with a matching name and mismatching type, false otherwise.
+   */
+  p.hasMismatchedBlocks = function(nodeName, nodeType) {
+    // For each loaded tree...
+    for (var i = 0; i < this.trees.length; i++) {
+      var tree = this.trees[i];
+
+      // For each block in that tree...
+      for (var j = 0; j < tree.blocks.length; j++) {
+        var block = tree.blocks[j];
+
+        // If that block's name matches the name of the node but has a different type...
+        if (block.name === nodeName && block.type !== nodeType)
+          return true; // Stop and return true.
+      }
+    }
+
+    // Return false if no such block is found.
+    return false;
+  }
+  /**
+   * Returns whether or not the current tree has invalid blocks. Invalid blocks have types that conflict with the type
+   * given in their corresponding node definitions.
+   * 
+   * @returns true if the current tree has at least one invalid block, false otherwise.
+   */
+  p.hasInvalidBlocks = function() {
+    // For each block in the current tree...
+    for (var i = 0; i < this.blocks.length; i++) {
+      var block = this.blocks[i];
+
+      // If the block is invalid...
+      if (block.isInvalid)
+        return true;
+    }
+
+    // Return false if no such block is found.
+    return false;
   }
   // Imports all nodes nodesPaths from the result of Project.findNodes().
   // nodesPaths is an object containing a mainPath, a mainNodes, and a nodesAssoc field. The nodesAssoc field contains

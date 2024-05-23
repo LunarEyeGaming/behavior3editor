@@ -33,6 +33,9 @@ var THEME_DARK = {
         background_color : '#E26E64',
         border_color     : '#4B1C18',
     },
+
+    invalid_overlay_color : "#FF0000",
+    invalid_overlay_stroke_thickness : 5,
     
     // CONNECTION
     connection_color        : '#6d6d6d',

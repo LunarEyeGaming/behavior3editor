@@ -28,9 +28,6 @@ b3editor.AddNode = b3editor.defineCommand((_, p) => {
       originalBlock.block.setNodeAttributes(originalBlock.originalData);
       originalBlock.block.redraw(false);
     });
-    
-    // Re-add the connections that were removed.
-    this.rollbackData.connections.forEach(connection => this.editor.addConnection(connection));
   }
 })
 
@@ -61,9 +58,6 @@ b3editor.ImportNodes = b3editor.defineCommand((_, p) => {
         originalBlock.block.setNodeAttributes(originalBlock.originalData);
         originalBlock.block.redraw(false);
       });
-      
-      // Re-add the connections that were removed.
-      rollbackData.connections.forEach(connection => this.editor.addConnection(connection));
     });
   }
 })

@@ -2,13 +2,20 @@
 
   <div ng-show="screen === SCRN_UNSELECTED">
     <p style="text-align:center">Select a <strong>single</strong> block to change its properties.</p>
-    <p style="text-align:center"><em>NOTE: The root node represents a tree. Therefore, changes applied to this node will persist on the tree object.</em></p>
   </div>
 
   <div ng-show="screen === SCRN_UNREGISTERED">
     <p style="text-align:center">This node has no corresponding definition in the editor.</p>
     <p style="text-align:center">To define it, import it using the 'Import Nodes' button under 'File' or add a node definition for it.</p>
     <p style="text-align:center">Modules can be defined by opening them in the editor.</p>
+  </div>
+
+  <div ng-show="screen === SCRN_INVALID">
+    <p style="text-align:center">This node's type conflicts with the type given in the corresponding definition.</p>
+    <p style="text-align:center">You should either remove this node and make a new one or correct the type of the node definition.</p>
+  </div>
+
+  <div ng-hide="screen === SCRN_SELECTED">
     <p style="text-align:center"><em>NOTE: The root node represents a tree. Therefore, changes applied to this node will persist on the tree object.</em></p>
   </div>
 

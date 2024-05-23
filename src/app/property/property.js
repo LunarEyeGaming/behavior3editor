@@ -5,6 +5,7 @@ angular.module('app.property', [])
   $scope.SCRN_UNSELECTED = 0
   $scope.SCRN_SELECTED = 1
   $scope.SCRN_UNREGISTERED = 2
+  $scope.SCRN_INVALID = 3
 
   // DYNAMIC ROW
   this.panel = angular.element(
@@ -79,8 +80,12 @@ angular.module('app.property', [])
     var selectedBlocks = $window.app.editor.selectedBlocks;
     // If exactly one block has been selected...
     if (selectedBlocks.length === 1) {
-      // If the block is registered...
-      if (selectedBlocks[0].isRegistered) {
+      // If the block is invalid...
+      if (selectedBlocks[0].isInvalid) {
+        var block = null;
+        var screen = $scope.SCRN_INVALID;
+      // Otherwise, if the block is registered...
+      } else if (selectedBlocks[0].isRegistered) {
         var block = selectedBlocks[0];
         var screen = $scope.SCRN_SELECTED;
 
@@ -193,17 +198,6 @@ angular.module('app.property', [])
         var key = domKeys[i].innerText;
         var value = domValues[i].value;
         if (value == '') value = null;
-
-        // if (valueType != 'string') {
-        //   try {
-        //     value = JSON.parse(value);
-        //   } catch (e){
-        //     $window.app.editor.trigger('notification', name, {
-        //       level: 'error',
-        //       message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
-        //     });
-        //   }
-        // }
 
         newNode.output[key] = {
           type: node.prototype.output[key].type,

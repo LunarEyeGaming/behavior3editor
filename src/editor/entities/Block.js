@@ -18,22 +18,24 @@ this.b3editor = this.b3editor || {};
 
     shouldRender = shouldRender !== undefined ? shouldRender : true;
 
-    this.id             = b3.createUUID();
+    this.id              = b3.createUUID();
     
-    this.displayObject  = new createjs.Container();
-    this.inConnection   = null;
-    this.outConnections = [];
-    this.isSelected     = false;
-    this.isRegistered   = true;
-    this.isDragging     = false;
-    this.dragOffsetX    = 0;
-    this.dragOffsetX    = 0;
+    this.displayObject   = new createjs.Container();
+    this.inConnection    = null;
+    this.outConnections  = [];
+    this.isSelected      = false;
+    this.isRegistered    = true;
+    this.isInvalid       = false;
+    this.isDragging      = false;
+    this.dragOffsetX     = 0;
+    this.dragOffsetX     = 0;
     
-    this._width         = null;
-    this._height        = null;
-    this._shapeObject   = new createjs.Shape();
-    this._shadowObject  = null;
-    this._symbolObject  = null;
+    this._width          = null;
+    this._height         = null;
+    this._shapeObject    = new createjs.Shape();
+    this._invalidOverlay = new createjs.Shape();
+    this._shadowObject   = null;
+    this._symbolObject   = null;
 
     this.loadNodeDef(node);
 
@@ -44,12 +46,13 @@ this.b3editor = this.b3editor || {};
    * Loads a node definition into the block. It is assumed that the name of the node being defined matches that of the 
    * current block. Based on this assumption, the title of the block will not be set if it is already defined. All
    * properties that are not defined or do not match in type are replaced. Any outputs that are not defined are also
-   * replaced. If the block's new type is "action" or "module", it will lose all of its outConnections and return them.
-   * It is up to the programmer to fully remove such connections from the editor.
+   * replaced. 
+   * 
+   * If the block's new type is "action" or "module" and it has any out connections, an error is thrown. The programmer
+   * should not catch this error and should instead check if the type will change.
    * 
    * @param {*} node the node definition to load
-   * @returns the outConnections that were removed if the block became an action or module and had connections, 
-   * null otherwise
+   * @throws EvalError if the new type of the block is "action" or "module" and the block has out connections.
    */
   p.loadNodeDef = function(node) {
     var dict = node.prototype;
@@ -84,16 +87,8 @@ this.b3editor = this.b3editor || {};
     this.output         = b3editor.extend({}, dict.output, this.output || {});
 
     // If the new type of the block is "action" or "module" and the block has outConnections...
-    if ((dict.type === "action" || dict.type === "module") && (this.outConnections.length > 0)) {
-      var oldOutConnections = this.outConnections;
-
-      // Delete all of them.
-      this.outConnections = [];
-    } else {  // Otherwise...
-      var oldOutConnections = null;
-    }
-
-    return oldOutConnections;
+    if ((dict.type === "action" || dict.type === "module") && (this.outConnections.length > 0))
+      throw new EvalError("Cannot load node definition. Type change results in loss of connections.");
   }
 
   /**
@@ -156,9 +151,14 @@ this.b3editor = this.b3editor || {};
     this._shapeObject.graphics.clear();
     shape(this, settings, this.isRegistered ? 'registered' : 'unregistered');
 
+    // Draw invalid overlay (if the block is invalid).
+    if (this.isInvalid)
+      b3editor.draw.invalidOverlay(this, settings);
+
     // Add to display
     this.displayObject.addChild(this._shapeObject);
     this.displayObject.addChild(this._symbolObject);
+    this.displayObject.addChild(this._invalidOverlay);
 
     // If the block should redraw connections...
     if (redrawConnections) {
