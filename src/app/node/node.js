@@ -267,7 +267,7 @@ angular.module('app.node', ['app.modal'])
       // If a node class was returned (i.e., the operation succeeded)...
       if (nodeClass) {
         // Push the command to the editor.
-        $window.app.editor.pushCommandNode('AddNode', {node: nodeClass, isAction: newNode.type == "action"});
+        $window.app.editor.pushCommandNode('AddNode', {node: nodeClass});
         $scope.close("Yes");
       }
     } else {
@@ -421,10 +421,7 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.removeNode = function() {
-    $window.app.editor.pushCommandNode('RemoveNode', {
-      node,
-      isAction: $scope.node.prototype.type == 'action'
-    });
+    $window.app.editor.pushCommandNode('RemoveNode', {node});
   }
 })
 

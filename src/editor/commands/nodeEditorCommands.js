@@ -10,24 +10,21 @@ b3editor.AddNode = b3editor.defineCommand((_, p) => {
     this.editor = args.editor;
 
     this.node = args.node;  // The node to add.
-    this.isAction = args.isAction;  // Whether or not the node is an action.
   }
 
   p.run = function() {
-    // Add the node, forcing the blocks to update their register status. Store the resulting rollback data.
-    this.rollbackData = this.editor.addNode(this.node, this.isAction, true);
+    // Add the node and update the blocks. Store the resulting rollback data.
+    this.editor.addNode(this.node);
+    this.rollbackData = this.editor.updateAllBlocks(this.node.prototype.name);
   }
 
   p.undo = function() {
-    // Remove the node (blocks are redrawn later, so removeNode is forced not to redraw them).
-    this.editor.removeNode(this.node.prototype.name, this.node.prototype.isAction, false);
-
-    // Reverse the changes made by adding the node.
-    // Reset the data for each affected block (and redraw it).
-    this.rollbackData.originalBlocks.forEach(originalBlock => {
-      originalBlock.block.setNodeAttributes(originalBlock.originalData);
-      originalBlock.block.redraw(false);
+    // Reverse the changes made by adding the node by resetting the data for each affected block
+    this.rollbackData.forEach(originalBlock => {
+      originalBlock.block.setNodeAttributes(originalBlock.oldData);
     });
+    // Remove the node.
+    this.editor.removeNode(this.node.prototype.name);
   }
 })
 
@@ -38,27 +35,31 @@ b3editor.ImportNodes = b3editor.defineCommand((_, p) => {
   p.initialize = function(args) {
     this.editor = args.editor;
 
-    this.nodes = args.nodes;  // A list of objects each with the node to add and whether or not said node is an action.
+    this.nodes = args.nodes;  // A list of nodes to add.
     this.rollbackDataList = [];  // A list of rollback data objects from each addNode operation.
   }
 
   p.run = function() {
-    // Add the nodes and get the rollback data from each operation.
-    this.nodes.forEach(node => this.rollbackDataList.push(this.editor.addNode(node.nodeClass, node.isAction, true)));
+    this.rollbackDataList = [];
+
+    // Add the nodes and get the rollback data from each instance of updating all blocks.
+    this.nodes.forEach(node => {
+      this.editor.addNode(node);
+      this.rollbackDataList.push(this.editor.updateAllBlocks(node.prototype.name));
+    });
   }
 
   p.undo = function() {
-    // Remove the nodes.
-    this.nodes.forEach(node => this.editor.removeNode(node.nodeClass.prototype.name, node.isAction));
-
     // Reverse the changes made by adding the nodes.
     this.rollbackDataList.forEach(rollbackData => {
       // Reset the data for each affected block.
-      rollbackData.originalBlocks.forEach(originalBlock => {
+      rollbackData.forEach(originalBlock => {
         originalBlock.block.setNodeAttributes(originalBlock.originalData);
-        originalBlock.block.redraw(false);
       });
     });
+
+    // Remove the nodes.
+    this.nodes.forEach(node => this.editor.removeNode(node.prototype.name));
   }
 })
 
@@ -105,14 +106,22 @@ b3editor.RemoveNode = b3editor.defineCommand((_, p) => {
 
     this.nodeName = args.node;  // The name of the node to remove.
     this.node = this.editor.nodes[this.nodeName];  // The node that will be removed.
-    this.isAction = args.isAction;  // Whether or not the node is an action.
   }
 
   p.run = function() {
-    this.editor.removeNode(this.nodeName, this.isAction);
+    this.editor.removeNode(this.nodeName);
   }
 
   p.undo = function() {
-    this.editor.addNode(this.node, this.isAction, true);
+    this.editor.addNode(this.node);
+    this.rollbackData = this.editor.updateAllBlocks(this.nodeName);
+  }
+
+  p.redo = function() {
+    // Reverse the changes made by adding the node by resetting the data for each affected block
+    this.rollbackData.forEach(originalBlock => {
+      originalBlock.block.setNodeAttributes(originalBlock.oldData);
+    });
+    this.run();
   }
 })

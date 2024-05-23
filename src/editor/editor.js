@@ -114,9 +114,15 @@ this.b3editor = this.b3editor || {};
     }
     this.dispatchEvent(event);
   }
-  // Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the current tree, 
-  // automatically supplying the `editor` argument as this current editor. If `fromPropertyPanel` is true, sets the 
-  // current focused element to the property panel. Otherwise, sets it to the tree editor canvas.
+  /**
+   * Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the current tree, 
+   * automatically supplying the `editor` argument as this current editor. If `fromPropertyPanel` is true, sets the 
+   * current focused element to the property panel. Otherwise, sets it to the tree editor canvas.
+   * 
+   * @param {string} cmd the name of the Command to add
+   * @param {object} args an object representing the arguments to supply to the Command's constructor
+   * @param {boolean} fromPropertyPanel whether or not this call came from the property panel
+   */
   p.pushCommandTree = function(cmd, args, fromPropertyPanel) {
     args.editor = this;
     // Look up the undo history corresponding to the current tree and add the command with name `cmd` to that undo 
@@ -129,8 +135,13 @@ this.b3editor = this.b3editor || {};
     else  // Otherwise...
       this.trigger('changefocus', "tree-editor");  // Set the focus ot the tree editor.
   }
-  // Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the list of nodes in the
-  // editor, automatically supplying the `editor` argument as this current editor.
+  /**
+   * Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the list of nodes in the
+   * editor, automatically supplying the `editor` argument as this current editor.
+   * 
+   * @param {string} cmd the name of the Command to add
+   * @param {object} args an object representing the arguments to supply to the Command's constructor
+   */
   p.pushCommandNode = function(cmd, args) {
     args.editor = this;
     // Add the command with name `cmd` to the undo history corresponding to the list of nodes.
@@ -233,7 +244,16 @@ this.b3editor = this.b3editor || {};
       this.connections[i].applySettings(settings);
     }
   }
-  // this.projectTrees = this.project.findTrees() should be called before calling this method.
+  /**
+   * Imports a block from a JSON node. If the block has no associated node definition in the editor, this method logs a
+   * warning message, and the block is marked as unregistered. This method will also try to resolve the node definition
+   * associated with the block if the block is a module. For this functionality to work properly, the programmer must
+   * have set `this.projectTrees` to the most recent result of `this.project.findTrees()` prior to calling this method.
+   * 
+   * @param {object} node the node to import
+   * @param {string} parent the ID of the block to set as the import block's parent
+   * @returns the block that was imported
+   */
   p.importBlock = function(node, parent) {
     var isRegistered = true;
 
@@ -242,9 +262,8 @@ this.b3editor = this.b3editor || {};
       // Try to find and import it.
       var moduleData = this.findModule(node.name);
       if (moduleData) {
-        // Import module (it is necessary to redraw all blocks since a module could later be found that did not exist 
-        // before)
-        this.importModule(moduleData, true);
+        // Import module
+        this.importModule(moduleData);
       }
     }
 
@@ -253,9 +272,6 @@ this.b3editor = this.b3editor || {};
     // If the node is not registered (even if it's a module and we tried to resolve it)...
     if (this.nodes[node.name] == undefined) {
       // Report the unregistered node.
-      var nodeCopy = JSON.parse(JSON.stringify(node));
-      if (nodeCopy.child) delete nodeCopy.child;
-      if (nodeCopy.children) delete nodeCopy.children;
       this.logger.warn("Node \"" + node.name + "\" not registered.");
 
       // Mark as not registered
@@ -271,16 +287,26 @@ this.b3editor = this.b3editor || {};
         output: {}
       }
     }
+    
+    // The block is invalid if and only if it is registered but the type of the node does not match that in the 
+    // corresponding definition.
+    var isInvalid = isRegistered && nodeDef.prototype.type !== node.type;
+
+    // If the block is invalid...
+    if (isInvalid)
+      this.logger.warn("Node named '" + node.name + "' has type '" + node.type + "', but the node was defined to have type '" + nodeDef.prototype.type + "'");
 
     // Add the block based on the node itself (disable initial rendering and selection).
     var block = this.makeAndAddBlock(nodeDef, 0, 0, false, false);
     block.id = b3.createUUID();
     block.title = node.title;
+    block.type = node.type;  // Displays the original type in case it is invalid.
     block.description = node.description;
     block.isRegistered = isRegistered;
+    block.isInvalid = isInvalid;
 
-    // If the node is registered...
-    if (isRegistered) {
+    // If the node is registered and valid...
+    if (isRegistered && !isInvalid) {
       this.fillBlockAttributes(block, node);
     } else {  // Otherwise...
       this.fillBlockAttributesNoProto(block, node);
@@ -316,7 +342,7 @@ this.b3editor = this.b3editor || {};
    * work, the corresponding definition of the node must be registered.
    * 
    * @param {b3editor.Block} block: the block of which to fill the properties and output
-   * @param {Object} node: the node from which to copy the properties and output.
+   * @param {object} node: the node from which to copy the properties and output.
    */
   p.fillBlockAttributes = function(block, node) {
     block.properties = {};
@@ -369,7 +395,7 @@ this.b3editor = this.b3editor || {};
    * it on registered blocks will cause errors in functions that rely on the block having an associated node definition.
    * 
    * @param {b3editor.Block} block: the block of which to fill the properties and output
-   * @param {Object} node: the node from which to copy the properties and output.
+   * @param {object} node: the node from which to copy the properties and output.
    */
   p.fillBlockAttributesNoProto = function(block, node) {
     block.properties = {};
@@ -416,11 +442,12 @@ this.b3editor = this.b3editor || {};
     this.organize(true);
     return true;
   }
-  // Imports a module node definition based on the provided `data`.
-  // `redrawBlocks` is whether or not all blocks should be redrawn. `true` by default.
-  p.importModule = function(data, redrawBlocks) {
-    redrawBlocks = redrawBlocks !== undefined ? redrawBlocks : true;
-
+  /**
+   * Imports a module node definition based on the provided `data`.
+   * 
+   * @param {object} data the data of the module to import
+   */
+  p.importModule = function(data) {
     var treeModuleParameters = function(treeParameters) {
       var params = {}
       for (var key in treeParameters) {
@@ -444,8 +471,8 @@ this.b3editor = this.b3editor || {};
       }
       this.makeAndAddNode(newNode);
 
-      // Update the register status of each block and redraw (if instructed to do so).
-      this.updateBlockRegisterStatus(data.name, true, redrawBlocks);
+      // Update the status of each block.
+      this.updateAllBlocks(data.name);
     }
   }
   // Finds a module with name `name` and returns the JSON data for it, or null if no such module exists. The programmer
@@ -629,7 +656,8 @@ this.b3editor = this.b3editor || {};
     
     // If the tree contains any invalid blocks...
     if (this.hasInvalidBlocks())
-      dialog.showMessageBox({
+      // Show a warning and decide later whether to save the tree based on the user's input.
+      dialog.showMessageBox(remote.getCurrentWindow(), {
         message: "This tree contains node type conflicts. Are you sure you want to save?",
         type: "warning",
         buttons: ["Yes", "No"]
@@ -853,7 +881,7 @@ this.b3editor = this.b3editor || {};
 
       // If the node class is defined...
       if (nodeClass) {
-        nodesImported.push({nodeClass, isAction: node.type == 'action'});
+        nodesImported.push(nodeClass);
       }
     }
 
@@ -865,7 +893,7 @@ this.b3editor = this.b3editor || {};
         this.pushCommandNode('ImportNodes', {nodes: nodesImported})
       } else {  // Otherwise...
         // Add the nodes individually.
-        nodesImported.forEach(node => this.addNode(node.nodeClass, node.isAction));
+        nodesImported.forEach(node => this.addNode(node));
       }
     }
   }
@@ -945,57 +973,25 @@ this.b3editor = this.b3editor || {};
     var nodeClass = this.makeNode(node, originDirectory);
 
     // If a node class was returned...
-    if (nodeClass) {
-      var isAction = node.type == "action";
-
-      this.addNode(nodeClass, isAction);
-    }
+    if (nodeClass)
+      this.addNode(nodeClass);
 
     return nodeClass;
   }
-  // Adds a `node` to the editor, updating the export hierarchy if `isAction` is true and updating the register status 
-  // and prototype of all blocks if `updateBlocks` is true. Returns an object containing sufficient data to reverse the
-  // changes made to the blocks if `updateBlocks` is true. Otherwise, returns undefined. The object returned contains:
-  //   originalBlocks: a list (which may be empty) of objects each containing the following:
-  //    block: a reference to the block that was modified.
-  //    originalData: an object containing the original title, type, name, description, properties, and output of the 
-  //      block 
-  p.addNode = function(node, isAction, updateBlocks) {
+  /**
+   * Adds a `node` to the editor, updating the export hierarchy if the `type` of `node` is "action".
+   * 
+   * @param {b3editor.Composite | b3editor.Action | b3editor.Decorator | b3editor.Module} node the node to add
+   */
+  p.addNode = function(node) {
     this.registerNode(node);
     this.trigger('nodeadded', node);
 
-    var rollbackData;
-
-    // If we should update the blocks' register status and prototypes...
-    if (updateBlocks) {
-      rollbackData = {originalBlocks: []};
-
-      // Update the blocks' register status without redrawing them (b/c they will be redrawn later).
-      this.updateBlockRegisterStatus(node.prototype.name, true, false);
-  
-      // To update the prototypes, go through each tree...
-      this.trees.forEach(tree => {
-        // Go through each block...
-        tree.blocks.forEach(block => {
-          // If the block has the same name as that of the updated prototype...
-          if (block.name == node.prototype.name) {
-            // Store a backup of the block's original data.
-            rollbackData.originalBlocks.push({block, originalData: block.getNodeAttributes()});
-
-            block.loadNodeDef(node);  // Update its node definition.
-            block.redraw(false);  // No need to redraw connections because the size of the blocks won't change.
-          }
-        })
-      });
-    }
-
     // If the node is an action...
-    if (isAction) {
+    if (node.prototype.type == "action") {
       // Update the export hierarchy
       this.addToExportHierarchy(node.prototype.originDirectory, node.prototype.category);
     }
-
-    return rollbackData;
   }
   /**
    * Returns whether or not there exists a block `block` in all loaded trees such that `block.name === nodeName` and
@@ -1114,9 +1110,9 @@ this.b3editor = this.b3editor || {};
       });
     });
 
-    // Update register statuses of blocks (because renaming the node could result in some unregistered nodes becoming 
-    // registered).
-    this.updateBlockRegisterStatus(newNode.name, true);
+    // Update statuses of blocks (because renaming the node could result in some unregistered nodes becoming registered
+    // and possibly even invalid).
+    this.updateAllBlocks(newNode.name);
 
     this.trigger('nodechanged', node);
   }
@@ -1124,27 +1120,23 @@ this.b3editor = this.b3editor || {};
    * Removes a node from the editor. This marks all blocks with that node's name as unregistered.
    * 
    * @param {string} name the name of the node to remove
-   * @param {boolean} isAction whether or not the node to remove is an action
-   * @param {boolean} redrawBlocks (optional) whether or not affected blocks should be redrawn. `true` by default.
    */
-  p.removeNode = function(name, isAction, redrawBlocks) {
-    redrawBlocks = redrawBlocks !== undefined ? redrawBlocks : true;
-
+  p.removeNode = function(name) {
     // TODO: verify if it is b3 node
     this.deselectAll();
 
     var node = this.nodes[name];
 
-    this.updateBlockRegisterStatus(name, false, redrawBlocks);
-
     // If the node is an action...
-    if (isAction) {
+    if (node.prototype.type == "action") {
       // Update the export hierarchy.
-      this.removeFromExportHierarchy(this.nodes[name].prototype.originDirectory, this.nodes[name].prototype.category);
+      this.removeFromExportHierarchy(node.prototype.originDirectory, node.prototype.category);
     }
 
     delete this.nodes[name];
     this.trigger('noderemoved', node);
+
+    this.updateAllBlocks(name);
   }
   p.addTree = function() {
     var block = new b3editor.Block({node: this.nodes['Root']});
@@ -1407,22 +1399,7 @@ this.b3editor = this.b3editor || {};
   }
   // Registers a Block object into the editor and then updates its register status as well as its title.
   p.addAndUpdateBlock = function(block) {
-    var wasRegistered = block.isRegistered;
-    var oldTitle = block.title;
-    block.isRegistered = this.nodes[block.name] != undefined;  // Update register status (the loose equal is important)
-
-    // If the block is registered...
-    if (block.isRegistered) {
-      // Update the title.
-      block.title = this.nodes[block.name].prototype.title;
-    }
-
-    // If register status or title changed...
-    if (wasRegistered !== block.isRegistered || oldTitle !== block.title) {
-      // Force a redraw.
-      block.redraw();
-    }
-
+    this.updateBlock(block);
     this.addBlock(block, true);
   }
   // Creates and adds a connection.
@@ -1503,15 +1480,17 @@ this.b3editor = this.b3editor || {};
     this.canvas.layerBlocks.removeChild(block.displayObject);
   }
   /**
-   * Sets all blocks with name `name` to have their `isRegistered` attribute to `status`, optionally redrawing the 
-   * affected blocks.
+   * Updates all blocks with name `name` to fit their associated prototypes and returns the rollback data of any blocks
+   * whose attributes were updated, which is a list (potentially empty) of objects each containing the following:
+   * * `block`: a reference to the block that was modified.
+   * * `originalData`: an object containing the original title, type, name, description, properties, and output of the 
+   *   block
    * 
    * @param {string} name the name of the blocks to target
-   * @param {boolean} status whether the blocks will be considered "registered"
-   * @param {boolean} shouldRedraw (optional) whether the changed blocks should be redrawn. `true` by default
+   * @return the old data of any blocks whose attributes were updated
    */
-  p.updateBlockRegisterStatus = function(name, status, shouldRedraw) {
-    shouldRedraw = shouldRedraw !== undefined ? shouldRedraw : true;
+  p.updateAllBlocks = function(name) {
+    var rollbackData = [];
 
     // Go through each tree...
     this.trees.forEach(tree => {
@@ -1519,17 +1498,61 @@ this.b3editor = this.b3editor || {};
       tree.blocks.forEach(block => {
         // If the block has name "name"...
         if (block.name == name) {
-          var temp = block.isRegistered;
+          var oldData = this.updateBlock(block);
 
-          // Update its register status.
-          block.isRegistered = status;
-
-          // If the block should be redrawn and the register status changed...
-          if (shouldRedraw && temp !== block.isRegistered)
-            block.redraw(false);
+          // If the block had its attributes updated...
+          if (oldData)
+            rollbackData.push({block, oldData});
         }
       })
     });
+
+    return rollbackData;
+  }
+  /**
+   * If the block's name has a corresponding node definition, attempt to update the block's attributes according to the
+   * node definition--marking the block as invalid if a type mismatch is detected--and mark the block as registered. 
+   * Otherwise, mark the block as unregistered (and valid) and leave everything else unchanged. The block is redrawn if 
+   * any actual change was made.
+   * 
+   * @param {b3editor.Block} block the block to update
+   * @returns the original node attributes of the block if they were updated, `null` otherwise
+   */
+  p.updateBlock = function(block) {
+    var wasRegistered = block.isRegistered;
+    var wasInvalid = block.isInvalid;
+    var oldData = null;
+
+    // If the block's name has a corresponding node definition...
+    if (this.nodes[block.name]) {
+      // Mark the block as registered.
+      block.isRegistered = true;
+
+      var nodeDef = this.nodes[block.name];
+      // If the type of the block matches that of the corresponding node definition...
+      if (block.type === nodeDef.prototype.type) {
+        block.isInvalid = false;  // Mark the block as valid.
+
+        // If the block was unregistered...
+        if (!wasRegistered) {
+          oldData = block.getNodeAttributes();  // Store a backup of the data.
+
+          block.loadNodeDef(nodeDef);
+        }
+      } else {  // Otherwise...
+        block.isInvalid = true;  // Mark the block as invalid.
+      }
+    } else {  // Otherwise...
+      // Mark the block as unregistered and valid.
+      block.isRegistered = false;
+      block.isInvalid = false;
+    }
+
+    // If something about the block changed...
+    if (block.isRegistered !== wasRegistered || block.isInvalid !== wasInvalid)
+      block.redraw(false);  // Redraw the block.
+
+    return oldData;
   }
   /**
    * Removes `connection` from the editor. The original `connection` remains unmodified.

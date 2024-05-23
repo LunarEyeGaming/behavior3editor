@@ -51,7 +51,7 @@ this.b3editor = this.b3editor || {};
    * If the block's new type is "action" or "module" and it has any out connections, an error is thrown. The programmer
    * should not catch this error and should instead check if the type will change.
    * 
-   * @param {*} node the node definition to load
+   * @param {b3editor.Composite | b3editor.Action | b3editor.Decorator | b3editor.Module} node the node definition to load
    * @throws EvalError if the new type of the block is "action" or "module" and the block has out connections.
    */
   p.loadNodeDef = function(node) {
@@ -152,6 +152,7 @@ this.b3editor = this.b3editor || {};
     shape(this, settings, this.isRegistered ? 'registered' : 'unregistered');
 
     // Draw invalid overlay (if the block is invalid).
+    this._invalidOverlay.graphics.clear();
     if (this.isInvalid)
       b3editor.draw.invalidOverlay(this, settings);
 
@@ -205,6 +206,11 @@ this.b3editor = this.b3editor || {};
     }
   }
 
+  /**
+   * Sets the name, type, title, description, properties, and output of the block using the provided `attrs`.
+   * 
+   * @param {object} attrs the attributes to set
+   */
   p.setNodeAttributes = function(attrs) {
     this.name = attrs.name;
     this.type = attrs.type;
