@@ -1,45 +1,145 @@
 angular.module('app.notification', [])
 
+/**
+ * A controller responsible for creating and displaying notifications. Notifications are created and shown with the
+ * `createNotification()` and `showNotification()` method respectively. Both are used in the `onNotification()` method,
+ * which is triggered when the editor emits a `notification` event, with the provided `level` and `message` passed in as
+ * arguments. The controller also limits the number of notifications that can be displayed at once to
+ * `maxShownNotifications`, with the number of notifications being shown at once being tracked with the
+ * `shownNotifications` field. If `shownNotifications` is at `maxShownNotifications` when `showNotification()` is
+ * called, the notification is pushed onto a queue to be shown when a notification clears. The newest notifications are
+ * shown first, with older notifications being shown later. If more than `maxQueueSize` notifications are already in the
+ * queue when `showNotification()` is called and the notification is about to be added to the queue, it is instead
+ * recorded as an "excess notification," thereby incrementing the `excessNotifications` counter. When the queue has been
+ * cleared, another notification is shown to display these excess notifications if there are any.
+ */
 .controller('NotificationController', function($scope, $window, $compile, $document) {
   var this_ = this;
+  // li is necessary to make the notifications stack on top of each other.
   this.template = '\
-  <div class="notification {0}">\
+  <li class="notification {0}">\
     {1}\
-  </div>\
+  </li>\
   ';
+  this.fadeTime = 500;
+  this.showTime = 3000;
+  this.maxQueueSize = 15;  // The maximum number of notifications that can be in the queue.
+  this.maxShownNotifications = 5;  // The maximum number of notifications to show at once.
+  this.shownNotifications = 0;  // The number of notifications being shown.
+  this.notificationQueue = [];  // The list of notifications that are waiting to be shown.
+  this.excessNotifications = 0;  // The number of notifications that were queued when the queue size exceeded maxQueueSize
+
+  this.display = undefined;  // The Angular element representing the notification display.
+
+  /**
+   * Creates and returns an element representing a notification with level `level` and message `message`.
+   * 
+   * @param {string} level the level of the notification to show. CSS-recognized levels are `info`, `success`, `warn`, 
+   *   and `error`.
+   * @param {string} message the contents of the notification to show
+   * @returns an element representing the notification.
+   */
   this.createNotification = function(level, message) {
-    var element = $compile(
+    return $compile(
       this.template.format(level, message)
     )($scope);
-    var body = $document.find('body');
+  }
+
+  /**
+   * Forcibly shows a notification (regardless of how many notifications are being shown) represented by `element`.
+   * 
+   * @param {*} element the element representing the notification to display
+   */
+  this.showNotificationForce = function(element) {
+    // If the display is not defined yet...
+    if (!this.display)
+      this.display = angular.element(document.querySelector("#notification-display"));  // Define it.
+    
     var this_ = this;
+    
+    var willDisappear = false;  // Closure variable for fadeOut.
+
+    var fadeOut = function() {
+      // If this element is not marked for disappearance...
+      if (!willDisappear) {
+        // Mark it for disappearance.
+        willDisappear = true;
+
+        // Make it fade out.
+        element.css('opacity', 0);
+  
+        // Defer for removal. Note that the actual fade-out time of the element is configured in a CSS.
+        setTimeout(function() {
+          element.remove();
+          this_.removeNotification();
+        }, this_.fadeTime);
+      }
+    };
 
     // remove on click
-    element.bind('click', function() {
-      element.css('opacity', 0);
-      setTimeout(function() {
-        element.remove();
-      }, 500);
-    });
+    element.bind('click', fadeOut);
 
     // remove in time
-    setTimeout(function() {
-      element.css('opacity', 0);
-      setTimeout(function() {
-        element.remove();
-      }, 500);
-    }, 3000);
+    setTimeout(fadeOut, this.showTime);
 
     // appear
     setTimeout(function() {
       element.css('opacity', 1);
     }, 1);
 
-    body.append(element);
+    // Increment shownNotifications counter.
+    this.shownNotifications++;
+
+    this.display.append(element);  // Add to display (which makes it render on the document).
+  }
+
+  /**
+   * Attempts to show a notification. If `this.maxShownNotifications` are already being shown, the notification is
+   * instead pushed onto the queue to be shown later. If more than `this.maxQueueSize` notifications are already on the
+   * queue, the `this.excessNotifications` counter is incremented instead.
+   * 
+   * @param {*} element the element representing the notification to show
+   */
+  this.showNotification = function(element) {
+    // If less than this.maxShownNotifications have been shown so far...
+    if (this.shownNotifications < this.maxShownNotifications)
+      this.showNotificationForce(element);  // Show notification.
+    // Otherwise, if less than this.maxQueueSize notifications are in queue...
+    else if (this.notificationQueue.length < this.maxQueueSize)
+      this.notificationQueue.push(element);  // Push to queue
+    else  // Otherwise...
+      this.excessNotifications++;  // Increment the number of excess notifications
+  }
+
+  /**
+   * Decrements the `this.shownNotifications` counter and shows the next remaining notification in the queue (if any are
+   * remaining).
+   */
+  this.removeNotification = function() {
+    // Decrement this.shownNotifications counter.
+    this.shownNotifications--;
+
+    // Try to take a notification out of the queue (by removing one from the beginning of the array)...
+    var removed = this.notificationQueue.splice(0, 1);
+
+    // If a notification was removed...
+    if (removed.length > 0)
+      // Show the notification.
+      this.showNotification(removed[0]);
+    else  // Otherwise...
+      // If at least one notification cannot be shown due to the queue size limit being reached...
+      if (this.excessNotifications > 0) {
+        // Display the number of notifications missed in another notification.
+        this.showNotification(this.createNotification(
+          "info",
+          this.excessNotifications + " more notifications have been sent.<br>See log for more details (if applicable)."
+        ));
+        this.excessNotifications = 0; // Reset the counter.
+      }
   }
 
   this.onNotification = function(e) {
-    this_.createNotification(e.level, e.message);
+    this_.showNotification(this_.createNotification(e.level, e.message));
   }
   $window.app.editor.on('notification', this.onNotification, this);
 

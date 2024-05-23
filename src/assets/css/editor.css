@@ -418,27 +418,40 @@ form .row input, form .row textarea, form .row select {
 /* ================================*/
 /* NOTIFICATION                    */
 /* ================================*/
-.notification {
+#notification-display {
   position: absolute;
   z-index: 9999;
+/*   left: 50%; */
   bottom: 30px;
-  left: 310px;
   font-weight: bold;
-  text-align: center;
+  width: 100%;
+  /* Required to center the notifications. */
+  margin: 0px;
+  padding: 0px;
 
+  pointer-events: none;
+}
+
+.notification {
+  list-style: none;
+  text-align: center;
   width: 40%;
   padding: 15px;
   border: 1px solid transparent;
   border-radius: 4px;
 
-  left: 50%;
-  transform: translate(-50%, 0);
-  -webkit-transform: translate(-50%, 0);
-  -moz-transform: translate(-50%, 0);
+  margin: 10px auto;
 
-  opacity: 0;
+  opacity: 0.0;
   -webkit-transition: opacity linear 0.5s;
   transition: opacity linear 0.5s;
+
+  pointer-events: all;
+}
+.notification.warn {
+  color: #a9a242;
+  background-color: #f2efde;
+  border-color: #ebe0cc;
 }
 .notification.error {
   color: #a94442;
