@@ -49,7 +49,6 @@ this.b3editor = this.b3editor || {};
     this.warnedNodes      = new Set();
     this.clipboard        = [];
     this.exportCounter    = {};
-    this.treeUndoHistories = {};
     // undo history for the list of nodes.
     this.globalNodeUndoHistory = new b3editor.UndoStack({maxLength: this.maxStoredCommands});
 
@@ -125,9 +124,15 @@ this.b3editor = this.b3editor || {};
    */
   p.pushCommandTree = function(cmd, args, fromPropertyPanel) {
     args.editor = this;
-    // Look up the undo history corresponding to the current tree and add the command with name `cmd` to that undo 
-    // history.
-    this.treeUndoHistories[this.tree.id].addCommand(new b3editor[cmd](args));
+
+    // Look up the undo history corresponding to the current tree. 
+    var undoHistory = this.tree.undoHistory;
+
+    // Add the command with name `cmd` to that undo history.
+    undoHistory.addCommand(new b3editor[cmd](args));
+
+    // Emit a treesavestatuschanged event.
+    this.trigger('treesavestatuschanged', this.tree, {isSaved: undoHistory.isSaved()});
 
     // If the call came from the property panel...
     if (fromPropertyPanel)
@@ -519,8 +524,7 @@ this.b3editor = this.b3editor || {};
     }
 
     this.logger.info("Open behavior from " + filename);
-    this.addTree();
-    this.tree.path = filename;
+    this.addTree(filename);
 
     var editor = this;
     var data = fs.readFileSync(filename);
@@ -608,14 +612,28 @@ this.b3editor = this.b3editor || {};
     }
   }
 
-  p.writeTreeFile = function() {
+  /**
+   * Writes a tree to disk, logs that the tree was saved, shows a notification for it in the GUI, and emits the 
+   * "treesaved" event for that tree. Has no effect if the tree does not have a defined path.
+   * 
+   * @param {b3editor.Tree} tree (optional) the tree to write to disk. Defaults to the currently selected tree.
+   */
+  p.writeTreeFile = function(tree) {
+    tree = tree || this.tree;
+
     var json = this.exportToJSON();
-    var path = this.tree.path;
+    var path = tree.path;
     var editor = this;
 
     if (path != "") {
       fs.writeFile(path, json, function(err){
         if (err) throw err;
+
+        // Mark undo history as saved.
+        tree.undoHistory.save();
+
+        // Broadcast treesaved event (for filename directive).
+        editor.trigger("treesaved", tree);
 
         editor.logger.info("Saved tree "+name)
         editor.trigger('notification', name, {
@@ -625,14 +643,28 @@ this.b3editor = this.b3editor || {};
       });
     }
   }
-  p.saveTree = function(useExistingPath) {
-    var path = this.tree.path;
+  /**
+   * Saves a tree. If the `tree` argument is defined, this method will save that tree. Otherwise, it will save the 
+   * currently selected tree. If `useExistingPath` is true, then this method will try to use the tree's path, if 
+   * defined. Otherwise, it shows a save dialog for the user to save the tree. After saving the tree, a function
+   * `postSaveCallback` will be called if defined.
+   * 
+   * @param {boolean} useExistingPath whether or not the tree's existing path should be used
+   * @param {b3editor.Tree} tree (optional) the tree to save. Defaults to the currently selected tree.
+   * @param {() => void} postSaveCallback (optional) the function to call after saving.
+   */
+  p.saveTree = function(useExistingPath, tree, postSaveCallback) {
+    tree = tree || this.tree;
+    postSaveCallback = postSaveCallback || function() {};  // Default to a no-args function that does nothing
+
+    var path = tree.path;
 
     var editor = this;
 
     var saveTreeHelper = function() {
       // If we should not use the existing path or the path is an empty string (i.e., not defined)...
       if (!useExistingPath || path == "") {
+        // Show the save dialog for it.
         dialog.showSaveDialog(remote.getCurrentWindow(), {
           title: "Save Behavior File",
           filters : [
@@ -641,16 +673,17 @@ this.b3editor = this.b3editor || {};
           ]
         }, function(filename) {
           if (filename) {
-            editor.tree.path = filename;
+            tree.path = filename;
 
-            // This should only be included here to let the filename display know that the save location has been updated.
-            editor.trigger("treesaved", editor.tree);
+            editor.writeTreeFile(tree);
 
-            editor.writeTreeFile();
+            postSaveCallback();
           }
         });
       } else {
-        editor.writeTreeFile();
+        editor.writeTreeFile(tree);
+
+        postSaveCallback();
       }
     }
     
@@ -673,7 +706,7 @@ this.b3editor = this.b3editor || {};
       saveTreeHelper();
   }
   p.loadProject = function(project) {
-    // If a project is loaded...
+    // If a project is already loaded...
     if (this.project) {
       try {
         // Save the project.
@@ -683,6 +716,8 @@ this.b3editor = this.b3editor || {};
         this.logger.error("Error occurred while saving project: " + err);
       }
     }
+
+    // Actually load the project.
     this.settings.set("last_project", project.fileName);
     this.saveSettings();
 
@@ -756,11 +791,6 @@ this.b3editor = this.b3editor || {};
       var categories = categoriesToExport[origin];
 
       nodes[origin] = {};
-
-      nodes[origin].composite = this.getNodeCategoryExportData("composite", origin)
-      nodes[origin].decorator = this.getNodeCategoryExportData("decorator", origin)
-      nodes[origin].action = this.getNodeCategoryExportData("action", origin)
-      nodes[origin].module = this.getNodeCategoryExportData("module", origin)
 
       // For each category in categories...
       for (var category in categories) {
@@ -987,11 +1017,8 @@ this.b3editor = this.b3editor || {};
     this.registerNode(node);
     this.trigger('nodeadded', node);
 
-    // If the node is an action...
-    if (node.prototype.type == "action") {
-      // Update the export hierarchy
-      this.addToExportHierarchy(node.prototype.originDirectory, node.prototype.category);
-    }
+    // Update the export hierarchy
+    this.addToExportHierarchy(node.prototype.originDirectory, node.prototype.category || node.prototype.type);
   }
   /**
    * Returns whether or not there exists a block `block` in all loaded trees such that `block.name === nodeName` and
@@ -1071,7 +1098,7 @@ this.b3editor = this.b3editor || {};
 
     // Remove the node from the export hierarchy.
     this.removeFromExportHierarchy(this.nodes[oldName].prototype.originDirectory, 
-      this.nodes[oldName].prototype.category);
+      this.nodes[oldName].prototype.category || this.nodes[oldName].prototype.type);
 
     // Remove old node from the node definition list.
     delete this.nodes[oldName];
@@ -1081,15 +1108,16 @@ this.b3editor = this.b3editor || {};
     node.prototype.name = newNode.name;
     node.prototype.title = newNode.title;
     node.prototype.originDirectory = originDirectory || undefined;  // undefined forces into "No Save Location" bin
+
+    // Update the export hierarchy
+    this.addToExportHierarchy(originDirectory, node.prototype.category || node.prototype.type);
+
     if (newNode.properties)
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
     if (node.prototype.type == "action") {
       node.prototype.output = JSON.parse(JSON.stringify(newNode.output));
       node.prototype.script = newNode.script;
       node.prototype.category = newNode.category;
-
-      // Update the export hierarchy
-      this.addToExportHierarchy(originDirectory, node.prototype.category);
     }
 
     // Across all trees...
@@ -1127,29 +1155,35 @@ this.b3editor = this.b3editor || {};
 
     var node = this.nodes[name];
 
-    // If the node is an action...
-    if (node.prototype.type == "action") {
-      // Update the export hierarchy.
-      this.removeFromExportHierarchy(node.prototype.originDirectory, node.prototype.category);
-    }
+    // Update the export hierarchy.
+    this.removeFromExportHierarchy(node.prototype.originDirectory, node.prototype.category || node.prototype.type);
 
     delete this.nodes[name];
     this.trigger('noderemoved', node);
 
     this.updateAllBlocks(name);
   }
-  p.addTree = function() {
+
+  /**
+   * Adds a new tree to the editor and returns it. If a `filename` is given, the `path` attribute is set automatically.
+   * 
+   * @param {string} filename (optional) the value to use for the `path` attribute of the new tree
+   * @returns the tree that was added
+   */
+  p.addTree = function(filename) {
     var block = new b3editor.Block({node: this.nodes['Root']});
     block.displayObject.x = 0;
     block.displayObject.y = 0;
 
-    var tree = new b3editor.Tree();
+    var tree = new b3editor.Tree({maxStoredCommands: this.maxStoredCommands});
     tree.id = block.id;
     tree.blocks = [block];
-    this.trees.push(tree);
 
-    // Make new tree undo history.
-    this.treeUndoHistories[tree.id] = new b3editor.UndoStack({maxLength: this.maxStoredCommands});
+    // If the filename is given...
+    if (filename)
+      tree.path = filename;  // Set the tree's path to it.
+
+    this.trees.push(tree);
 
     this.trigger('treeadded', tree);
 
@@ -1210,6 +1244,8 @@ this.b3editor = this.b3editor || {};
   p.removeTree = function(id) {
     var index = -1;
     var tree = null;
+
+    // Find the tree.
     for (var i=0; i<this.trees.length; i++) {
       if (this.trees[i].id === id) {
         tree = this.trees[i];
@@ -1217,21 +1253,46 @@ this.b3editor = this.b3editor || {};
         break;
       }
     }
+    // If the tree was found...
     if (index > -1) {
-      this.trees.splice(index, 1);
+      var editor = this;
 
-      // Delete the undo history corresponding to the tree that was removed.
-      this.treeUndoHistories[tree.id] = undefined;
+      // What actually does the removing.
+      var removeTreeHelper = function() {
+        editor.trees.splice(index, 1);
 
-      if (tree === this.tree) {
-        var id_ = null;
-        if (index > 0) id_ = this.trees[index-1].id;
-        else id_ = this.trees[index].id;
+        // If the current tree was removed...
+        if (tree === editor.tree) {
+          // Select another tree to view.
+          var id_ = null;
+          if (index > 0) id_ = editor.trees[index-1].id;
+          else id_ = editor.trees[index].id;
 
-        this.selectTree(id_);
+          editor.selectTree(id_);
+        }
+
+        editor.trigger('treeremoved', tree);
       }
-
-      this.trigger('treeremoved', tree);
+      
+      // If the tree is not saved...
+      if (!tree.undoHistory.isSaved())
+        // Show a warning and decide later whether to save the tree (and/or remove it) based on the user's input.
+        dialog.showMessageBox(remote.getCurrentWindow(), {
+          message: "This tree is unsaved. Do you want to save the tree before removing it?",
+          type: "warning",
+          buttons: ["Yes", "No", "Cancel"]
+        }, function(result) {
+          switch (result) {
+            case 0:  // Yes
+              editor.saveTree(true, tree, removeTreeHelper);
+              break;
+            case 1:  // No
+              removeTreeHelper();
+            // "Cancel" does nothing.
+          }
+        });
+      else
+        removeTreeHelper();
     }
   }
   // Calls to this function should include a reference to "this" within the context of the Editor object as the first
@@ -1339,10 +1400,6 @@ this.b3editor = this.b3editor || {};
       this.tree.id = this.blocks[0].id;
       this.tree.blocks = this.blocks;
     }
-
-    // Reset undo histories.
-    this.treeUndoHistories = {}
-    this.treeUndoHistories[this.tree.id] = new b3editor.UndoStack({maxLength: this.maxStoredCommands});
   }
   p.snap = function(blocks) {
     if (!blocks) {
@@ -1759,7 +1816,7 @@ this.b3editor = this.b3editor || {};
       this.select(root);
     }
   }
-  // Returns the undo stack corresponding to the currently focused element. Logs an error and returns null if no 
+  // Returns the undo stack corresponding to the currently focused element. Also logs an error and returns null if no 
   // corresponding undo stack exists.
   p.getFocusedUndoStack = function() {
     switch (this.currentFocusedElement) {
@@ -1767,10 +1824,23 @@ this.b3editor = this.b3editor || {};
         return this.globalNodeUndoHistory;
       case "tree-editor":  // The canvas for editing trees (FALL THROUGH)
       case "right-panel":  // The properties panel
-        return this.treeUndoHistories[this.tree.id];
+        return this.tree.undoHistory;
       default:
         this.logger.error("INTERNAL ERROR: No undo stack defined for element with id '" + this.currentFocusedElement + "'");
         return null;
+    }
+  }
+  // Emits the save status changing event corresponding to the current focused element.
+  p.broadcastSaveStatus = function() {
+    switch (this.currentFocusedElement) {
+      // case "left-panel":  // The node / tree panel
+      //   return this.globalNodeUndoHistory;
+      case "tree-editor":  // The canvas for editing trees
+        // FALL THROUGH
+      case "right-panel":  // The properties panel
+        var undoHistory = this.tree.undoHistory;
+        this.trigger('treesavestatuschanged', this.tree, {isSaved: undoHistory.isSaved()});
+        break;
     }
   }
   // Moves back one command in the undo history for the editor.
@@ -1781,6 +1851,8 @@ this.b3editor = this.b3editor || {};
     if (undoHist) {
       undoHist.undoLastCommand();
     }
+
+    this.broadcastSaveStatus();
   }
   // Moves forward one command in the undo history for the editor.
   p.redo = function() {
@@ -1790,6 +1862,8 @@ this.b3editor = this.b3editor || {};
     if (undoHist) {
       undoHist.redoNextCommand();
     }
+
+    this.broadcastSaveStatus();
   }
 
   p.removeConnections = function() {
@@ -1885,6 +1959,17 @@ this.b3editor = this.b3editor || {};
     img.src = canvas.toDataURL();
 
     return img;
+  }
+
+  p.onConditionShowWarning = function(args) {
+    // Args: 
+    // condition: when it's displayed, 
+    // message: the message to display,
+    // choices: the buttons to show,
+    // callbackChoices: when the callback should be called
+    // defaultCallback: 
+    // callback: called when choice 0 is made or no warning should be displayed,
+    // 
   }
   // ==========================================================================
 

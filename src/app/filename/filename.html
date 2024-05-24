@@ -1,4 +1,5 @@
 <div class="filename-display" ng-controller="FilenameController">
-  <div class="treename-display">{{filename}}</div>
+  <div class="save-status-display" ng-hide="isSaved">*</div>
+  <div class="treename-display">{{treeName}}</div>
   <div ng-show="path" class="path-display">{{path}}</div>
 </div>

@@ -50,6 +50,68 @@ angular.module('app.node', ['app.modal'])
     title = title.replace(/(<\w+>)/g, function(match, key) { return '@'; });
     return title;
   }
+
+  /**
+   * Returns whether or not a project is loaded in the editor.
+   * 
+   * @returns true if a project is loaded, false otherwise.
+   */
+  $scope.projectLoaded = function() {
+    return $window.app.editor.project != null;
+  }
+
+  /**
+   * Returns whether or not the directory `dirName` should be marked as part of the project's auto-importing system as a
+   * truthy or falsy value. If no project is loaded, returns a falsy value instead.
+   * 
+   * @param {string} dirName the name of the directory
+   * @returns truthy if the directory is not undefined and is in the project (when the project is defined), falsy
+   *   otherwise
+   */
+  $scope.isNotInProject = function(dirName) {
+    var project = $window.app.editor.project;
+
+    // Should return true if containsDir returns false, unless dirName is "undefined" or no project is loaded, in which 
+    // case it should return false.
+    return project && dirName != 'undefined' && !project.containsDir(dirName);
+  }
+
+  /**
+   * Adds a directory `dirName` to the project's auto-importing system. The programmer must ensure that this function is
+   * never called when no project is loaded or `dirName` is already in the auto-importing system.
+   * 
+   * @param {string} dirName the name of the directory to add
+   */
+  $scope.addToProject = function(dirName) {
+    $window.app.editor.project.addDir(dirName);
+  }
+
+  /**
+   * Removes a directory `dirName` from the project's auto-importing system. The programmer must ensure that this
+   * function is never called when no project is loaded.
+   * 
+   * @param {string} dirName the name of the directory to remove
+   */
+  $scope.removeFromProject = function(dirName) {
+    $window.app.editor.project.removeDir(dirName);
+  }
+
+  /**
+   * Returns a truthy or falsy value depending on whether or not a project is loaded, the directory `dirName` is not
+   * `"undefined"`, and the project allows a directory to be removed (if `isRemoveButton` is true). This function 
+   * represents whether or not a corresponding button should be displayed for the directory.
+   * 
+   * @param {string} dirName the name of the directory to check
+   * @param {boolean} isRemoveButton whether or not the button is a remove button
+   * @returns truthy if a corresponding button should be displayed for the directory, falsy otherwise
+   */
+  $scope.dirHasButton = function(dirName, isRemoveButton) {
+    var project = $window.app.editor.project;
+
+    // A directory displayed can have a button only if a project is loaded, the directory is not "undefined", and the 
+    // project allows a directory to be removed or the button will not remove a directory.
+    return project && dirName != 'undefined' && (!isRemoveButton || project.canRemoveDir());
+  }
   // --------------------------------------------------------------------------
 
   // UPDATE NODES--------------------------------------------------------------
@@ -72,19 +134,20 @@ angular.module('app.node', ['app.modal'])
 
       var guiNodesInDir = guiNodes[node.prototype.originDirectory];
 
-      // Validate type and add it to guiNodes
-      for (key in guiNodesInDir) {
-        if (node.prototype.type === key) {
-          guiNodesInDir[key].push(node);
-        }
-      }
+      // If the type of node is valid and cannot overwrite "actionCategories" (which is reserved)...
+      if (node.prototype.type !== "actionCategories" && guiNodesInDir[node.prototype.type])
+        guiNodesInDir[node.prototype.type].push(node);
 
       var categoryNodes = guiNodesInDir.actionCategories;
 
-      if (node.prototype.type == 'action'){
+      // If the node is an action...
+      if (node.prototype.type == 'action') {
+        // If the action category list for the corresponding category is undefined...
         if (!categoryNodes[node.prototype.category])
+          // Define it.
           categoryNodes[node.prototype.category] = [];
 
+        // Add node to action category list.
         categoryNodes[node.prototype.category].push(node);
       }
     }

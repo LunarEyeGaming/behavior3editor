@@ -58,6 +58,12 @@ b3editor.EditBlock = b3editor.defineCommand((_, p) => {
 
   p.undo = function() {
     this.editor.editBlock(this.block, this.oldChanges);
+    this.editor.trigger('propertieschanged');
+  }
+
+  p.redo = function() {
+    this.editor.editBlock(this.block, this.changes);
+    this.editor.trigger('propertieschanged');
   }
 })
 

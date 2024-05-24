@@ -1,5 +1,5 @@
 var {makeTest} = require("../tester");
-var {assertThrows, assertEqual, assertStrictEqual} = require("../assert");
+var {assertThrows, assertEqual, assertStrictEqual, assert} = require("../assert");
 
 var TestCommand = (function() {
   // This coding weirdness is to keep the scope of p local.
@@ -466,6 +466,86 @@ var suite = [
     undoHistory.undoLastCommand();
 
     assertStrictEqual(25, someObject.foo);
+  }),
+  makeTest("isSaved() and save() basic functionality", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+
+    // Should now be unsaved.
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    undoHistory.save();
+
+    // Should be saved now.
+    assert(undoHistory.isSaved(), "marked as unsaved");
+  }),
+  makeTest("isSaved() and save() undo and redo", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+
+    undoHistory.save();
+
+    // Undoing should mark as unsaved.
+    undoHistory.undoLastCommand();
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+    undoHistory.save();
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    // Redoing should mark as unsaved.
+    undoHistory.redoNextCommand();
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+    undoHistory.save();
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    // Undoing and redoing.
+    undoHistory.undoLastCommand();
+    undoHistory.redoNextCommand();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+  }),
+  makeTest("isSaved() and save() edge cases", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    var someObject = {};
+
+    // Should be saved right off the bat.
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    // Still should be saved.
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.undoLastCommand();
+
+    // Still should be saved.
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.redoNextCommand();
+
+    // Now should be unsaved.
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    undoHistory.save();
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+
+    assert(!undoHistory.isSaved(), "marked as saved");
   }),
 ]
 

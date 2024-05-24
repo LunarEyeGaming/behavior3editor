@@ -156,6 +156,12 @@ form .row input, form .row textarea, form .row select {
   display: inline;
 }
 
+.filename-display .save-status-display {
+  color: #f04124;
+  float: left;
+  padding-right: 6px;
+}
+
 .filename-display .treename-display {
   float: left;
   padding-right: 12px;
@@ -506,66 +512,70 @@ form .row input, form .row textarea, form .row select {
 
 
 /* ================================*/
-/* ITEM LIST 2                     */
+/* DIRECTORY LIST                  */
 /* ================================*/
-/* Alternate variant to item-list */
-.item-list2 {
+.directory-list {
   list-style: none;
   padding: 0px;
   margin: 0px;
   margin-bottom: 10px;
   text-align: left;
 }
-.item-list2 li {
+.directory-list li {
   padding: 0px;
   margin: 0px;
 }
-/* .item-list2 li ul li {
-  padding: 2px;
-  margin: 2px;
-  border: 1px solid #333333;
-} */
-.item-list2 a {
+.directory-list a {
   padding: 2px 0px 2px 10px;
   color: #333333;
   text-decoration: none;
   display: block;
 }
-.item-list2 a.selected {
+.directory-list a.selected {
   font-weight: 600;  
   /*background-color: #606060;*/
   /*pointer-events: none;*/
   /*cursor: default;*/
 }
-.item-list2 .empty {
+.directory-list .empty {
   padding: 2px 0px 2px 10px;
   color: #ACACAC;
   display: block;
 }
-.item-list2 a:hover {
+.directory-list a:hover {
   background-color: #ffffff;
 }
-.item-list2 a.header {
-  font-weight: 600!important;
+.directory-list a.header {
+  font-weight: 600;
   color: #333333;
   font-size: 1.5em;
   word-wrap: break-word;
   border-color: #333333;
   border-style: none none solid;
 }
-.item-list2 a.header:hover {
+.directory-list a.header:hover {
   background-color: inherit;
 }
-.item-list2 a.category {
+.directory-list a.category {
   font-weight: 600;
   color: #333333;
   font-size: 1.1em;
 }
-.item-list2 .edit {
-  padding: 0px 5px;
-  margin: 0px 1px;
+.directory-list .edit {
+  padding: 0px 10px;
+  margin: 0px 2px;
+  font-weight: 100;
   background-color: #ffffff;
   color: #333333;
+}
+.directory-list span.edit {
+  padding: 0px;
+  margin: 0px;
+}
+.directory-list a.not-in-project {
+  font-weight: 100;
+  font-style: italic;
+  color: #acacac;
 }
 /* ================================*/
 
@@ -628,6 +638,10 @@ form .row input, form .row textarea, form .row select {
   margin: 0px 1px;
   background-color: #ffffff;
   color: #333333;
+}
+.item-list .save-marker {
+  color: #f04124;
+  padding-right: 3px;
 }
 /* ================================*/
 

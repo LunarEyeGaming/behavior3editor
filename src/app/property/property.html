@@ -28,7 +28,7 @@
 
       <div class="row">
         <label>Title</label>
-        <input id="title" type="text" onkeyup="element(this).updateProperties(this)" placeholder="title"/>
+        <input id="title" type="text" onchange="element(this).updateProperties(this)" onkeyup="element(this).markForChange(this)" placeholder="title"/>
       </div>
 
       <div class="row">

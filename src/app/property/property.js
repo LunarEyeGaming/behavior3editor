@@ -1,6 +1,16 @@
 angular.module('app.property', [])
 
 .controller('PropertyController', function($scope, $timeout, $compile, $window) {
+  /*
+  General comment:
+  onchange is hooked up to trigger the $scope.updateProperties() function, which causes changes in the block to be 
+  registered. This works most of the time, except when the user goes to deselect the block or select a different one. 
+  Because onchange fires after the selection change is handled, $scope.updateProperties() will be run. The workaround to
+  this is to have $scope.updateProperties() be called when this.updateProperties() is called, hook up onkeyup to set a
+  flag indicating change ($scope.changesMade), and make $scope.updateProperties() run its main body of code only when 
+  $scope.changesMade is true and then unset $scope.changesMade at the end. This makes it so that 
+  $scope.updateProperties() truly runs only when it needs to.
+  */
   // CONSTANTS (represent an enum for the type of screen to display).
   $scope.SCRN_UNSELECTED = 0
   $scope.SCRN_SELECTED = 1
@@ -20,18 +30,18 @@ angular.module('app.property', [])
   this.template = '\
     <tr>\
       <td><input id="is_key" type="checkbox" onchange="element(this).updateProperties(this);" {0} readonly/>key</td>\
-      <td><label id="key" for="{2}">{1}</label><input id="value" type="text" value="{2}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
+      <td><label id="key" for="{2}">{1}</label><input id="value" type="text" value="{2}" onchange="element(this).updateProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="value" /></td>\
     </tr>\
   ';
   this.outputTemplate = '\
     <tr>\
-      <td><label id="key" for="{1}">{0}</label><input id="value" type="text" value="{1}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
+      <td><label id="key" for="{1}">{0}</label><input id="value" type="text" value="{1}" onchange="element(this).updateProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="value" /></td>\
     </tr>\
   ';
   this.rootTemplate ='\
     <tr>\
-      <td><input id="key" type="text" value="{0}" onkeyup="element(this).updateProperties(this);" placeholder="key" /></td>\
-      <td><input id="value" type="text" value="{1}" onkeyup="element(this).updateProperties(this);" placeholder="value" /></td>\
+      <td><input id="key" type="text" value="{0}" onchange="element(this).updateProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="key" /></td>\
+      <td><input id="value" type="text" value="{1}" onchange="element(this).updateProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="value" /></td>\
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
     </tr>\
   ';
@@ -77,6 +87,9 @@ angular.module('app.property', [])
   // SELECTION/DESELECTION
   $scope.block = null;
   this.updateProperties = function() {
+    // Before switching, trigger $scope.updateProperties().
+    $scope.updateProperties();
+
     var selectedBlocks = $window.app.editor.selectedBlocks;
     // If exactly one block has been selected...
     if (selectedBlocks.length === 1) {
@@ -131,13 +144,14 @@ angular.module('app.property', [])
       });
     }, 0, false);
   }
-  $window.app.editor.on('blockselected', this.updateProperties, this);
-  $window.app.editor.on('blockdeselected', this.updateProperties, this);
-  $window.app.editor.on('treeselected', this.updateProperties, this);
-  this.updateProperties();
 
   // UPDATE PROPERTIES ON NODE
   $scope.updateProperties = function() {
+    // If $scope.changesMade is false...
+    if (!$scope.changesMade)
+      // Abort.
+      return;
+
     var node = $scope.block.node;
 
     var domTitle = document.querySelector('#property-panel #title');
@@ -210,7 +224,22 @@ angular.module('app.property', [])
       block: $scope.block, 
       changes: newNode
     }, true);
+    
+    // Reset changesMade variable. This keeps this function from activating inappropriately (such as when no actual 
+    // changes are made or when onchange triggers this function a second time after the user changes blocks--the first
+    // time being during the handling of the selection).
+    $scope.changesMade = false;
   }
+
+  $scope.markForChange = function() {
+    $scope.changesMade = true;
+  }
+
+  $window.app.editor.on('blockselected', this.updateProperties, this);
+  $window.app.editor.on('blockdeselected', this.updateProperties, this);
+  $window.app.editor.on('treeselected', this.updateProperties, this);
+  $window.app.editor.on('propertieschanged', this.updateProperties, this);  // undo and redo events
+  this.updateProperties();
 })
 
 .directive('propertyremovable', function() {

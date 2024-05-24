@@ -1,7 +1,33 @@
 <div class="node-panel panel" scrollable>
-  <ul class="item-list2">
+  <ul class="directory-list">
     <li ng-repeat="(dirName, nodesInDir) in nodes">
-      <a class="header" href="#">{{dirName === 'undefined' ? '[No Save Location]' : dirName}}</a>
+      <a class="header" ng-class="{'not-in-project': isNotInProject(dirName)}" href="#"
+      onmouseover="this.lastElementChild.style.display='inline-block';"
+      onmouseout="this.lastElementChild.style.display='none';">
+        {{dirName == 'undefined' ? '[No Save Location]' : dirName}}
+
+        <span style="display: none;" class="edit right">
+          <!--Add to Project button-->
+          <button 
+             href="#"
+             class="edit"
+             title="Add to Project"
+             ng-show="dirHasButton(dirName, false) && isNotInProject(dirName)"
+             ng-click="addToProject(dirName)">
+            +
+          </button>
+          <!--Remove from Project button-->
+          <button 
+             href="#"
+             class="edit"
+             title="Remove from Project"
+             ng-show="dirHasButton(dirName, true) && !isNotInProject(dirName)"
+             ng-click="removeFromProject(dirName)">
+            -
+          </button>
+        </span>
+        
+      </a>
       <ul class="item-list">
         <li>
           <a class="header" href="#">Composite</a>
@@ -13,7 +39,14 @@
                  onmouseover="this.lastElementChild.style.display='inline-block';"
                  onmouseout="this.lastElementChild.style.display='none';">
                 {{getTitle(node);}}
-                <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);" ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">Edit</button>
+                <button 
+                   href="#"
+                   class="edit right"
+                   ng-show="canEditNode(node.prototype.name);"
+                   ng-click="showEditNodeModal(node.prototype.name)"
+                   style="display: none;">
+                  Edit
+                </button>
               </a>
             </li>
             <li ng-show="nodesInDir.composite.length===0">

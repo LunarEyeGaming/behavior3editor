@@ -46,6 +46,11 @@ this.b3editor = this.b3editor || {};
    * to the node following the `cursor` and moves the `cursor` forward by one. Please see the documentation of the 
    * aforementioned methods for more detail.
    * 
+   * Each `UndoStack` instance can also support a "save cursor," which is the location of the cursor when the associated
+   * file (which the programmer determines via external means) was last saved. The associated file is considered to be 
+   * "saved" if the save cursor matches the actual cursor, and the programmer can check if the file is saved using the 
+   * `isSaved()` method. The save cursor can be updated to match the actual cursor using the `save()` method.
+   * 
    * As a point of advice, one should make sure to handle references to variables outside of any functions fed into this
    * class; JavaScript will base references to external variables on the present variables at the time that the function
    * is called. If one wants to have some external references fed into a function, it is advised that one makes a
@@ -62,7 +67,7 @@ this.b3editor = this.b3editor || {};
   var p = UndoStack.prototype;
 
   /**
-   * Initializes an UndoStack to have an empty stack and a cursor set to 0.
+   * Initializes an `UndoStack` to have an empty stack and a cursor set to 0.
    * 
    * @param {number} maxLength (optional) the maximum length of the stack.
    * @throws TypeError if maxLength is not a number
@@ -85,6 +90,7 @@ this.b3editor = this.b3editor || {};
     this.cursor = null;
     this.cursorPos = -1;
     this.length = 0;
+    this.saveCursor = null;
   }
 
   /**
@@ -157,25 +163,6 @@ this.b3editor = this.b3editor || {};
    * `run()` method otherwise. If there are no actions to redo, this method will have no effect.
    */
   p.redoNextCommand = function() {
-    /*
-    Checks:
-    Is the cursor null (i.e., at the beginning of a list or in an empty list)?
-    * Yes: Is the head null (i.e., the list is empty)?
-      * Yes: Don't do anything.
-      * No: Run the command at head. Set cursor to head and cursorPos to cursorPos + 1.
-    * No: Is cursor.next null (i.e., the cursor is at the end of the list)?
-      * Yes: Don't do anything.
-      * No: Run the command at cursor.next. Set cursor to cursor.next and cursorPos to cursorPos + 1.
-    
-    Refactored:
-    Is the cursor null (i.e., at the beginning of a list or in an empty list)?
-    * Yes: Set target to head. Leave cursorPos unaffected.
-    * No: Set target to cursor.next. Leave cursorPos unaffected.
-
-    Is target null (i.e., the list is empty for target == head, i.e., the cursor is at the end of the list for target == cursor.next)?
-      * Yes: Don't do anything.
-      * No: Run the command at head. Set cursor to target and cursorPos to cursorPos + 1.
-    */
     var target;  // The node corresponding to the Command to redo.
 
     // If the cursor is at the beginning of the list or in an empty list...
@@ -199,6 +186,22 @@ this.b3editor = this.b3editor || {};
       this.cursor = target;
       this.cursorPos++;
     }
+  }
+
+  /**
+   * Returns whether or not the save cursor matches the actual cursor.
+   * 
+   * @returns true if the save cursor matches the actual cursor, false otherwise.
+   */
+  p.isSaved = function() {
+    return this.saveCursor == this.cursor;
+  }
+
+  /**
+   * Sets the save cursor to the actual cursor.
+   */
+  p.save = function() {
+    this.saveCursor = this.cursor;
   }
 
   b3editor.UndoStack = UndoStack;

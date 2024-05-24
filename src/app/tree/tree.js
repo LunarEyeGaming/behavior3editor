@@ -7,23 +7,14 @@ angular.module('app.tree', ['app.modal'])
 .controller('TreeController', function($scope, $rootScope, $window, $timeout, ModalService) {
   var this_ = this;
 
-  // SHOW ADD NODE MODAL ------------------------------------------------------
-  $scope.showEditTreeModal = function(treeId) {
-    ModalService.showModal({
-      templateUrl: "app/tree/modal-edittree.html",
-      controller: 'EditTreeModalController',
-      inputs: {'treeId': treeId}
-    }).then(function(modal) {
-      modal.close.then(function(result) {
-      });
-    });
-  };
-  // --------------------------------------------------------------------------
-
   $scope.currentTree = $window.app.editor.tree.id;
 
-  $scope.canEditTree = function() {
+  $scope.canRemoveTree = function() {
     return $window.app.editor.trees.length > 1;
+  }
+
+  $scope.removeTree = function(treeId) {
+    $window.app.editor.removeTree(treeId);
   }
 
   $scope.addTree = function() {
@@ -46,7 +37,8 @@ angular.module('app.tree', ['app.modal'])
         var tree = trees[i];
         var id = tree.id;
         var name = tree.blocks[0].title;
-        data.push({id:id, name:name});
+        var isSaved = tree.undoHistory.isSaved();
+        data.push({id:id, name:name, isSaved:isSaved});
       }
 
       // timeout needed due to apply function
@@ -66,6 +58,7 @@ angular.module('app.tree', ['app.modal'])
           $timeout(function() {
             $scope.$apply(function() {
               $scope.trees[i].name = tree.blocks[0].getTitle();
+              $scope.trees[i].isSaved = tree.undoHistory.isSaved();
             });
           }, 0, false);
           return
@@ -85,6 +78,9 @@ angular.module('app.tree', ['app.modal'])
       this.updateTrees(e, e._target.id);
     }
   }
+  this.onTreeSaveStatusChanged = function(e) {
+    this.updateTrees(e, e._target.id);
+  }
 
   this.updateTrees();
 
@@ -92,18 +88,7 @@ angular.module('app.tree', ['app.modal'])
   $window.app.editor.on('treeadded', this.updateTrees, this);
   $window.app.editor.on('treeremoved', this.updateTrees, this);
   $window.app.editor.on('treeselected', this.onTreeSelected, this);
+  $window.app.editor.on('treesavestatuschanged', this.onTreeSaveStatusChanged, this);
+  $window.app.editor.on('treesaved', this.onTreeSaveStatusChanged, this);
   $rootScope.$on('onButtonNewTree', $scope.addTree);
 })
-
-
-//
-// ADD TREE MODAL CONTROLLER
-//
-.controller('EditTreeModalController', function($scope, $window, $compile, close, treeId) {
-  $scope.treeId = treeId;
-  $scope.close = function(result) { close(result); };
-
-  $scope.removeTree = function(id) {
-    $window.app.editor.removeTree(id);
-  }
-});

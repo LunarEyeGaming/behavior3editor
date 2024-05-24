@@ -7,8 +7,9 @@
          ng-class="{selected:tree.id===currentTree}"
          onmouseover="this.lastElementChild.style.display='inline-block';"
          onmouseout="this.lastElementChild.style.display='none';">
+        <div ng-hide="tree.isSaved" class="save-marker left">*</div>
         {{tree.name}}
-        <button href="#" title="Remove Tree From Editor" class="edit right" ng-show="canEditTree();" ng-click="showEditTreeModal(tree.id)" style="display: none;">&times;</button>
+        <button href="#" title="Remove Tree From Editor" class="edit right" ng-show="canRemoveTree();" ng-click="removeTree(tree.id)" style="display: none;">&times;</button>
       </a>
     </li>
   </ul>
