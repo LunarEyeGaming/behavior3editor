@@ -1,30 +1,6 @@
 var {makeTest} = require("../tester");
 var {assertThrows, assertEqual, assertStrictEqual, assert} = require("../assert");
-
-var TestCommand = (function() {
-  // This coding weirdness is to keep the scope of p local.
-  var TestCommand = b3.Class(b3editor.Command);
-  var p = TestCommand.prototype;
-
-  p.initialize = function(args) {
-    this.runFunc = args.runFunc;
-    this.undoFunc = args.undoFunc;
-  }
-
-  p.run = function() {
-    this.runFunc();
-  }
-
-  p.undo = function() {
-    this.undoFunc();
-  }
-
-  return TestCommand;
-}());
-
-function makeTestCommand(runFunc, undoFunc) {
-  return new TestCommand({runFunc, undoFunc});
-}
+var {makeTestCommand} = require("../testUtils")
 
 var suite = [
   makeTest("addCommand basic functionality", () => {
@@ -48,7 +24,7 @@ var suite = [
     var someObject = {};
 
     undoHistory.addCommand(makeTestCommand(() => {someObject.foo = "bar"}, () => {someObject.foo = undefined}));
-    undoHistory.undoLastCommand();
+    assert(undoHistory.undoLastCommand(), "undoLastCommand() returned false");
 
     // Make sure that someObject.foo has been deleted.
     assertStrictEqual(undefined, someObject.foo);
@@ -74,8 +50,8 @@ var suite = [
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
 
-    // Should have no effect.
-    undoHistory.undoLastCommand();
+    // Should have no effect and should return false.
+    assert(!undoHistory.undoLastCommand(), "undoLastCommand() returned true");
 
     // Make sure that the counter is unaffected.
     assertStrictEqual(0, counter);
@@ -121,7 +97,7 @@ var suite = [
     undoHistory.undoLastCommand();
     undoHistory.undoLastCommand();
 
-    undoHistory.redoNextCommand();
+    assert(undoHistory.redoNextCommand(), "redoNextCommand() returned false");
 
     // redoNextCommand should have redone exactly one action.
     assertStrictEqual(50, someObject.foo);
@@ -155,8 +131,8 @@ var suite = [
     undoHistory.redoNextCommand();
     undoHistory.redoNextCommand();
 
-    // Should have no effect.
-    undoHistory.redoNextCommand();
+    // Should have no effect and should return false.
+    assert(!undoHistory.redoNextCommand(), "redoNextCommand() returned true");
   }),
   makeTest("redoNextCommand when there are no commands", () => {
     var undoHistory = new b3editor.UndoStack();
@@ -545,6 +521,27 @@ var suite = [
 
     undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
 
+    assert(!undoHistory.isSaved(), "marked as saved");
+  }),
+  makeTest("isSaved() and save() mixed with maxLength", () => {
+    var undoHistory = new b3editor.UndoStack({maxLength: 3});
+
+    var someObject = {};
+
+    // Should be saved right off the bat.
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 37}, () => {someObject.foo -= 37}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 49}, () => {someObject.foo -= 49}));
+
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    // Should not be saved
     assert(!undoHistory.isSaved(), "marked as saved");
   }),
 ]

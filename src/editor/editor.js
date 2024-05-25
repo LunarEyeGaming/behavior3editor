@@ -667,7 +667,9 @@ this.b3editor = this.b3editor || {};
         // Show the save dialog for it.
         dialog.showSaveDialog(remote.getCurrentWindow(), {
           title: "Save Behavior File",
-          filters : [
+          // The original save path or the name of the tree, whichever is defined.
+          defaultPath: path || tree.blocks[0].title,
+          filters: [
             { name: "Behavior", extensions: ['behavior']},
             { name: "All files", extensions: ['*']}
           ]

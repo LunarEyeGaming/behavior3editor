@@ -4,30 +4,6 @@ this.b3editor = this.b3editor || {};
   "use strict";
 
   /**
-   * A class for a node of a doubly-linked list. The node has a next node and a previous node with some data in it. The
-   * class has only one constructor to instantiate a node. By default, the next and previous nodes are null. null
-   * signifies an end of a list, so if the next node is null, that means that the node before it is the last element of 
-   * the list. Likewise, if the previous node is null, the node after it is the first element of the list.
-   * This class is not intended for use outside of this script, so it is never part of the b3editor module and uses the
-   * native class system instead of b3's class system.
-   */
-  class ListNode {
-    /**
-     * Instantiates a `ListNode` with some data, a next node, and a previous node. It is up to the programmer to ensure
-     * that `next` and `prev` are valid `ListNode`s.
-     * 
-     * @param {*} data the data to insert into the node
-     * @param {ListNode} next (optional) the next `ListNode` in the sequence. Defaults to `null`
-     * @param {ListNode} prev (optional) the previous `ListNode` in the sequence. Defaults to `null`
-     */
-    constructor(data, next, prev) {
-      this.data = data;
-      this.next = next || null;  // Default to null
-      this.prev = prev || null;  // Default to null
-    }
-  }
-
-  /**
    * A class for keeping track of a list of past Commands (see Command.js for more information) performed and that
    * enables them to be undone. It is an implementation of the linear undo model (see 
    * https://en.wikipedia.org/wiki/Undo, section "Linear undo," for more information) that can optionally have a maximum
@@ -46,8 +22,8 @@ this.b3editor = this.b3editor || {};
    * to the node following the `cursor` and moves the `cursor` forward by one. Please see the documentation of the 
    * aforementioned methods for more detail.
    * 
-   * Each `UndoStack` instance can also support a "save cursor," which is the location of the cursor when the associated
-   * file (which the programmer determines via external means) was last saved. The associated file is considered to be 
+   * Each `UndoStack` instance also has a "save cursor," which is the location of the cursor when the associated file
+   * (which the programmer determines via external means) was last saved. The associated file is considered to be
    * "saved" if the save cursor matches the actual cursor, and the programmer can check if the file is saved using the 
    * `isSaved()` method. The save cursor can be updated to match the actual cursor using the `save()` method.
    * 
@@ -70,8 +46,8 @@ this.b3editor = this.b3editor || {};
    * Initializes an `UndoStack` to have an empty stack and a cursor set to 0.
    * 
    * @param {number} maxLength (optional) the maximum length of the stack.
-   * @throws TypeError if maxLength is not a number
-   * @throws RangeError if maxLength is not a positive number
+   * @throws TypeError if `maxLength` is not a number
+   * @throws RangeError if `maxLength` is not a positive number
    */
   p.initialize = function(args) {
     // Triggered only if args and args.maxLength are defined.
@@ -90,7 +66,8 @@ this.b3editor = this.b3editor || {};
     this.cursor = null;
     this.cursorPos = -1;
     this.length = 0;
-    this.saveCursor = null;
+    this.saveCursorPos = -1;
+    this.numRemoved = 0;
   }
 
   /**
@@ -114,7 +91,7 @@ this.b3editor = this.b3editor || {};
     cmd.run();
 
     // Make a new node.
-    var newNode = new ListNode(cmd, null, this.cursor);
+    var newNode = new b3editor.ListNode(cmd, null, this.cursor);
 
     // If the cursor is not at the beginning of the list or in an empty list...
     if (this.cursor !== null)
@@ -139,14 +116,19 @@ this.b3editor = this.b3editor || {};
       // length should exceed maxLength by 1 anyways, so this should be fine.
       this.length--;
       this.cursorPos--;  // cursorPos should be updated too.
+      this.numRemoved++;  // Update the number of removed commands.
     }
   }
 
   /**
    * Invokes the `undo()` method of the `Command` at the cursor and moves the cursor back by one `Command`. Has no
    * effect if the cursor is already at the beginning of the list.
+   * 
+   * @returns true if the undo action was successful (i.e., caused `undo()` to be run), false otherwise
    */
   p.undoLastCommand = function() {
+    var result;
+
     // If the cursor is not at the beginning of the list...
     if (this.cursor !== null) {
       this.cursor.data.undo();  // Undo the command.
@@ -154,16 +136,24 @@ this.b3editor = this.b3editor || {};
       // Move back the cursor
       this.cursor = this.cursor.prev;
       this.cursorPos--;
-    }
+
+      result = true;
+    } else
+      result = false;
+    
+    return result;
   }
 
   /**
    * Reperforms the `Command` at the node immediately following the undo cursor and moves the cursor forward by one 
    * `Command`. Reperforming the `Command` involves either running the `redo()` method, if defined, or running the 
    * `run()` method otherwise. If there are no actions to redo, this method will have no effect.
+   * 
+   * @returns true if the undo action was successful (i.e., caused `undo()` to be run), false otherwise
    */
   p.redoNextCommand = function() {
     var target;  // The node corresponding to the Command to redo.
+    var result;
 
     // If the cursor is at the beginning of the list or in an empty list...
     if (this.cursor !== null) {
@@ -185,7 +175,12 @@ this.b3editor = this.b3editor || {};
       // Move the cursor forward.
       this.cursor = target;
       this.cursorPos++;
-    }
+
+      result = true;
+    } else
+      result = false;
+    
+    return result;
   }
 
   /**
@@ -194,14 +189,16 @@ this.b3editor = this.b3editor || {};
    * @returns true if the save cursor matches the actual cursor, false otherwise.
    */
   p.isSaved = function() {
-    return this.saveCursor == this.cursor;
+    // this.cursorPos + this.numRemoved (the number of commands removed) gives the true cursor position.
+    return this.saveCursorPos == this.cursorPos + this.numRemoved;
   }
 
   /**
    * Sets the save cursor to the actual cursor.
    */
   p.save = function() {
-    this.saveCursor = this.cursor;
+    // this.cursorPos + this.numRemoved (the number of commands removed) gives the true cursor position.
+    this.saveCursorPos = this.cursorPos + this.numRemoved;
   }
 
   b3editor.UndoStack = UndoStack;
