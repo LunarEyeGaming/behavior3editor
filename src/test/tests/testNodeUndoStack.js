@@ -334,6 +334,90 @@ var suite = [
     assertUnsaved(undoHistory.dirIsSaved("dir3"));
     assertSaved(undoHistory.dirIsSaved("dir4"));
     assertSaved(undoHistory.dirIsSaved("dir5"));
+  }),
+  makeTest("isSaved() basic functionality", () => {
+    var undoHistory = new b3editor.NodeUndoStack();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    var undoHistory2 = exampleNUS2().undoHistory;
+
+    assert(!undoHistory2.isSaved(), "marked as saved");
+
+    undoHistory2.saveHierarchy({
+      dir1: {
+        action: true,
+        foo: true,
+        bee: true,
+        sea: true,
+        wave: true,
+        ocean: true,
+        man: true,
+        decorator: true,
+        composite: true
+      },
+      dir2: {
+        sea: true,
+        bar: true,
+        cellar: true,
+        decorator: true
+      }
+    });
+
+    assert(undoHistory2.isSaved(), "marked as unsaved");
+  }),
+  makeTest("isSaved() edge cases", () => {
+    var {undoHistory} = exampleNUS2();
+
+    undoHistory.saveHierarchy({
+      dir1: {
+        action: true,
+        foo: true,
+        bee: true,
+        sea: true,
+        wave: true,
+        ocean: true,
+        man: true,
+        decorator: true,
+        composite: true
+      },
+      dir2: {
+        sea: true,
+        bar: true,
+        cellar: true,
+        decorator: false
+      }
+    });
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    var undoHistory2 = exampleNUS2().undoHistory;
+
+    undoHistory2.saveHierarchy({
+      dir1: {
+        action: true,
+        foo: true,
+        bee: true,
+        sea: true,
+        wave: true,
+        ocean: true,
+        man: true,
+        decorator: true,
+        composite: true
+      }
+    });
+
+    assert(!undoHistory2.isSaved(), "marked as saved");
+  }),
+  makeTest("isSaved() corner case", () => {
+    var undoHistory = new b3editor.NodeUndoStack();
+
+    undoHistory.addCommand(
+      [{originDirectory: "dir1", category: "foo", type: "action"}],
+      makeTestCommand(() => {}, () => {})
+    );
+
+    assert(!undoHistory.isSaved(), "marked as saved");
   })
 ]
 

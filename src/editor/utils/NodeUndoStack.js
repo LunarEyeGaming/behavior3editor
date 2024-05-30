@@ -128,6 +128,24 @@ this.b3editor = this.b3editor || {};
     return this.typeIsSaved(originDirectory, "action") && this.typeIsSaved(originDirectory, "composite") && 
       this.typeIsSaved(originDirectory, "decorator") && this.typeIsSaved(originDirectory, "module");
   }
+  
+  /**
+   * Returns whether or not the current `NodeUndoStack` is saved--i.e., has no unsaved directories.
+   * 
+   * @returns true if no directory in the current `NodeUndoStack` is unsaved, false otherwise
+   */
+  p.isSaved = function() {
+    // For each originDirectory in dirCategories...
+    for (var originDirectory in this.dirCategories) {
+      // If the directory is not saved...
+      if (!this.dirIsSaved(originDirectory))
+        // Stop and return false.
+        return false;
+    }
+
+    // Return true here as there are no unsaved directories.
+    return true;
+  }
 
   // UNFINISHED
   /**

@@ -201,6 +201,11 @@ angular.module('app.node', ['app.modal'])
   // --------------------------------------------------------------------------
 
   // ADD NODE -----------------------------------------------------------------
+  /**
+   * Adds a node `node` to the node display list.
+   * 
+   * @param {b3editor.Action | b3editor.Composite | b3editor.Decorator | b3editor.Module} node the node to add
+   */
   this.addNode = function(node) {
     var guiNodes = $scope.nodes;
 
@@ -294,6 +299,14 @@ angular.module('app.node', ['app.modal'])
   // --------------------------------------------------------------------------
 
   // EDIT NODE ----------------------------------------------------------------
+  /**
+   * Moves a node `node` from the location identified by `oldOriginDirectory` and `oldCategory` to the new location
+   * identified by `node`.
+   * 
+   * @param {b3editor.Action | b3editor.Composite | b3editor.Decorator | b3editor.Module} node the node to edit
+   * @param {string} oldOriginDirectory the origin directory in which the node was originally located
+   * @param {string} oldCategory the category in which the node was originally located
+   */
   this.editNode = function(node, oldOriginDirectory, oldCategory) {
     this.removeNode(node, oldOriginDirectory, oldCategory);
     this.addNode(node);

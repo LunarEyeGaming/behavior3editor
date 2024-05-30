@@ -113,64 +113,6 @@ this.b3editor = this.b3editor || {};
     }
     this.dispatchEvent(event);
   }
-  /**
-   * Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the current tree, 
-   * automatically supplying the `editor` argument as this current editor. If `fromPropertyPanel` is true, sets the 
-   * current focused element to the property panel. Otherwise, sets it to the tree editor canvas.
-   * 
-   * @param {string} cmd the name of the Command to add
-   * @param {object} args an object representing the arguments to supply to the Command's constructor
-   * @param {boolean} fromPropertyPanel whether or not this call came from the property panel
-   */
-  p.pushCommandTree = function(cmd, args, fromPropertyPanel) {
-    args.editor = this;
-
-    // Look up the undo history corresponding to the current tree. 
-    var undoHistory = this.tree.undoHistory;
-
-    // Add the command with name `cmd` to that undo history.
-    undoHistory.addCommand(new b3editor[cmd](args));
-
-    // Emit a treesavestatuschanged event.
-    this.trigger('treesavestatuschanged', this.tree, {isSaved: undoHistory.isSaved()});
-
-    // If the call came from the property panel...
-    if (fromPropertyPanel)
-      this.trigger('changefocus', "right-panel");  // Set the focus to the property panel.
-    else  // Otherwise...
-      this.trigger('changefocus', "tree-editor");  // Set the focus ot the tree editor.
-  }
-  /**
-   * Adds a command with name `cmd` and arguments `args` to the `NodeUndoStack`, supplying `affectedGroups` to its 
-   * `addCommand()` method, automatically supplying the `editor` argument as this current editor. 
-   * 
-   * @param {object[]} affectedGroups the affected groups to convert into a hash string
-   * @param {string} affectedGroups[].originDirectory the origin directory to use
-   * @param {string} affectedGroups[].category the category to use as a group ID
-   * @param {string} affectedGroups[].type the type to use as the substitute for the category as a group ID
-   * @param {string} cmd the name of the Command to add
-   * @param {object} args an object representing the arguments to supply to the Command's constructor
-   */
-  p.pushCommandNode = function(affectedGroups, cmd, args) {
-    args.editor = this;
-    // Add the command with name `cmd` to the undo history corresponding to the list of nodes.
-    this.globalNodeUndoHistory.addCommand(affectedGroups, new b3editor[cmd](args));
-
-    this.trigger('changefocus', "left-panel");  // Set the focus to the node / tree panel.
-  }
-  /**
-   * Returns a hash to use for `pushCommandNode` and for looking up the `UndoStack` associated with the hash. `category`
-   * and `type` are chosen via the `||` operator to be the group ID. Consequently, `category` can instead be used as the
-   * group ID itself without `type` being defined so long as `category` is guaranteed to be defined.
-   * 
-   * @param {string} originDirectory the origin directory to use
-   * @param {string} category the category to use as a group ID
-   * @param {string} type the type to use as the substitute for the category as a group ID
-   * @returns a hash to use for `pushCommandNode` and for looking up the `UndoStack` associated with the hash.
-   */
-  p.getNodeUndoHash = function(originDirectory, category, type) {
-    return originDirectory + ":" + (category || type);
-  }
   // Do something about the change in the element that is focused.
   p.onFocusChange = function(id) {
     this.currentFocusedElement = id;
@@ -705,24 +647,17 @@ this.b3editor = this.b3editor || {};
         postSaveCallback();
       }
     }
-    
-    // If the tree contains any invalid blocks...
-    if (this.hasInvalidBlocks())
-      // Show a warning and decide later whether to save the tree based on the user's input.
-      dialog.showMessageBox(remote.getCurrentWindow(), {
-        message: "This tree contains node type conflicts. Are you sure you want to save?",
-        type: "warning",
-        buttons: ["Yes", "No"]
-      }, function(result) {
-        switch (result) {
-          case 0:  // Yes
-            saveTreeHelper();
-            break;
-          // "No" does nothing.
-        }
-      });
-    else
-      saveTreeHelper();
+
+    // Show warning if the tree has invalid blocks.
+    this.conditionalWarning({
+      predicate: () => this.hasInvalidBlocks(),
+      message: "The tree '" + tree.blocks[0].title + "' contains node type conflicts. Are you sure you want to save?",
+      choices: [
+        {name: "Yes", triggersCallback: true},
+        {name: "No", triggersCallback: false}
+      ],
+      conditionalCallback: saveTreeHelper
+    });
   }
   p.loadProject = function(project) {
     // If a project is already loaded...
@@ -1309,64 +1244,298 @@ this.b3editor = this.b3editor || {};
 
         editor.trigger('treeremoved', tree);
       }
-      
-      // If the tree is not saved...
-      if (!tree.undoHistory.isSaved())
-        // Show a warning and decide later whether to save the tree (and/or remove it) based on the user's input.
-        dialog.showMessageBox(remote.getCurrentWindow(), {
-          message: "This tree is unsaved. Do you want to save the tree before removing it?",
-          type: "warning",
-          buttons: ["Yes", "No", "Cancel"]
-        }, function(result) {
-          switch (result) {
-            case 0:  // Yes
-              editor.saveTree(true, tree, removeTreeHelper);
-              break;
-            case 1:  // No
-              removeTreeHelper();
-            // "Cancel" does nothing.
-          }
-        });
-      else
-        removeTreeHelper();
+
+      // Activate conditional warning.
+      this.conditionalWarning({
+        predicate: () => !tree.undoHistory.isSaved(),
+        conditionalCallback: removeTreeHelper,
+        message: "The tree '" + tree.blocks[0].title + "' is unsaved. Do you want to save the tree before removing it?",
+        choices: [
+          {name: "Yes", triggersCallback: false},
+          {name: "No", triggersCallback: true},
+          {name: "Cancel", triggersCallback: false}
+        ],
+        dialogCallback: function(result) {
+          // If the user selected "yes"...
+          if (result === 0)
+            editor.saveTree(true, tree, removeTreeHelper);
+        }
+      });
     }
   }
-  // Calls to this function should include a reference to "this" within the context of the Editor object as the first
-  // argument. Returns a second function to actually use as the window.onbeforeunload replacement. The inner function is
-  // triggered when the user attempts to close the application.
+  // TODO: Move to separate module.
+  /**
+   * Calls to this function should include a reference to "this" within the context of the Editor object as the first
+   * argument. Returns a second function to actually use as the `window.onbeforeunload` replacement. The inner function
+   * is to be triggered when the user attempts to close or refresh the application.
+   * 
+   * @param {*} this_ a reference to the Editor's `this`
+   * @returns a function to call before the application is about to exit or reload
+   */
   p.onExit = function(this_) {
-    return function(e) {
-      // THIS COMMENTED CODE SHOULD BE KEPT. IT WILL BE USED IN A FUTURE VERSION.
-      // // Asynchronous function. The function returned from onExit will have returned by the time the message box has 
-      // // opened.
-      // // TODO: Make it so that this function blocks the entire program.
-      // dialog.showMessageBox({
-      //   message: "Test",
-      //   type: "warning",
-      //   buttons: ["Yes", "No", "Cancel"]
-      // }, function(result) {
-      //   switch (result) {
-      //     case 0:  // Fall through
-      //     case 1:
-      //       // Dumb stupid workaround: Set window.onbeforeunload to do nothing and then force close this window.
-      //       window.onbeforeunload = function() {
-      //         return
-      //       };
-      //       // Save
-      //       this_.project.save();
-      //       window.close();
-      //     // "cancel" (option 2) will do nothing.
-      //   }
-      // });
+    // Close the window.
+    function closeWindow() {
+      // Dumb stupid workaround: Set window.onbeforeunload to do nothing and then force close this window. This
+      // prevents this.onExit's inner function from being called unnecessarily.
+      window.onbeforeunload = function() {
+        return;
+      };
+      this_.onApplicationClose();  // Handle exiting the application.
+      window.close();
+    }
 
-      // e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
+    // Warn about unsaved nodes if necessary.
+    function unsavedNodesWarning(e) {
+      // If there are any unsaved nodes...
+      if (!this_.globalNodeUndoHistory.isSaved()) {
+        // Asynchronous function. The function returned from onExit will have returned by the time the message box has 
+        // opened.
+        dialog.showMessageBox(remote.getCurrentWindow(), {
+          message: "Are you sure you want to close the application? If so, all unsaved nodes will be lost.",
+          type: "warning",
+          buttons: ["Yes", "No"]
+        }, function(result) {
+          switch (result) {
+            case 0:  // "Yes"
+              // Attempt to show warning, then close window.
+              unsavedTreesWarning(e, true);
+              break;
+            // "No" will do nothing.
+          }
+        });
 
-      // TODO: consider cases where writing fails.
-      // Currently just saves the project on quitting.
-      // If a project is loaded...
-      if (this_.project) {
-        fs.writeFileSync(this_.project.fileName, this_.project.save());
+        e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
+      } else {
+        unsavedTreesWarning(e);
       }
+    }
+
+    // Warn about unsaved trees if necessary.
+    // closeOnNoWarning is whether or not the function should forcibly close the window if no warning shows up.
+    function unsavedTreesWarning(e, closeOnNoWarning) {
+      // Returns a no-args function that saves all trees in `trees` starting from `i`, one by one, and then closes the 
+      // window.
+      function saveTreesGen(trees, i) {
+        return function() {
+          // If the number of remaining trees to save is 0 (base case)...
+          if (i === trees.length)
+            closeWindow();
+          else  // Otherwise...
+            this_.saveTree(true, trees[i], saveTreesGen(trees, i + 1));
+        }
+      }
+      // Curried to make it so that this function can be given the arguments to be actually called later. This function 
+      // shows a warning assuming that there is at least one unsaved tree.
+      function unsavedTreesWarningHelperGen(unsavedTrees, i) {
+        return function() {
+          // If the number of trees remaining is 1 (base case)...
+          if (unsavedTrees.length - i === 1) {
+            // Show the warning for one unsaved tree.
+            dialog.showMessageBox(remote.getCurrentWindow(), {
+              message: "Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
+              type: "warning",
+              buttons: ["Yes", "No", "Cancel"]
+            }, function(result) {
+              switch (result) {
+                case 0:  // Yes
+                  // Save the tree, then close the window.
+                  this_.saveTree(true, unsavedTrees[i], closeWindow);
+                  break;
+                case 1:  // No
+                  closeWindow();
+                  break;
+                // "Cancel" does nothing.
+              }
+            });
+          }  // Otherwise...
+          else {
+            // Show the warning for more than one unsaved tree.
+            dialog.showMessageBox(remote.getCurrentWindow(), {
+              message: "Multiple trees are unsaved. Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
+              type: "warning",
+              noLink: true,  // Prevent displaying "Yes to All" and "No to All" as command links.
+              buttons: ["Yes", "No", "Yes to All", "No to All", "Cancel"]
+            }, function(result) {
+              switch (result) {
+                case 0:  // Yes
+                  // Save the tree and proceed to the next one.
+                  this_.saveTree(true, unsavedTrees[i], unsavedTreesWarningHelperGen(unsavedTrees, i + 1));
+                  break;
+                case 1:  // No
+                  // Do not save the tree, but proceed to the next one.
+                  unsavedTreesWarningHelperGen(unsavedTrees, i + 1)();
+                  break;
+                case 2:  // Yes to All
+                  // Save all of the remaining trees.
+                  saveTreesGen(unsavedTrees, i)();
+                  break;
+                case 3:  // No to All
+                  // Close the window.
+                  closeWindow();
+                  break;
+                // Cancel does nothing
+              }
+            })
+          }
+        }
+      }
+
+      var unsavedTrees = this_.findUnsavedTrees();
+
+      // If at least one unsaved tree exists...
+      if (unsavedTrees.length > 0) {
+        // Begin warning chain.
+        unsavedTreesWarningHelperGen(unsavedTrees, 0)();
+
+        e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
+      }  // Otherwise, if the window should be closed...
+      else if (closeOnNoWarning) {
+        closeWindow();
+      }
+
+      // Otherwise, allow the window to close.
+    }
+    /**
+     * Overview of function behavior: Performs two checks before closing the application: Whether all nodes are saved 
+     * and whether all trees are saved. If either of them fail, then this function will block the application from 
+     * closing and show a corresponding message box for each check that failed. The first message asks the user if they
+     * want to close the application despite some nodes being unsaved. Selecting "No" will stop the application from 
+     * closing altogether. The second message (or rather, series of messages) asks the user whether or not they want to
+     * save each unsaved tree, with a third option to "Cancel", or stop the application from closing. Additional buttons
+     * for saving all of them or saving none of them may show up too if more than one tree is unsaved. Due to the
+     * used version of Electron not supporting synchronous calls to opening any form of dialog, recursion is necessary
+     * to handle all of these cases.
+     */
+    return function(e) {
+      unsavedNodesWarning(e);
+    }
+  }
+
+  /**
+   * The method to call right before the application closes. This method saves the currently loaded project if
+   * applicable.
+   */
+  p.onApplicationClose = function() {
+    // TODO: consider cases where writing fails.
+    // If a project is loaded...
+    if (this.project) {
+      // Save it.
+      fs.writeFileSync(this.project.fileName, this.project.save());
+    }
+  }
+  // ==========================================================================
+
+  // UNDO HISTORY METHODS =====================================================
+  /**
+   * Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the current tree, 
+   * automatically supplying the `editor` argument as this current editor. If `fromPropertyPanel` is true, sets the 
+   * current focused element to the property panel. Otherwise, sets it to the tree editor canvas.
+   * 
+   * @param {string} cmd the name of the Command to add
+   * @param {object} args an object representing the arguments to supply to the Command's constructor
+   * @param {boolean} fromPropertyPanel whether or not this call came from the property panel
+   */
+  p.pushCommandTree = function(cmd, args, fromPropertyPanel) {
+    args.editor = this;
+
+    // Look up the undo history corresponding to the current tree. 
+    var undoHistory = this.tree.undoHistory;
+
+    // Add the command with name `cmd` to that undo history.
+    undoHistory.addCommand(new b3editor[cmd](args));
+
+    // Emit a treesavestatuschanged event.
+    this.trigger('treesavestatuschanged', this.tree, {isSaved: undoHistory.isSaved()});
+
+    // If the call came from the property panel...
+    if (fromPropertyPanel)
+      this.trigger('changefocus', "right-panel");  // Set the focus to the property panel.
+    else  // Otherwise...
+      this.trigger('changefocus', "tree-editor");  // Set the focus ot the tree editor.
+  }
+  /**
+   * Adds a command with name `cmd` and arguments `args` to the `NodeUndoStack`, supplying `affectedGroups` to its 
+   * `addCommand()` method, automatically supplying the `editor` argument as this current editor. 
+   * 
+   * @param {object[]} affectedGroups the affected groups to convert into a hash string
+   * @param {string} affectedGroups[].originDirectory the origin directory to use
+   * @param {string} affectedGroups[].category the category to use as a group ID
+   * @param {string} affectedGroups[].type the type to use as the substitute for the category as a group ID
+   * @param {string} cmd the name of the Command to add
+   * @param {object} args an object representing the arguments to supply to the Command's constructor
+   */
+  p.pushCommandNode = function(affectedGroups, cmd, args) {
+    args.editor = this;
+    // Add the command with name `cmd` to the undo history corresponding to the list of nodes.
+    this.globalNodeUndoHistory.addCommand(affectedGroups, new b3editor[cmd](args));
+
+    this.trigger('changefocus', "left-panel");  // Set the focus to the node / tree panel.
+  }
+
+  /**
+   * Returns the list of trees that are currently unsaved.
+   * 
+   * @returns the list of trees that are unsaved
+   */
+  p.findUnsavedTrees = function() {
+    var unsavedTrees = [];
+
+    // For each tree...
+    this.trees.forEach(tree => {
+      // If the tree is unsaved...
+      if (!tree.undoHistory.isSaved())
+        unsavedTrees.push(tree);
+    });
+
+    return unsavedTrees;
+  }
+
+  /**
+   * Calls a function `args.conditionalCallback` if a predicate `args.predicate` is false. If `args.predicate` is true, 
+   * shows a dialog box with message `args.message`, the buttons listed in `args.choices`, then calls the function
+   * `args.conditionalCallback` when the user selects a choice in `args.choices` whose `triggersCallback` attribute is
+   * set to true. If `args.conditionalDialogCallback` is defined, then that function will be called instead. Also
+   * invokes a callback `dialogCallback` that performs some extra tasks using the choice made if a dialog box is shown.
+   * The `dialogCallback` is optional, and nothing extra will be done if it is undefined.
+   * 
+   * @param {object} args the arguments to provide to the function
+   * @param {() => boolean} args.predicate the predicate to use for showing the warning
+   * @param {string} args.message the message to show in the dialog box
+   * @param {object[]} args.choices a list of objects determining the buttons to show and which ones will trigger 
+   * `conditionalCallback`
+   * @param {string} args.choices[].name the name of a button
+   * @param {boolean} args.choices[].triggersCallback whether or not clicking the button will trigger 
+   * `conditionalCallback`
+   * @param {() => void} args.conditionalCallback the function to call, either if `args.predicate` is false or the user
+   * chooses to allow it to be called.
+   * @param {((number) => void)?} args.dialogCallback (optional) the function to call when the dialog box is shown.
+   * @param {(() => void)?} args.conditionalDialogCallback (optional) the function to call if the user chooses it to 
+   * allow it to be called. `args.conditionalCallback` is used instead if this parameter is not defined.
+   */
+  p.conditionalWarning = function(args) {
+    // If the predicate returns true...
+    if (args.predicate()) {
+      // Show a warning and decide later whether to invoke the callback based on the user's input.
+      dialog.showMessageBox(remote.getCurrentWindow(), {
+        message: args.message,
+        type: "warning",
+        buttons: args.choices.map(choice => choice.name)  // Button names
+      }, function(result) {
+        // If the choice corresponding to the button pressed is supposed to trigger `conditionalCallback`...
+        if (args.choices[result].triggersCallback) {
+          // Invoke conditionalDialogCallback or conditionalCallback, whichever is defined first.
+          args.conditionalDialogCallback ? args.conditionalDialogCallback() : args.conditionalCallback();
+        }
+        // If `dialogCallback` is defined...
+        if (args.dialogCallback) {
+          // Call it.
+          args.dialogCallback(result);
+        }
+      });
+    }  // Otherwise...
+    else {
+      // Invoke the callback immediately.
+      args.conditionalCallback();
     }
   }
   // ==========================================================================
@@ -1436,6 +1605,9 @@ this.b3editor = this.b3editor || {};
       this.tree.id = this.blocks[0].id;
       this.tree.blocks = this.blocks;
     }
+
+    // Center camera.
+    this.center();
   }
   p.snap = function(blocks) {
     if (!blocks) {
