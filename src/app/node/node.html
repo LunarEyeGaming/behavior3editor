@@ -1,17 +1,18 @@
 <div class="node-panel panel" scrollable>
   <ul class="directory-list">
     <li ng-repeat="(dirName, nodesInDir) in nodes">
+      <span class="save-marker left" ng-hide="dirIsSaved(dirName)">*</span>
       <a class="header" ng-class="{'not-in-project': isNotInProject(dirName)}" href="#"
       onmouseover="this.lastElementChild.style.display='inline-block';"
       onmouseout="this.lastElementChild.style.display='none';">
-        {{dirName == 'undefined' ? '[No Save Location]' : dirName}}
+        {{dirName == '' ? '[No Save Location]' : dirName}}
 
         <span style="display: none;" class="edit right">
           <!--Add to Project button-->
           <button 
              href="#"
              class="edit"
-             title="Add to Project"
+             title="Add to Auto-Import List"
              ng-show="dirHasButton(dirName, false) && isNotInProject(dirName)"
              ng-click="addToProject(dirName)">
             +
@@ -20,7 +21,7 @@
           <button 
              href="#"
              class="edit"
-             title="Remove from Project"
+             title="Remove from Auto-Import List"
              ng-show="dirHasButton(dirName, true) && !isNotInProject(dirName)"
              ng-click="removeFromProject(dirName)">
             -
@@ -30,6 +31,7 @@
       </a>
       <ul class="item-list">
         <li>
+          <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'composite')">*</span>
           <a class="header" href="#">Composite</a>
           <ul>
             <li ng-repeat="node in nodesInDir.composite">
@@ -55,6 +57,7 @@
           </ul>
         </li>
         <li>
+          <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'decorator')">*</span>
           <a class="header" href="#">Decorator</a>
           <ul>
             <li ng-repeat="node in nodesInDir.decorator">
@@ -73,9 +76,11 @@
           </ul>
         </li>
         <li>
+          <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'action')">*</span>
           <a class="header" href="#">Action</a>
           <ul>
             <li ng-repeat="(category,actions) in nodesInDir.actionCategories">
+              <span class="save-marker left" ng-hide="categoryIsSaved(dirName, category, 'action')">*</span>
               <a class="category" href="#">{{category}}</a>
               <ul>
                 <li ng-repeat="node in actions track by $index">
@@ -88,6 +93,9 @@
                     <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);" ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">Edit</button>
                   </a>
                 </li>
+                <li ng-show="actions.length===0">
+                  <span class="empty">Empty</span>
+                </li>
               </ul>
             </li>
             <li ng-show="nodesInDir.action.length===0">
@@ -96,6 +104,7 @@
           </ul>
         </li>
         <li>
+          <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'module')">*</span>
           <a class="header" href="#">Module</a>
           <ul>
             <li ng-repeat="node in nodesInDir.module">

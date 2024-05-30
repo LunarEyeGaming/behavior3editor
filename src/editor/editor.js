@@ -50,7 +50,7 @@ this.b3editor = this.b3editor || {};
     this.clipboard        = [];
     this.exportCounter    = {};
     // undo history for the list of nodes.
-    this.globalNodeUndoHistory = new b3editor.UndoStack({maxLength: this.maxStoredCommands});
+    this.globalNodeUndoHistory = new b3editor.NodeUndoStack({defaultMaxLength: this.maxStoredCommands});
 
     // WHOLE
     this.symbols          = {};
@@ -141,18 +141,35 @@ this.b3editor = this.b3editor || {};
       this.trigger('changefocus', "tree-editor");  // Set the focus ot the tree editor.
   }
   /**
-   * Adds a command with name `cmd` and arguments `args` to the undo history corresponding to the list of nodes in the
-   * editor, automatically supplying the `editor` argument as this current editor.
+   * Adds a command with name `cmd` and arguments `args` to the `NodeUndoStack`, supplying `affectedGroups` to its 
+   * `addCommand()` method, automatically supplying the `editor` argument as this current editor. 
    * 
+   * @param {object[]} affectedGroups the affected groups to convert into a hash string
+   * @param {string} affectedGroups[].originDirectory the origin directory to use
+   * @param {string} affectedGroups[].category the category to use as a group ID
+   * @param {string} affectedGroups[].type the type to use as the substitute for the category as a group ID
    * @param {string} cmd the name of the Command to add
    * @param {object} args an object representing the arguments to supply to the Command's constructor
    */
-  p.pushCommandNode = function(cmd, args) {
+  p.pushCommandNode = function(affectedGroups, cmd, args) {
     args.editor = this;
     // Add the command with name `cmd` to the undo history corresponding to the list of nodes.
-    this.globalNodeUndoHistory.addCommand(new b3editor[cmd](args));
+    this.globalNodeUndoHistory.addCommand(affectedGroups, new b3editor[cmd](args));
 
     this.trigger('changefocus', "left-panel");  // Set the focus to the node / tree panel.
+  }
+  /**
+   * Returns a hash to use for `pushCommandNode` and for looking up the `UndoStack` associated with the hash. `category`
+   * and `type` are chosen via the `||` operator to be the group ID. Consequently, `category` can instead be used as the
+   * group ID itself without `type` being defined so long as `category` is guaranteed to be defined.
+   * 
+   * @param {string} originDirectory the origin directory to use
+   * @param {string} category the category to use as a group ID
+   * @param {string} type the type to use as the substitute for the category as a group ID
+   * @returns a hash to use for `pushCommandNode` and for looking up the `UndoStack` associated with the hash.
+   */
+  p.getNodeUndoHash = function(originDirectory, category, type) {
+    return originDirectory + ":" + (category || type);
   }
   // Do something about the change in the element that is focused.
   p.onFocusChange = function(id) {
@@ -809,6 +826,7 @@ this.b3editor = this.b3editor || {};
   // Exports nodes based on an object (called "categoriesToExport") containing hash sets of categories to export each 
   // mapped to an origin directory.
   p.exportNodes = function(categoriesToExport) {
+    this.globalNodeUndoHistory.saveHierarchy(categoriesToExport);
     var nodes = this.getNodeExportData(categoriesToExport);
     for (var origin in nodes) {
       var nodesInDir = nodes[origin];
@@ -921,8 +939,16 @@ this.b3editor = this.b3editor || {};
     if (nodesImported.length > 0) {
       // If this method call is meant to be a command...
       if (isCommand) {
-        // Add the command.
-        this.pushCommandNode('ImportNodes', {nodes: nodesImported})
+        // Make a list of affected node groups.
+        var affectedGroups = nodesImported.map(nodeClass => {
+          return {
+            originDirectory,
+            category: nodeClass.prototype.category,
+            type: nodeClass.prototype.type
+          };
+        });
+        // Add the command (with an undefined ID).
+        this.pushCommandNode(affectedGroups, 'ImportNodes', {nodes: nodesImported})
       } else {  // Otherwise...
         // Add the nodes individually.
         nodesImported.forEach(node => this.addNode(node));
@@ -973,8 +999,7 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    // Indicate the directory of origin (undefined means that no save location was specified).
-    tempClass.prototype.originDirectory = originDirectory || undefined;
+    tempClass.prototype.originDirectory = originDirectory;
 
     if (node.type == "action") {
       tempClass.prototype.category = node.category || '';
@@ -1002,7 +1027,7 @@ this.b3editor = this.b3editor || {};
   // node is the node to add; originDirectory is the directory from which it originated (relative); isCommand is whether
   // or not this function call counts as a command (i.e., can be undone).
   p.makeAndAddNode = function(node, originDirectory) {
-    var nodeClass = this.makeNode(node, originDirectory);
+    var nodeClass = this.makeNode(node, originDirectory || '');
 
     // If a node class was returned...
     if (nodeClass)
@@ -1089,7 +1114,13 @@ this.b3editor = this.b3editor || {};
 
     // If the action is a command...
     if (isCommand) {
-      this.pushCommandNode('EditNode', {oldName, newNode, originDirectory});
+      var oldNodeProto = this.nodes[oldName].prototype;
+      var affectedGroups = [
+        {originDirectory: oldNodeProto.originDirectory, category: oldNodeProto.category, type: oldNodeProto.type},
+        {originDirectory, category: newNode.category, type: oldNodeProto.type}
+      ];
+
+      this.pushCommandNode(affectedGroups, 'EditNode', {oldName, newNode, originDirectory});
     } else {
       this.editNodeForce(oldName, newNode, originDirectory);
     }
@@ -1098,9 +1129,12 @@ this.b3editor = this.b3editor || {};
   p.editNodeForce = function(oldName, newNode, originDirectory) {
     var node = this.nodes[oldName];
 
+    var oldOriginDirectory = node.prototype.originDirectory;
+    var oldCategory = node.prototype.category;
+
     // Remove the node from the export hierarchy.
-    this.removeFromExportHierarchy(this.nodes[oldName].prototype.originDirectory, 
-      this.nodes[oldName].prototype.category || this.nodes[oldName].prototype.type);
+    // this.removeFromExportHierarchy(this.nodes[oldName].prototype.originDirectory, 
+    //   this.nodes[oldName].prototype.category || this.nodes[oldName].prototype.type);
 
     // Remove old node from the node definition list.
     delete this.nodes[oldName];
@@ -1109,7 +1143,7 @@ this.b3editor = this.b3editor || {};
     var oldTitle = node.prototype.title;
     node.prototype.name = newNode.name;
     node.prototype.title = newNode.title;
-    node.prototype.originDirectory = originDirectory || undefined;  // undefined forces into "No Save Location" bin
+    node.prototype.originDirectory = originDirectory;
 
     // Update the export hierarchy
     this.addToExportHierarchy(originDirectory, node.prototype.category || node.prototype.type);
@@ -1144,7 +1178,7 @@ this.b3editor = this.b3editor || {};
     // and possibly even invalid).
     this.updateAllBlocks(newNode.name);
 
-    this.trigger('nodechanged', node);
+    this.trigger('nodechanged', node, {oldOriginDirectory, oldCategory});
   }
   /**
    * Removes a node from the editor. This marks all blocks with that node's name as unregistered.
@@ -1158,7 +1192,7 @@ this.b3editor = this.b3editor || {};
     var node = this.nodes[name];
 
     // Update the export hierarchy.
-    this.removeFromExportHierarchy(node.prototype.originDirectory, node.prototype.category || node.prototype.type);
+    // this.removeFromExportHierarchy(node.prototype.originDirectory, node.prototype.category || node.prototype.type);
 
     delete this.nodes[name];
     this.trigger('noderemoved', node);

@@ -38,6 +38,9 @@ this.b3editor = this.b3editor || {};
    * the length of the list properly; -1 if the cursor has no position). Usually, it is not recommended that the
    * programmer access the fields of this class, and the methods of this class operate under the assumption that the
    * programmer follows this recommendation.
+   * 
+   * For use by the `WeavedUndoStack`, this class has the `hasChainCommand()` method, which returns whether or not the
+   * last executed `Command` that was not undone is a `ChainCommand`.
   **/
   var UndoStack = b3.Class();
   var p = UndoStack.prototype;
@@ -83,7 +86,7 @@ this.b3editor = this.b3editor || {};
    */
   p.addCommand = function(cmd) {
     // If `cmd` is null, undefined, or not an instance of Command...
-    if (!cmd || !(cmd != b3editor.Command)) {
+    if (!cmd || !(cmd instanceof b3editor.Command)) {
       throw new TypeError("cmd is undefined, is null, or is not a Command");
     }
 
@@ -199,6 +202,16 @@ this.b3editor = this.b3editor || {};
   p.save = function() {
     // this.cursorPos + this.numRemoved (the number of commands removed) gives the true cursor position.
     this.saveCursorPos = this.cursorPos + this.numRemoved;
+  }
+
+  /**
+   * Returns whether or not the most recently executed `Command` that was not undone exists and is a `ChainCommand`.
+   * 
+   * @returns true if there was a most recently executed `Command` that was not undone and said executed `Command` was a
+   * `ChainCommand`, false otherwise
+   */
+  p.hasChainCommand = function() {
+    return this.cursor !== null && this.cursor.data instanceof b3editor.ChainCommand;
   }
 
   b3editor.UndoStack = UndoStack;

@@ -1,6 +1,6 @@
 var {makeTest} = require("../tester");
-var {assertThrows, assertEqual, assertStrictEqual, assert} = require("../assert");
-var {makeTestCommand} = require("../testUtils")
+var {assertStrictEqual, assert, assertArrayEqual} = require("../assert");
+var {makeTestCommand} = require("../testUtils");
 
 var exampleWUS1 = function(defaultMaxLength) {
   var weavedUndoHistory = new b3editor.WeavedUndoStack({defaultMaxLength});
@@ -192,6 +192,200 @@ var suite = [
     assertStrictEqual(136, someObject.foo);
     assertStrictEqual(173, someObject.bar);
     assertStrictEqual(186, someObject.baz);
+  }),
+  makeTest("stackIsSaved() and saveStack() basic functionality", () => {
+    var {weavedUndoHistory, someObject} = exampleWUS1();
+
+    assert(!weavedUndoHistory.stackIsSaved("foo"), "foo marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "bar marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "baz marked as saved");
+
+    weavedUndoHistory.saveStack("foo");
+
+    assert(weavedUndoHistory.stackIsSaved("foo"), "foo marked as unsaved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "bar marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "baz marked as saved");
+
+    weavedUndoHistory.addCommandToStack("foo", makeTestCommand(() => {someObject.foo += 91}, 
+      () => {someObject.foo -= 91}));
+
+    assert(!weavedUndoHistory.stackIsSaved("foo"), "foo marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "bar marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "baz marked as saved");
+
+    weavedUndoHistory.undoLastCommand();
+
+    assert(weavedUndoHistory.stackIsSaved("foo"), "foo marked as unsaved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "bar marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "baz marked as saved");
+
+    for (var i = 0; i < 3; i++)
+      weavedUndoHistory.undoLastCommand();
+
+    for (var i = 0; i < 3; i++)
+      weavedUndoHistory.redoNextCommand();
+
+    assert(weavedUndoHistory.stackIsSaved("foo"), "foo marked as unsaved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "bar marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "baz marked as saved");
+  }),
+  makeTest("isSaved() and save() handling stacks that do not exist yet", () => {
+    var {weavedUndoHistory, someObject} = exampleWUS1();
+
+    assert(weavedUndoHistory.stackIsSaved("brains"), "brains marked as unsaved");
+
+    // Nothing should happen here.
+    weavedUndoHistory.saveStack("brains");
+
+    weavedUndoHistory.addCommandToStack("brains", makeTestCommand(() => {someObject.brains = 100},
+      () => {someObject.brains = undefined}));
+
+    assert(!weavedUndoHistory.stackIsSaved("brains"), "brains marked as saved");
+  }),
+  makeTest("stackIdMap() basic functionality", () => {
+    var {weavedUndoHistory} = exampleWUS1();
+
+    assertArrayEqual(["foo", "bar", "baz"], weavedUndoHistory.stackIdMap(id => id));
+  }),
+  makeTest("addCommandToStacks() basic functionality", () => {
+    var weavedUndoHistory = new b3editor.WeavedUndoStack();
+    var someObject = {};
+
+    weavedUndoHistory.addCommandToStacks(
+      ["foo", "bar", "baz"],
+      makeTestCommand(() => {
+        someObject.foo = 25;
+        someObject.bar = 50;
+        someObject.baz = 75;
+      }, () => {
+        someObject.foo = undefined;
+        someObject.bar = undefined;
+        someObject.baz = undefined;
+      })
+    );
+
+    assert(!weavedUndoHistory.stackIsSaved("foo"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "marked as saved");
+    assert(weavedUndoHistory.stackIsSaved("brains"), "marked as unsaved");
+
+    weavedUndoHistory.undoLastCommand();
+
+    assert(weavedUndoHistory.stackIsSaved("foo"), "marked as unsaved");
+    assert(weavedUndoHistory.stackIsSaved("bar"), "marked as unsaved");
+    assert(weavedUndoHistory.stackIsSaved("baz"), "marked as unsaved");
+
+    weavedUndoHistory.redoNextCommand();
+
+    assert(!weavedUndoHistory.stackIsSaved("foo"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "marked as saved");
+  }),
+  makeTest("addCommandToStack() does not run the command to add multiple times", () => {
+    var weavedUndoHistory = new b3editor.WeavedUndoStack();
+    var someObject = {};
+
+    weavedUndoHistory.addCommandToStack("foo", makeTestCommand(() => {someObject.foo = 1},
+      () => {someObject.foo = undefined}));
+
+    weavedUndoHistory.addCommandToStacks(["foo", "bar", "baz"], makeTestCommand(() => {someObject.foo += 5},
+      () => {someObject.foo -= 5}));
+
+    assertStrictEqual(6, someObject.foo);
+
+    weavedUndoHistory.undoLastCommand();
+
+    assertStrictEqual(1, someObject.foo);
+
+    weavedUndoHistory.undoLastCommand();
+
+    assertStrictEqual(undefined, someObject.foo);
+
+    weavedUndoHistory.redoNextCommand();
+
+    assertStrictEqual(1, someObject.foo);
+
+    weavedUndoHistory.redoNextCommand();
+
+    assertStrictEqual(6, someObject.foo)
+  }),
+  makeTest("addCommandToStack() with overlapping id sets", () => {
+    var weavedUndoHistory = new b3editor.WeavedUndoStack();
+    var someObject = {};
+
+    weavedUndoHistory.addCommandToStacks(
+      ["foo", "bar", "baz"],
+      makeTestCommand(() => {
+        someObject.foo = 25;
+        someObject.bar = 50;
+        someObject.baz = 75;
+      }, () => {
+        someObject.foo = undefined;
+        someObject.bar = undefined;
+        someObject.baz = undefined;
+      })
+    );
+
+    weavedUndoHistory.addCommandToStacks(
+      ["bar", "brains"],
+      makeTestCommand(() => {
+        someObject.brains = someObject.bar;
+        someObject.bar = undefined;
+      }, () => {
+        someObject.bar = someObject.brains;
+        someObject.brains = undefined;
+      })
+    );
+
+    weavedUndoHistory.undoLastCommand();
+
+    assert(weavedUndoHistory.stackIsSaved("brains"), "marked as unsaved");
+    assert(!weavedUndoHistory.stackIsSaved("foo"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "marked as saved");
+
+    weavedUndoHistory.undoLastCommand();
+
+    assert(weavedUndoHistory.stackIsSaved("foo"), "marked as unsaved");
+    assert(weavedUndoHistory.stackIsSaved("bar"), "marked as unsaved");
+    assert(weavedUndoHistory.stackIsSaved("baz"), "marked as unsaved");
+
+    weavedUndoHistory.redoNextCommand();
+
+    assert(!weavedUndoHistory.stackIsSaved("foo"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "marked as saved");
+
+    weavedUndoHistory.redoNextCommand();
+
+    assert(!weavedUndoHistory.stackIsSaved("foo"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("bar"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("baz"), "marked as saved");
+    assert(!weavedUndoHistory.stackIsSaved("brains"), "marked as saved");
+  }),
+  makeTest("defaultMaxLength works with ChainCommands", () => {
+    var weavedUndoHistory = new b3editor.WeavedUndoStack({defaultMaxLength: 3});
+    var someObject = {foo: 0};
+
+    weavedUndoHistory.addCommandToStacks(["foo", "bar", "baz"], makeTestCommand(() => {someObject.foo = 1},
+      () => {someObject.foo = 0}));
+    weavedUndoHistory.addCommandToStacks(["foo", "bar", "baz"], makeTestCommand(() => {someObject.foo = 2},
+      () => {someObject.foo = 1}));
+    weavedUndoHistory.addCommandToStacks(["foo", "bar", "baz"], makeTestCommand(() => {someObject.foo = 3},
+      () => {someObject.foo = 2}));
+    weavedUndoHistory.addCommandToStacks(["foo", "bar", "baz"], makeTestCommand(() => {someObject.foo = 4},
+      () => {someObject.foo = 3}));
+    
+    assertStrictEqual(4, someObject.foo);
+
+    for (var i = 3; i >= 1; i--) {
+      weavedUndoHistory.undoLastCommand();
+
+      assertStrictEqual(i, someObject.foo);
+    }
+
+    weavedUndoHistory.undoLastCommand();  // Should have no effect.
+    assertStrictEqual(1, someObject.foo);
   })
 ]
 

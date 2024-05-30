@@ -73,10 +73,29 @@ function assertThrows(expected, func) {
   }
 }
 
+/**
+ * Asserts that the expected array `expected` has the same elements as the actual array `actual`.
+ * 
+ * @param {any[]} expected the expected array
+ * @param {any[]} actual the actual array
+ */
+function assertArrayEqual(expected, actual) {
+  assert(expected.length === actual.length, "expected length does not match actual length");
+
+  var expectedSorted = expected.sort();
+  var actualSorted = actual.sort();
+
+  // Assert that the individual elements are equal.
+  for (var i = 0; i < expectedSorted.length; i++) {
+    assert(expectedSorted[i] === actualSorted[i], "not equal: " + expectedSorted[i] + "!==" + actualSorted[i]);
+  }
+}
+
 module.exports = {
   AssertFailure,
   assert,
   assertEqual,
   assertStrictEqual,
-  assertThrows
+  assertThrows,
+  assertArrayEqual
 }

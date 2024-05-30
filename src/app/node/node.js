@@ -71,9 +71,9 @@ angular.module('app.node', ['app.modal'])
   $scope.isNotInProject = function(dirName) {
     var project = $window.app.editor.project;
 
-    // Should return true if containsDir returns false, unless dirName is "undefined" or no project is loaded, in which 
-    // case it should return false.
-    return project && dirName != 'undefined' && !project.containsDir(dirName);
+    // Should return true if containsDir returns false, unless dirName is "" or no project is loaded, in which case it
+    // should return false.
+    return project && dirName != '' && !project.containsDir(dirName);
   }
 
   /**
@@ -108,9 +108,41 @@ angular.module('app.node', ['app.modal'])
   $scope.dirHasButton = function(dirName, isRemoveButton) {
     var project = $window.app.editor.project;
 
-    // A directory displayed can have a button only if a project is loaded, the directory is not "undefined", and the 
-    // project allows a directory to be removed or the button will not remove a directory.
-    return project && dirName != 'undefined' && (!isRemoveButton || project.canRemoveDir());
+    // A directory displayed can have a button only if a project is loaded, the directory is not "", and the project
+    // allows a directory to be removed or the button will not remove a directory.
+    return project && dirName != '' && (!isRemoveButton || project.canRemoveDir());
+  }
+
+  /**
+   * Returns whether or not all nodes in directory `dirName` are saved.
+   * 
+   * @param {string} dirName the save location to check
+   * @returns true if all nodes in directory `dirName` are saved, false otherwise
+   */
+  $scope.dirIsSaved = function(dirName) {
+    return $window.app.editor.globalNodeUndoHistory.dirIsSaved(dirName);
+  }
+
+  /**
+   * Returns whether or not the nodes of type `typeName` in save location `dirName` are saved.
+   * 
+   * @param {string} dirName the save location in which to check
+   * @param {string} typeName the name of the type to check
+   * @returns true if the nodes of type `typeName` in save location `dirName` are saved, false otherwise
+   */
+  $scope.typeIsSaved = function(dirName, typeName) {
+    return $window.app.editor.globalNodeUndoHistory.typeIsSaved(dirName, typeName);
+  }
+
+  /**
+   * Returns whether or not all nodes of category `category` in save location `dirName` are saved.
+   * 
+   * @param {string} dirName the save location in which to check
+   * @param {string} category the category to check
+   * @returns true if all nodes of category `category` in save location `dirName` are saved, false otherwise
+   */
+  $scope.categoryIsSaved = function(dirName, category) {
+    return $window.app.editor.globalNodeUndoHistory.categoryIsSaved(dirName, category);
   }
   // --------------------------------------------------------------------------
 
@@ -118,7 +150,13 @@ angular.module('app.node', ['app.modal'])
   this.updateNodes = function() {
     var guiNodes = {};
     var editorNodes = $window.app.editor.nodes;
+
+    // For each node in the editor's nodes...
     for (nodeName in editorNodes) {
+      // If the node's name is "Root"...
+      if (nodeName == "Root")
+        continue;
+
       var node = editorNodes[nodeName];
 
       // If the origin directory has no corresponding entry, create it. Otherwise, do nothing.
@@ -162,6 +200,106 @@ angular.module('app.node', ['app.modal'])
   }
   // --------------------------------------------------------------------------
 
+  // ADD NODE -----------------------------------------------------------------
+  this.addNode = function(node) {
+    var guiNodes = $scope.nodes;
+
+    // If the origin directory has no corresponding entry, create it. Otherwise, do nothing.
+    if (guiNodes[node.prototype.originDirectory] === undefined) {
+      guiNodes[node.prototype.originDirectory] = {
+        'composite'        : [],
+        'decorator'        : [],
+        'action'           : [],
+        'module'           : [],
+        'actionCategories' : {}  // Used to display nodes by category
+      };
+    }
+
+    var guiNodesInDir = guiNodes[node.prototype.originDirectory];
+
+    // If the type of node is valid and cannot overwrite "actionCategories" (which is reserved)...
+    if (node.prototype.type !== "actionCategories" && guiNodesInDir[node.prototype.type])
+      guiNodesInDir[node.prototype.type].push(node);
+
+    var categoryNodes = guiNodesInDir.actionCategories;
+
+    // If the node is an action...
+    if (node.prototype.type == 'action') {
+      // If the action category list for the corresponding category is undefined...
+      if (!categoryNodes[node.prototype.category])
+        // Define it.
+        categoryNodes[node.prototype.category] = [];
+
+      // Add node to action category list.
+      categoryNodes[node.prototype.category].push(node);
+    }
+
+    // timeout needed due to apply function
+    // apply is used to update the view automatically when the scope is changed
+    $timeout(function() {
+      $scope.$apply(function() {
+        $scope.nodes = guiNodes;
+      });
+    }, 0, false);
+  }
+  // --------------------------------------------------------------------------
+
+  // REMOVE NODE --------------------------------------------------------------
+  /**
+   * Removes a node from the node display list, optionally using an `originDirectory` and `category` as a target.
+   * 
+   * @param {b3editor.Composite | b3editor.Action | b3editor.Decorator | b3editor.Module} node the node to remove
+   * @param {string?} originDirectory the directory from which to remove `node`. Defaults to `node`'s `originDirectory`
+   * @param {string?} category the category from which to remove `node`. Defaults to `node`'s `category`
+   */
+  this.removeNode = function(node, originDirectory, category) {
+    originDirectory = originDirectory || node.prototype.originDirectory;
+    category = category || node.prototype.category;
+
+    var guiNodes = $scope.nodes;
+    var guiNodesInDir = guiNodes[originDirectory];
+
+    // If the type of node is valid and cannot overwrite "actionCategories" (which is reserved)...
+    if (node.prototype.type !== "actionCategories" && guiNodesInDir[node.prototype.type]) {
+      // Find the node.
+      var nodeIdx = guiNodesInDir[node.prototype.type].indexOf(node);
+
+      // If found...
+      if (nodeIdx != -1)
+        // Remove it.
+        guiNodesInDir[node.prototype.type].splice(nodeIdx, 1);
+    }
+
+    var categoryNodes = guiNodesInDir.actionCategories;
+
+    // If the node is an action...
+    if (node.prototype.type == 'action') {
+      // Find the node.
+      var nodeIdx = categoryNodes[category].indexOf(node);
+
+      // If found...
+      if (nodeIdx != -1)
+        // Remove it.
+        categoryNodes[category].splice(nodeIdx, 1);
+    }
+
+    // timeout needed due to apply function
+    // apply is used to update the view automatically when the scope is changed
+    $timeout(function() {
+      $scope.$apply(function() {
+        $scope.nodes = guiNodes;
+      });
+    }, 0, false);
+  }
+  // --------------------------------------------------------------------------
+
+  // EDIT NODE ----------------------------------------------------------------
+  this.editNode = function(node, oldOriginDirectory, oldCategory) {
+    this.removeNode(node, oldOriginDirectory, oldCategory);
+    this.addNode(node);
+  }
+  // --------------------------------------------------------------------------
+
   // ON BUTTON "EXPORT NODES" -------------------------------------------------
   this.onButtonExportNodes = function() {
     if ($window.app.editor.project == null) {
@@ -176,9 +314,11 @@ angular.module('app.node', ['app.modal'])
   // --------------------------------------------------------------------------
 
   // REGISTER EVENTS ----------------------------------------------------------
-  $window.app.editor.on('nodeadded', this.updateNodes, this);
-  $window.app.editor.on('noderemoved', this.updateNodes, this);
-  $window.app.editor.on('nodechanged', this.updateNodes, this);
+  $window.app.editor.on('nodeadded', function(e) {this.addNode(e._target)}, this);
+  $window.app.editor.on('noderemoved', function(e) {this.removeNode(e._target)}, this);
+  $window.app.editor.on('nodechanged', function(e) {
+    this.editNode(e._target, e.oldOriginDirectory, e.oldCategory)
+  }, this);
   $rootScope.$on('onButtonNewNode', $scope.showAddNodeModal);
   $rootScope.$on('onButtonExportNodes', this.onButtonExportNodes);
   // --------------------------------------------------------------------------
@@ -329,8 +469,9 @@ angular.module('app.node', ['app.modal'])
 
       // If a node class was returned (i.e., the operation succeeded)...
       if (nodeClass) {
+        var affectedGroups = [{originDirectory, category: newNode.category, type: newNode.type}];
         // Push the command to the editor.
-        $window.app.editor.pushCommandNode('AddNode', {node: nodeClass});
+        $window.app.editor.pushCommandNode(affectedGroups, 'AddNode', {node: nodeClass});
         $scope.close("Yes");
       }
     } else {
@@ -484,7 +625,15 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.removeNode = function() {
-    $window.app.editor.pushCommandNode('RemoveNode', {node});
+    var editor = $window.app.editor;
+    var nodeProto = editor.nodes[node].prototype;
+    var affectedGroups = [{
+      originDirectory: nodeProto.originDirectory,
+      category: nodeProto.category,
+      type: nodeProto.type
+    }];
+
+    editor.pushCommandNode(affectedGroups, 'RemoveNode', {node});
   }
 })
 

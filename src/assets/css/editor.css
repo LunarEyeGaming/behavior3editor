@@ -577,6 +577,11 @@ form .row input, form .row textarea, form .row select {
   font-style: italic;
   color: #acacac;
 }
+.directory-list .save-marker {
+  font-size: 1.5em;
+  color: #f04124;
+  padding-right: 3px;
+}
 /* ================================*/
 
 /* ================================*/
