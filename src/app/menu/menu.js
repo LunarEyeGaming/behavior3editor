@@ -216,6 +216,14 @@ angular.module('app.menu', ['app.modal'])
     if (e) e.preventDefault();
     $window.app.editor.zoomOut();
   }
+  $scope.onButtonCollapseAll = function(e) {
+    if (e) e.preventDefault();
+    $window.app.editor.collapseAll();
+  }
+  $scope.onButtonExpandAll = function(e) {
+    if (e) e.preventDefault();
+    $window.app.editor.expandAll();
+  }
   $scope.onButtonSelectAll = function(e) {
     if (e) e.preventDefault();
     $window.app.editor.selectAll();

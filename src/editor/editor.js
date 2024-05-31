@@ -1603,6 +1603,12 @@ this.b3editor = this.b3editor || {};
   p.organize = function(orderByIndex) {
     return this.organizer.organize(this.getRoot(), orderByIndex);
   }
+  p.collapseAll = function() {
+    this.trigger("collapseall");
+  }
+  p.expandAll = function() {
+    this.trigger("expandall");
+  }
   p.reset = function(all) {
     // REMOVE BLOCKS
     for (var i=0; i<this.blocks.length; i++) {

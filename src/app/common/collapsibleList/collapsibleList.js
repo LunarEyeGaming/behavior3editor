@@ -17,7 +17,7 @@ angular.module("app.collapsibleList", [])
     transclude: true,
     scope: {},
     templateUrl: "app/common/collapsibleList/collapsibleList.html",
-    controller: ["$scope", "$element", "$timeout", function CollapsibleUlController($scope, $element, $timeout) {
+    controller: ["$scope", "$element", "$timeout", "$window", function CollapsibleUlController($scope, $element, $timeout, $window) {
       $scope.expanded = true;  // Whether or not the list is expanded.
 
       $scope.setExpandState = function(expanded) {
@@ -34,6 +34,9 @@ angular.module("app.collapsibleList", [])
         var itemsJQ = angular.element(items);
         itemsJQ.css("max-height", items.offsetHeight + "px");
       }, 1, false);
+
+      $window.app.editor.on("collapseall", function() {$scope.setExpandState(false);});
+      $window.app.editor.on("expandall", function() {$scope.setExpandState(true);});
     }]
   }
 })
