@@ -1,53 +1,56 @@
 <div class="node-panel panel" scrollable>
-  <ul class="directory-list">
-    <li ng-repeat="(dirName, nodesInDir) in nodes">
-      <span class="save-marker left" ng-hide="dirIsSaved(dirName)">*</span>
-      <a class="header" href="#"
-      onmouseover="this.lastElementChild.style.display='inline-block';"
-      onmouseout="this.lastElementChild.style.display='none';">
-        <span ng-class="{'not-in-project': isNotInProject(dirName)}">
-          {{dirName == '' ? '[No Save Location]' : dirName}}
-        </span>
-
-        <span style="display: none;" class="right">
-          <!--Add to Project button-->
-          <button 
-             href="#"
-             class="edit"
-             title="Add to Auto-Import List"
-             ng-show="dirHasButton(dirName, false) && isNotInProject(dirName)"
-             ng-click="addToProject(dirName)">
-            +
-          </button>
-          <!--Remove from Project button-->
-          <button 
-             href="#"
-             class="edit"
-             title="Remove from Auto-Import List"
-             ng-show="dirHasButton(dirName, true) && !isNotInProject(dirName)"
-             ng-click="removeFromProject(dirName)">
-            -
-          </button>
-          <button class="new-node success right" ng-click="showAddNodeModal(dirName)" href="#" title="Add Custom Node">
-            N
-          </button>
-        </span>
-        
-      </a>
-      <ul class="item-list">
-        <li>
-          <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'composite')">*</span>
-          <a class="header" href="#"
+  <div>
+    <div ng-repeat="(dirName, nodesInDir) in nodes" class="item">
+      <b3-collapsible-list class="type-list">
+        <b3-collapsible-list-header>
+          <span class="save-marker left" ng-hide="dirIsSaved(dirName)">*</span>
+          <a class="directory-list-header" href="#"
           onmouseover="this.lastElementChild.style.display='inline-block';"
           onmouseout="this.lastElementChild.style.display='none';">
-            Composite
-            <button class="new-node success right" style="display: none;"
-            ng-click="showAddNodeModal(dirName, 'composite')" href="#" title="Add Custom Node">
-              N
-            </button>
+            <span ng-class="{'not-in-project': isNotInProject(dirName)}">
+              {{dirName == '' ? '[No Save Location]' : dirName}}
+            </span>
+
+            <span style="display: none;" class="right">
+              <!--Add to Project button-->
+              <button 
+                href="#"
+                class="edit"
+                title="Add to Auto-Import List"
+                ng-show="dirHasButton(dirName, false) && isNotInProject(dirName)"
+                ng-click="addToProject(dirName)">
+                +
+              </button>
+              <!--Remove from Project button-->
+              <button 
+                href="#"
+                class="edit"
+                title="Remove from Auto-Import List"
+                ng-show="dirHasButton(dirName, true) && !isNotInProject(dirName)"
+                ng-click="removeFromProject(dirName)">
+                -
+              </button>
+              <button class="new-node success right" ng-click="showAddNodeModal(dirName)" href="#" title="Add Custom Node">
+                N
+              </button>
+            </span>
           </a>
-          <ul>
-            <li ng-repeat="node in nodesInDir.composite">
+        </b3-collapsible-list-header>
+        <div>
+          <b3-collapsible-list class="node-list">
+            <b3-collapsible-list-header>
+              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'composite')">*</span>
+              <a class="header" href="#"
+              onmouseover="this.lastElementChild.style.display='inline-block';"
+              onmouseout="this.lastElementChild.style.display='none';">
+                Composite
+                <button class="new-node success right" style="display: none;"
+                ng-click="showAddNodeModal(dirName, 'composite')" href="#" title="Add Custom Node">
+                  N
+                </button>
+              </a>
+            </b3-collapsible-list-header>
+            <div class="item" ng-repeat="node in nodesInDir.composite">
               <a id="node-{{node.prototype.name}}" 
                  href="#"
                  draggable-node
@@ -63,25 +66,27 @@
                   Edit
                 </button>
               </a>
-            </li>
-            <li ng-show="nodesInDir.composite.length===0">
+            </div>
+            <div class="item" ng-show="nodesInDir.composite.length===0">
               <span class="empty">Empty</span>
-            </li>
-          </ul>
-        </li>
-        <li>
-          <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'decorator')">*</span>
-          <a class="header" href="#"
-          onmouseover="this.lastElementChild.style.display='inline-block';"
-          onmouseout="this.lastElementChild.style.display='none';">
-            Decorator
-            <button class="new-node success right" style="display: none;"
-            ng-click="showAddNodeModal(dirName, 'decorator')" href="#" title="Add Custom Node">
-              N
-            </button>
-          </a>
-          <ul>
-            <li ng-repeat="node in nodesInDir.decorator">
+            </div>
+          </b3-collapsible-list>
+        </div>
+        <div>
+          <b3-collapsible-list class="node-list">
+            <b3-collapsible-list-header>
+              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'decorator')">*</span>
+              <a class="header" href="#"
+              onmouseover="this.lastElementChild.style.display='inline-block';"
+              onmouseout="this.lastElementChild.style.display='none';">
+                Decorator
+                <button class="new-node success right" style="display: none;"
+                ng-click="showAddNodeModal(dirName, 'decorator')" href="#" title="Add Custom Node">
+                  N
+                </button>
+              </a>
+            </b3-collapsible-list-header>
+            <div class="item" ng-repeat="node in nodesInDir.decorator">
               <a id="node-{{node.prototype.name}}" 
                  href="#"
                  draggable-node
@@ -93,37 +98,41 @@
                   Edit
                 </button>
               </a>
-            </li>
-            <li ng-show="nodesInDir.decorator.length===0">
+            </div>
+            <div class="item" ng-show="nodesInDir.decorator.length===0">
               <span class="empty">Empty</span>
-            </li>
-          </ul>
-        </li>
-        <li>
-          <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'action')">*</span>
-          <a class="header" href="#"
-          onmouseover="this.lastElementChild.style.display='inline-block';"
-          onmouseout="this.lastElementChild.style.display='none';">
-            Action
-            <button class="new-node success right" style="display: none;" ng-click="showAddNodeModal(dirName, 'action')"
-            href="#" title="Add Custom Node">
-              N
-            </button>
-          </a>
-          <ul>
-            <li ng-repeat="(category,actions) in nodesInDir.actionCategories">
-              <span class="save-marker left" ng-hide="categoryIsSaved(dirName, category, 'action')">*</span>
-              <a class="category" href="#"
+            </div>
+          </b3-collapsible-list>
+        </div>
+        <div>
+          <b3-collapsible-list class="node-list">
+            <b3-collapsible-list-header>
+              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'action')">*</span>
+              <a class="header" href="#"
               onmouseover="this.lastElementChild.style.display='inline-block';"
               onmouseout="this.lastElementChild.style.display='none';">
-                {{category}}
-                <button class="new-node success right" style="display: none;"
-                ng-click="showAddNodeModal(dirName, 'action', category)" href="#" title="Add Custom Node">
+                Action
+                <button class="new-node success right" style="display: none;" 
+                ng-click="showAddNodeModal(dirName, 'action')" href="#" title="Add Custom Node">
                   N
                 </button>
               </a>
-              <ul>
-                <li ng-repeat="node in actions track by $index">
+            </b3-collapsible-list-header>
+            <div class="item" ng-repeat="(category,actions) in nodesInDir.actionCategories">
+              <b3-collapsible-list>
+                <b3-collapsible-list-header>
+                  <span class="save-marker left" ng-hide="categoryIsSaved(dirName, category, 'action')">*</span>
+                  <a class="category" href="#"
+                  onmouseover="this.lastElementChild.style.display='inline-block';"
+                  onmouseout="this.lastElementChild.style.display='none';">
+                    {{category}}
+                    <button class="new-node success right" style="display: none;"
+                    ng-click="showAddNodeModal(dirName, 'action', category)" href="#" title="Add Custom Node">
+                      N
+                    </button>
+                  </a>
+                </b3-collapsible-list-header>
+                <div class="item" ng-repeat="node in actions track by $index">
                   <a id="node-{{node.prototype.name}}" 
                      href="#"
                      draggable-node
@@ -135,30 +144,32 @@
                       Edit
                     </button>
                   </a>
-                </li>
-                <li ng-show="actions.length===0">
-                  <span class="empty">Empty</span>
-                </li>
-              </ul>
-            </li>
-            <li ng-show="nodesInDir.action.length===0">
+                </div>
+              </b3-collapsible-list>
+              <div class="item" ng-show="actions.length===0">
+                <span class="empty">Empty</span>
+              </div>
+            </div>
+            <div class="item" ng-show="nodesInDir.action.length===0">
               <span class="empty">Empty</span>
-            </li>
-          </ul>
-        </li>
-        <li>
-          <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'module')">*</span>
-          <a class="header" href="#"
-          onmouseover="this.lastElementChild.style.display='inline-block';"
-          onmouseout="this.lastElementChild.style.display='none';">
-            Module
-            <button class="new-node success right" style="display: none;" ng-click="showAddNodeModal(dirName, 'module')"
-            href="#" title="Add Custom Node">
-              N
-            </button>
-          </a>
-          <ul>
-            <li ng-repeat="node in nodesInDir.module">
+            </div>
+          </b3-collapsible-list>
+        </div>
+        <div>
+          <b3-collapsible-list class="node-list">
+            <b3-collapsible-list-header>
+              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'module')">*</span>
+              <a class="header" href="#"
+              onmouseover="this.lastElementChild.style.display='inline-block';"
+              onmouseout="this.lastElementChild.style.display='none';">
+                Module
+                <button class="new-node success right" style="display: none;"
+                ng-click="showAddNodeModal(dirName, 'module')" href="#" title="Add Custom Node">
+                  N
+                </button>
+              </a>
+            </b3-collapsible-list-header>
+            <div class="item" ng-repeat="node in nodesInDir.module">
               <a id="node-{{node.prototype.name}}" 
                  href="#"
                  draggable-node
@@ -170,15 +181,16 @@
                   Edit
                 </button>
               </a>
-            </li>
-            <li ng-show="nodesInDir.module.length===0">
+            </div>
+            <div class="item" ng-show="nodesInDir.module.length===0">
               <span class="empty">Empty</span>
-            </li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-  </ul>
+            </div>
+          </b3-collapsible-list>
+        </div>
+      </b3-collapsible-list>
+    </div>
+  </div>
+  
 
   <a class="button success" ng-click="showAddNodeModal()" href="#">Add Custom Node</a>
 </div>

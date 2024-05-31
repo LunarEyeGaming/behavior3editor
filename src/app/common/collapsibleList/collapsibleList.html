@@ -1,0 +1,10 @@
+<div class="collapsible-list">
+  <button class="collapsible-list" ng-show="expanded" ng-click="setExpandState(false)" title="Collapse">&#9660; <!--Black down-pointing triangle--></button>
+  <button class="collapsible-list" ng-hide="expanded" ng-click="setExpandState(true)" title="Expand">&#9654; <!--Black right-pointing triangle--></button>
+  <div id="b3-collapsible-list-header-display" class="collapsible-list-header-display" ng-class="{expanded: expanded}"></div>
+  <div id="b3-collapsible-list-items" ng-class="{expanded: expanded, hidden: !expanded}" class="collapsible-list-items">
+    <div ng-transclude>
+
+    </div>
+  </div>
+</div>

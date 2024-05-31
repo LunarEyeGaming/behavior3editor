@@ -11,5 +11,6 @@ var app = angular.module('app', [
   'app.property',
   'app.focus',
   'app.fileinput',
-  'app.project'
+  'app.project',
+  'app.collapsibleList'
 ]);
