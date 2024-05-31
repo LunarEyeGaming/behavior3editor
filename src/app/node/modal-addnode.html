@@ -12,8 +12,8 @@
         <form>
           <div class="row">
             <label>Type</label>
-            <select id="type" ng-change="changeType()" ng-model="nodeType" type="text" placeholder="title">
-              <option ng-repeat="type in types"value="{{type}}">{{type}}</option>
+            <select id="type" ng-change="changeType()" ng-model="nodeTypeThrowaway">
+              <option ng-repeat="type in types" value="{{type}}" ng-selected="type == inputNodeType">{{type}}</option>
             </select>
           </div>
 
@@ -51,14 +51,20 @@
             </table>
           </div>
 
-          <div class="row">
+          <div class="row" ng-show="projectLoaded">
             <label>Save Location</label>
-            <input id="save-location" type="text" placeholder="save location"/>
+            <select id="save-location-mode" ng-model="selectedDirMode">
+              <option ng-repeat="(mode, text) in dirModeDisplayText" value="{{mode}}" ng-selected="mode == defaultDirMode">{{text}}</option>
+            </select>
+            <select id="save-location-preexisting" ng-show="selectedDirMode == 'existing'">
+              <option ng-repeat="dir in directories" value="{{dir}}" ng-selected="dir == originDirectory">{{dir}}</option>
+            </select>
+            <b3-file-input type="folder" id="save-location-new" ng-show="selectedDirMode == 'new'" class="abbreviated-dir"></b3-file-input>
           </div>
 
           <div class="row" id="addnode-category" style="display: none;">
             <label>Category</label>
-            <input id="category" type="text" placeholder="category"/>
+            <input id="category" type="text" placeholder="category" value="{{category}}"/>
           </div>
 
           <div class="row" id="addnode-script" style="display: none;">

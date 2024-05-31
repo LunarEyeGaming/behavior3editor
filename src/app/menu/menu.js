@@ -102,13 +102,13 @@ angular.module('app.menu', ['app.modal'])
             if (editor.project) {
               var originDirectory = path.relative(editor.project.fileName, path.dirname(filename));
             } else {
-              var originDirectory = undefined;
+              var originDirectory = '';
             }
             $window.app.editor.importNodes(data, originDirectory, true);
   
             editor.trigger('notification', name, {
               level: 'success',
-              message: 'Imported Nodes'
+              message: "Imported nodes from file '" + path.basename(filename) + "'"
             });
           });
         });

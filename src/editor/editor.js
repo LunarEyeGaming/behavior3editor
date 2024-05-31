@@ -853,6 +853,29 @@ this.b3editor = this.b3editor || {};
       }
     }
   }
+
+  /**
+   * Returns the list of origin directories used by each node.
+   * 
+   * @returns the list of origin directories used by each node.
+   */
+  p.getOriginDirectories = function() {
+    var dirs = [];
+    var dirsLookupTable = {};
+
+    // For each node in the editor...
+    for (var nodeName in this.nodes) {
+      var originDirectory = this.nodes[nodeName].prototype.originDirectory;
+
+      // If the origin directory is defined and is not already in the dirsLookupTable object...
+      if (originDirectory && !dirsLookupTable[originDirectory]) {
+        dirs.push(originDirectory);
+        dirsLookupTable[originDirectory] = true;
+      }
+    }
+
+    return dirs;
+  }
   // json is the JSON contents of the .nodes file; originDirectory is the directory from which it originated.
   // isCommand is whether or not to treat the act of importing the nodes as a command.
   p.importNodes = function(json, originDirectory, isCommand) {

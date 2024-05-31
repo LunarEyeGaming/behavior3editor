@@ -409,15 +409,32 @@ form .row input, form .row textarea, form .row select {
   padding-left: 2px;
 }
 
+.abbreviated-dir {
+  display: flex;
+}
+
 .abbreviated-dir span {
   position: relative;
+  left: 3px;
   top: 5px;
-  display: inline-block;
-  width: 65%; /*This width is very important to making sure that no line breaks occur*/
+  width: 65%;
   white-space: nowrap;
   overflow: hidden;
   direction: rtl;
   text-overflow: ellipsis;
+}
+
+#save-location-mode {
+  width: 50%;
+  display: inline-block;
+}
+#save-location-new {
+  width: 50%;
+  float: right;
+}
+#save-location-preexisting {
+  width: 50%;
+  float: right;
 }
 
 
@@ -568,11 +585,16 @@ form .row input, form .row textarea, form .row select {
   background-color: #ffffff;
   color: #333333;
 }
+.directory-list .new-node {
+  padding: 0px 10px;
+  margin: 0px 2px;
+  font-weight: 100;
+}
 .directory-list span.edit {
   padding: 0px;
   margin: 0px;
 }
-.directory-list a.not-in-project {
+.directory-list .not-in-project {
   font-weight: 100;
   font-style: italic;
   color: #acacac;
@@ -625,6 +647,7 @@ form .row input, form .row textarea, form .row select {
 }
 .item-list a.header {
   text-transform: uppercase;
+  padding: 3px 0px;
   font-weight: 600!important;
   color: #333333;
   font-size: 1.2em;
@@ -643,6 +666,12 @@ form .row input, form .row textarea, form .row select {
   margin: 0px 1px;
   background-color: #ffffff;
   color: #333333;
+}
+.item-list .new-node {
+  position: relative;
+  bottom: 1px;
+  padding: 2px 5px;
+  margin: 0px 1px;
 }
 .item-list .save-marker {
   color: #f04124;

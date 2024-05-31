@@ -11,10 +11,11 @@ angular.module('app.node', ['app.modal'])
   $scope.nodes = {};
   $scope.categories = {};
 
-  $scope.showAddNodeModal = function() {
+  $scope.showAddNodeModal = function(originDirectory, type, category) {
     ModalService.showModal({
       templateUrl: "app/node/modal-addnode.html",
-      controller: 'AddNodeModalController'
+      controller: 'AddNodeModalController',
+      inputs: {'originDirectory': originDirectory, 'type': type, 'category': category}
     }).then(function(modal) {
       modal.close.then(function(result) {
       });
@@ -258,8 +259,8 @@ angular.module('app.node', ['app.modal'])
    * @param {string?} category the category from which to remove `node`. Defaults to `node`'s `category`
    */
   this.removeNode = function(node, originDirectory, category) {
-    originDirectory = originDirectory || node.prototype.originDirectory;
-    category = category || node.prototype.category;
+    originDirectory = originDirectory !== undefined ? originDirectory : node.prototype.originDirectory;
+    category = category !== undefined ? category : node.prototype.category;
 
     var guiNodes = $scope.nodes;
     var guiNodesInDir = guiNodes[originDirectory];
@@ -332,7 +333,7 @@ angular.module('app.node', ['app.modal'])
   $window.app.editor.on('nodechanged', function(e) {
     this.editNode(e._target, e.oldOriginDirectory, e.oldCategory)
   }, this);
-  $rootScope.$on('onButtonNewNode', $scope.showAddNodeModal);
+  $rootScope.$on('onButtonNewNode', function() {$scope.showAddNodeModal()});
   $rootScope.$on('onButtonExportNodes', this.onButtonExportNodes);
   // --------------------------------------------------------------------------
 
@@ -345,8 +346,13 @@ angular.module('app.node', ['app.modal'])
 //
 // ADD NODE MODAL CONTROLLER
 //
-.controller('AddNodeModalController', function($scope, $window, $compile, close) {
+.controller('AddNodeModalController', function($scope, $window, $compile, $timeout, close, originDirectory, type, category) {
   $scope.close = function(result) { close(result); };
+
+  $scope.originDirectory = originDirectory;
+  $scope.inputNodeType = type;
+  $scope.category = category;
+  $scope.projectLoaded = $window.app.editor.project != null;
 
   // DYNAMIC TABLE ------------------------------------------------------------
 
@@ -362,6 +368,15 @@ angular.module('app.node', ['app.modal'])
     {id: "table", name: "table"},
     {id: "string", name: "string"}
   ];
+  // Note: this variable also defines the directory selection modes to display.
+  $scope.dirModeDisplayText = {
+    existing: "Use existing save location",
+    new: "Use new save location",
+    none: "Use no save location"
+  };
+  $scope.defaultDirMode = "existing";
+  $scope.selectedDirMode = $scope.defaultDirMode;
+  $scope.directories = $window.app.editor.getOriginDirectories();
 
   this.propertyTemplate = '\
     <tr>\
@@ -418,9 +433,29 @@ angular.module('app.node', ['app.modal'])
     var domPropertyTypes = document.querySelectorAll('#addnode-properties #type');
     var domPropertyKeys = document.querySelectorAll('#addnode-properties #key');
     var domPropertyValues = document.querySelectorAll('#addnode-properties #value');
-    var domSaveLocation = document.querySelector('#addnode-modal #save-location');
 
-    var originDirectory = domSaveLocation.value;
+    var originDirectory;
+
+    // If no project is loaded or the selected mode is "none"...
+    if (!$scope.projectLoaded || $scope.selectedDirMode == "none") {
+      originDirectory = '';
+    }
+    // Otherwise, if the selected mode is "new"...
+    else if ($scope.selectedDirMode == "new") {
+      var domSaveLocation = document.querySelector('#addnode-modal #save-location-new #b3-file-input-value');
+      
+      // If the save location is not an empty string (and thus does not trigger using the current working directory in 
+      // path.relative)...
+      if (domSaveLocation.value != '')
+        originDirectory = path.relative($window.app.editor.project.fileName, domSaveLocation.value);
+      else
+        originDirectory = domSaveLocation.value;  // Technically an empty string.
+    }
+    // Otherwise, as the selected mode is "existing"...
+    else {
+      var domSaveLocation = document.querySelector('#addnode-modal #save-location-preexisting');
+      originDirectory = domSaveLocation.value;
+    }
 
     var newNode = {
       type: domType.value,
@@ -494,6 +529,12 @@ angular.module('app.node', ['app.modal'])
       });
     }
   }
+
+  $timeout(function() {
+    $scope.$apply(function() {
+      $scope.changeType();
+    })
+  }, 1, false);
 })
 
 //
@@ -502,7 +543,9 @@ angular.module('app.node', ['app.modal'])
 .controller('EditNodeModalController', function($scope, $window, $compile, close, node) {
   $scope.close = function(result) { close(result); };
 
+  $scope.projectLoaded = $window.app.editor.project != null;
   $scope.node = $window.app.editor.nodes[node];
+
   $scope.valueTypes = [
     {id: 'json', name: 'json'},
     {id: "entity", name: "entity"},
@@ -514,6 +557,15 @@ angular.module('app.node', ['app.modal'])
     {id: "table", name: "table"},
     {id: "string", name: "string"}
   ];
+  // Note: this variable also defines the directory selection modes to display.
+  $scope.dirModeDisplayText = {
+    existing: "Use existing save location",
+    new: "Use new save location",
+    none: "Use no save location"
+  };
+  $scope.defaultDirMode = "existing";
+  $scope.selectedDirMode = $scope.defaultDirMode;
+  $scope.directories = $window.app.editor.getOriginDirectories();
 
   this.jsonProperties = function(properties){
     var props = {}
@@ -573,9 +625,29 @@ angular.module('app.node', ['app.modal'])
     var domTypes = document.querySelectorAll('#editnode-properties #type');
     var domKeys = document.querySelectorAll('#editnode-properties #key');
     var domValues = document.querySelectorAll('#editnode-properties #value');
-    var domSaveLocation = document.querySelector('#editnode-form #save-location');
 
-    var originDirectory = domSaveLocation.value;
+    var originDirectory;
+
+    // If no project is loaded or the selected mode is "none"...
+    if (!$scope.projectLoaded || $scope.selectedDirMode == "none") {
+      originDirectory = '';
+    }
+    // Otherwise, if the selected mode is "new"...
+    else if ($scope.selectedDirMode == "new") {
+      var domSaveLocation = document.querySelector('#editnode-modal #save-location-new #b3-file-input-value');
+      
+      // If the save location is not an empty string (and thus does not trigger using the current working directory in 
+      // path.relative)...
+      if (domSaveLocation.value != '')
+        originDirectory = path.relative($window.app.editor.project.fileName, domSaveLocation.value);
+      else
+        originDirectory = domSaveLocation.value;  // Technically an empty string.
+    }
+    // Otherwise, as the selected mode is "existing"...
+    else {
+      var domSaveLocation = document.querySelector('#editnode-modal #save-location-preexisting');
+      originDirectory = domSaveLocation.value;
+    }
 
     var newNode = {
       name: domName.value,
