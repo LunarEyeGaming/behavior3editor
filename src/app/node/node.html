@@ -130,7 +130,7 @@
                   <a class="category" href="#"
                   onmouseover="this.lastElementChild.style.display='inline-block';"
                   onmouseout="this.lastElementChild.style.display='none';">
-                    {{category}}
+                    {{category || "[Uncategorized]"}}
                     <button class="new-node success right" style="display: none;"
                     ng-click="showAddNodeModal(dirName, 'action', category)" href="#" title="Add Custom Node">
                       N
