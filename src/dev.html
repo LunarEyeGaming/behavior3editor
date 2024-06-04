@@ -24,6 +24,7 @@
   <script src="app/common/notification/notification.js" type="text/javascript"></script>
   <script src="app/common/scrollable/scrollable.js" type="text/javascript"></script>
   <script src="app/filename/filename.js" type="text/javascript"></script>
+  <script src="app/highlight/highlight.js" type="text/javascript"></script>
   <script src="app/menu/menu.js" type="text/javascript"></script>
   <script src="app/node/node.js" type="text/javascript"></script>
   <script src="app/node/directives.js" type="text/javascript"></script>
@@ -76,15 +77,15 @@
   <!-- APP PAGE -->
   <div id="page">
     <canvas id="game-canvas" width="640" height="480" droppable-node></canvas>
-    <div focus-list>
+    <b3-focus-list>
       <menu></menu>
       <!-- I would have just put the canvas into a focusable here, but that causes the tree editor to stop working 
         completely. -->
-      <remote-focusable id="tree-editor" focus-id="game-canvas">
+      <b3-remote-focusable id="tree-editor" focus-id="game-canvas">
         <!-- Overlay when the editor screen is not focused. -->
         <div class="canvas-overlay"></div>
-      </remote-focusable>
-      <focusable id="left-panel">
+      </b3-remote-focusable>
+      <b3-focusable id="left-panel">
         <sidebar class="left">
           <div class="tabset" ng-controller="TabController">
             <ul class="header">
@@ -96,9 +97,9 @@
             <div ng-show="visible(1)"><nodepanel>1</nodepanel></div>
           </div>
         </sidebar>
-      </focusable>
+      </b3-focusable>
 
-      <focusable id="right-panel">
+      <b3-focusable id="right-panel">
         <sidebar class="right">
           <div class="tabset" ng-controller="TabController">
             <ul class="header">
@@ -110,12 +111,12 @@
             <!-- <div ng-show="visible(0)"><helppanel>2</helppanel></div> -->
           </div>
         </sidebar>
-      </focusable>
+      </b3-focusable>
 
-      <focus-editor-linker></focus-editor-linker>
+      <b3-focus-editor-linker></b3-focus-editor-linker>
 
       <filename></filename>
-    </div>
+    </b3-focus-list>
     
   </div>
 

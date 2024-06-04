@@ -1,6 +1,11 @@
+<div class="node-panel search-bar">
+  <label>
+    Search: <input type="text" ng-model="searchInfo.searchText" ng-change="updateFilter()" b3-manual-blur>
+  </label>
+</div>
 <div class="node-panel panel" scrollable>
   <div>
-    <div ng-repeat="(dirName, nodesInDir) in nodes" class="item">
+    <div ng-repeat="(dirName, nodesInDir) in filteredNodes" class="item">
       <b3-collapsible-list class="type-list">
         <b3-collapsible-list-header>
           <span class="save-marker left" ng-hide="dirIsSaved(dirName)">*</span>
@@ -37,7 +42,7 @@
           </a>
         </b3-collapsible-list-header>
         <div>
-          <b3-collapsible-list class="node-list">
+          <b3-collapsible-list class="node-list" ng-if="nodesInDir.composite.length !== 0 || !searchInfo.searchText">
             <b3-collapsible-list-header>
               <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'composite')">*</span>
               <a class="header" href="#"
@@ -56,7 +61,7 @@
                  draggable-node
                  onmouseover="this.lastElementChild.style.display='inline-block';"
                  onmouseout="this.lastElementChild.style.display='none';">
-                {{getTitle(node);}}
+                <b3-highlightable str="getTitle(node)" search-text="searchInfo.searchText"></b3-highlightable>
                 <button 
                    href="#"
                    class="edit right"
@@ -67,13 +72,13 @@
                 </button>
               </a>
             </div>
-            <div class="item" ng-show="nodesInDir.composite.length===0">
+            <div class="item" ng-show="nodesInDir.composite.length===0 && !searchInfo.searchText">
               <span class="empty">Empty</span>
             </div>
           </b3-collapsible-list>
         </div>
         <div>
-          <b3-collapsible-list class="node-list">
+          <b3-collapsible-list class="node-list" ng-if="nodesInDir.decorator.length !== 0 || !searchInfo.searchText">
             <b3-collapsible-list-header>
               <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'decorator')">*</span>
               <a class="header" href="#"
@@ -92,20 +97,20 @@
                  draggable-node
                  onmouseover="this.lastElementChild.style.display='inline-block';"
                  onmouseout="this.lastElementChild.style.display='none';">
-                {{getTitle(node);}}
+                <b3-highlightable str="getTitle(node)" search-text="searchInfo.searchText"></b3-highlightable>
                 <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);"
                 ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">
                   Edit
                 </button>
               </a>
             </div>
-            <div class="item" ng-show="nodesInDir.decorator.length===0">
+            <div class="item" ng-show="nodesInDir.decorator.length===0 && !searchInfo.searchText">
               <span class="empty">Empty</span>
             </div>
           </b3-collapsible-list>
         </div>
         <div>
-          <b3-collapsible-list class="node-list">
+          <b3-collapsible-list class="node-list" ng-if="nodesInDir.action.length !== 0 || !searchInfo.searchText">
             <b3-collapsible-list-header>
               <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'action')">*</span>
               <a class="header" href="#"
@@ -132,13 +137,13 @@
                     </button>
                   </a>
                 </b3-collapsible-list-header>
-                <div class="item" ng-repeat="node in actions track by $index">
+                <div class="item" ng-repeat="node in actions">
                   <a id="node-{{node.prototype.name}}" 
                      href="#"
                      draggable-node
                      onmouseover="this.lastElementChild.style.display='inline-block';"
                      onmouseout="this.lastElementChild.style.display='none';">
-                    {{getTitle(node);}}
+                    <b3-highlightable str="getTitle(node)" search-text="searchInfo.searchText"></b3-highlightable>
                     <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);"
                     ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">
                       Edit
@@ -146,17 +151,17 @@
                   </a>
                 </div>
               </b3-collapsible-list>
-              <div class="item" ng-show="actions.length===0">
+              <div class="item" ng-show="actions.length===0 && !searchInfo.searchText">
                 <span class="empty">Empty</span>
               </div>
             </div>
-            <div class="item" ng-show="nodesInDir.action.length===0">
+            <div class="item" ng-show="nodesInDir.action.length===0 && !searchInfo.searchText">
               <span class="empty">Empty</span>
             </div>
           </b3-collapsible-list>
         </div>
         <div>
-          <b3-collapsible-list class="node-list">
+          <b3-collapsible-list class="node-list" ng-if="nodesInDir.module.length !== 0 || !searchInfo.searchText">
             <b3-collapsible-list-header>
               <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'module')">*</span>
               <a class="header" href="#"
@@ -175,14 +180,14 @@
                  draggable-node
                  onmouseover="this.lastElementChild.style.display='inline-block';"
                  onmouseout="this.lastElementChild.style.display='none';">
-                {{getTitle(node);}}
+                <b3-highlightable str="getTitle(node)" search-text="searchInfo.searchText"></b3-highlightable>
                 <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);"
                 ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">
                   Edit
                 </button>
               </a>
             </div>
-            <div class="item" ng-show="nodesInDir.module.length===0">
+            <div class="item" ng-show="nodesInDir.module.length===0 && !searchInfo.searchText">
               <span class="empty">Empty</span>
             </div>
           </b3-collapsible-list>
@@ -190,7 +195,6 @@
       </b3-collapsible-list>
     </div>
   </div>
-  
 
   <a class="button success" ng-click="showAddNodeModal()" href="#">Add Custom Node</a>
 </div>

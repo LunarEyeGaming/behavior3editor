@@ -116,6 +116,10 @@ button.alert:hover, .button.alert:hover {
   opacity: 0.0;
 }
 
+.highlight {
+  background-color: #fff568;
+}
+
 /* ================================*/
 /* FORM                            */
 /* ================================*/
@@ -198,7 +202,6 @@ div.collapsible-list {
 div.collapsible-list-items {
   padding-left: 5px;
   border-left: #868686 solid 1px;
-/*   overflow: hidden; */
   overflow-y: hidden;
   overflow-x: visible;
   transition: max-height ease-out 0.5s;
@@ -206,7 +209,6 @@ div.collapsible-list-items {
 
 div.collapsible-list-items.hidden {
   max-height: 0px !important;
-/*   overflow: hidden; */
 }
 /* ================================*/
 

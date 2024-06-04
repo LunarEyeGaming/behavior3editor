@@ -1,12 +1,15 @@
 angular.module('app.focus', [])
 
 /**
- * A directive for an element capable of communicating with "focusable" elements (see corresponding documentation). A
- * focus-list has only one "focusable" element that can be focused at a time. The id (or index if unavailable) of the 
+ * A directive for an element capable of communicating with "b3Focusable" elements (see corresponding documentation). A
+ * b3FocusList has only one "b3Focusable" element that can be focused at a time. The id (or index if unavailable) of the 
  * currently focused element is stored as the "focusedElement" field. All focusable elements except for the currently 
  * focused one will have "isFocused" set to false.
+ * The b3FocusList will also call any functions registered through the `bindFocusCallback()` method whenever the focused
+ * element changes. It is not recommended that any callbacks registered through this method call the `select()` or
+ * `selectById()` methods.
  */
-.directive('focusList', function() {
+.directive('b3FocusList', function() {
   return {
     transclude: true,
     controller: ['$scope', '$window', function FocusListController($scope, $window) {
@@ -95,9 +98,9 @@ angular.module('app.focus', [])
  * or not the element is "focused" is determined by the namesake field. Clicking inside of this kind of element will 
  * cause it to become focused and all other elements to become unfocused.
  */
-.directive('focusable', function($document) {
+.directive('b3Focusable', function($document) {
   return {
-    require: "^^focusList",
+    require: "^^b3FocusList",
     transclude: true,
     scope: {},
     link: function(scope, element, _, focusListCtrl) {
@@ -131,9 +134,9 @@ angular.module('app.focus', [])
  * A variant of the "focusable" directive that listens for clicks with the target being an element with a particular ID
  * instead of the element that has the directive.
  */
-.directive('remoteFocusable', function($document) {
+.directive('b3RemoteFocusable', function($document) {
   return {
-    require: "^^focusList",
+    require: "^^b3FocusList",
     transclude: true,
     scope: {
       focusId: "@"
@@ -167,17 +170,17 @@ angular.module('app.focus', [])
 })
 
 /**
- * A directive that talks between a focus list and the editor. Due to the nature of this directive, calls by the editor
- * to set the focus ID will automatically invoke the editor's `onFocusChange()` method. Consequently, the programmer
- * should not attempt to make any calls
+ * A directive that allows the editor to talk with a focus list. This makes the editor's `onFocusChange()` method 
+ * automatically bound to the focus list, and the editor can emit a `changefocus` event to change the currently focused
+ * element by ID.
  */
-.directive('focusEditorLinker', function($window) {
+.directive('b3FocusEditorLinker', function($window) {
   return {
     restrict: "E",
-    require: "^^focusList",
+    require: "^^b3FocusList",
     transclude: true,
     scope: {},
-    link: function(scope, element, _, focusListCtrl) {
+    link: function(_, _, _, focusListCtrl) {
       // Tell the editor about it.
       focusListCtrl.bindFocusCallback(focusableId => $window.app.editor.onFocusChange(focusableId));
 
@@ -186,5 +189,36 @@ angular.module('app.focus', [])
         focusListCtrl.selectById(e._target);
       });
     }
+  }
+})
+
+/**
+ * An attribute-based directive for elements that, for one reason or another, do not blur when the user clicks on a 
+ * region outside of the containing element.
+ */
+.directive("b3ManualBlur", function($timeout) {
+  return {
+    restrict: "A",
+    transclude: true,
+    link: function(_, element) {
+      $timeout(function() {
+        // Find the closest ancestor to the current element that is a `b3-focus-list` to get the corresponding controller.
+        // Will error if no such element exists or does not have the controller corresponding to b3FocusList.
+        var focusListCtrl = angular.element(element[0].closest("b3-focus-list")).controller("b3FocusList");
+        // Get the closest ancestor to the current element that is a `b3Focusable`.
+        var focusable = element[0].closest("b3-focusable");
+
+        // On a change in focus...
+        focusListCtrl.bindFocusCallback(function(focusableId) {
+          // If the ID of the currently focused element does not match that of the parent focusable...
+          if (focusableId !== focusable.id) {
+            // Blur the current element.
+            element[0].blur();
+          }
+        });
+      }, 1000, false);
+      
+    },
+    templateUrl: "app/common/focus/manualBlur.html"
   }
 });

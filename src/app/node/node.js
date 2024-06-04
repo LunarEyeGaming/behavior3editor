@@ -3,13 +3,14 @@ angular.module('app.node', ['app.modal'])
 //
 // NODE CONTROLLER
 //
-.controller('NodeController', function($scope, $rootScope, $window, $timeout, ModalService) {
+.controller('NodeController', function($scope, $rootScope, $window, $timeout, ModalService, SearchHighlightFactory) {
   var this_ = this;
 
   // SCOPE --------------------------------------------------------------------
   $scope.types = ['composite', 'decorator', 'action', 'module'];
   $scope.nodes = {};
   $scope.categories = {};
+  $scope.searchInfo = SearchHighlightFactory;
 
   $scope.showAddNodeModal = function(originDirectory, type, category) {
     ModalService.showModal({
@@ -196,6 +197,7 @@ angular.module('app.node', ['app.modal'])
     $timeout(function() {
       $scope.$apply(function() {
         $scope.nodes = guiNodes;
+        $scope.updateFilter();
       });
     }, 0, false);
   }
@@ -245,6 +247,7 @@ angular.module('app.node', ['app.modal'])
     $timeout(function() {
       $scope.$apply(function() {
         $scope.nodes = guiNodes;
+        $scope.updateFilter();
       });
     }, 0, false);
   }
@@ -294,6 +297,7 @@ angular.module('app.node', ['app.modal'])
     $timeout(function() {
       $scope.$apply(function() {
         $scope.nodes = guiNodes;
+        $scope.updateFilter();
       });
     }, 0, false);
   }
@@ -324,6 +328,64 @@ angular.module('app.node', ['app.modal'])
     } else {
       $scope.showExportNodesModal();
     }
+  }
+  // --------------------------------------------------------------------------
+
+  // SEARCH FUNCTIONALITY ------------------------------------------------------
+  $scope.searchByName = function(node) {
+    if ($scope.searchInfo.searchText !== undefined)
+      return node.prototype.title.toLowerCase().includes($scope.searchInfo.searchText.toLowerCase());
+    return true;
+  }
+
+  $scope.updateFilter = function() {
+    var filteredNodes = {};
+
+    // For each origin directory in the list of nodes...
+    for (var originDirectory in $scope.nodes) {
+      var nodesInDir = $scope.nodes[originDirectory];
+
+      filteredNodes[originDirectory] = {
+        "action": [],
+        "composite": [],
+        "decorator": [],
+        "module": [],
+        "actionCategories": {}
+      };
+
+      // For each node type...
+      ["action", "composite", "decorator", "module"].forEach(type => {
+        // For each node...
+        nodesInDir[type].forEach(node => {
+          // If the node matches the search filter...
+          if ($scope.searchByName(node)) {
+            // Add node to the hierarchy.
+            filteredNodes[originDirectory][type].push(node);
+
+            // If the node is an action...
+            if (node.prototype.type == 'action') {
+              var categoryNodes = filteredNodes[originDirectory].actionCategories;
+
+              // If the action category list for the corresponding category is undefined...
+              if (!categoryNodes[node.prototype.category])
+                // Define it.
+                categoryNodes[node.prototype.category] = [];
+
+              // Add node to action category list.
+              categoryNodes[node.prototype.category].push(node);
+            }
+          }
+        });
+      });
+    }
+
+    // timeout needed due to apply function
+    // apply is used to update the view automatically when the scope is changed
+    $timeout(function() {
+      $scope.$apply(function() {
+        $scope.filteredNodes = filteredNodes;
+      });
+    }, 0, false);
   }
   // --------------------------------------------------------------------------
 
