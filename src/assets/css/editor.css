@@ -833,6 +833,15 @@ div.collapsible-list-items.hidden {
   position: absolute;
   z-index: 500;
 }
+.node-panel.search-bar {
+  margin: 5px;
+}
+.node-panel.search-bar label {
+  font-size: 1.2em;
+}
+.node-panel.search-bar input {
+  padding: 3px;
+}
 /* ================================*/
 
 /* ================================*/
