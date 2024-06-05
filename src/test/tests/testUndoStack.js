@@ -1,6 +1,6 @@
 var {makeTest} = require("../tester");
 var {assertThrows, assertEqual, assertStrictEqual, assert} = require("../assert");
-var {makeTestCommand} = require("../testUtils")
+var {makeTestCommand, makeTestCommandNoChange} = require("../testUtils")
 
 var suite = [
   makeTest("addCommand basic functionality", () => {
@@ -544,6 +544,310 @@ var suite = [
     // Should not be saved
     assert(!undoHistory.isSaved(), "marked as saved");
   }),
+  makeTest("isSaved() and addCommand() purging", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 37}, () => {someObject.foo -= 37}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 49}, () => {someObject.foo -= 49}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 23}, () => {someObject.foo -= 23}));
+
+    undoHistory.save();
+
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    // This invocation of addCommand() will purge the commands following it.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 12}, () => {someObject.foo -= 12}));
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 18}, () => {someObject.foo -= 18}));
+
+    // Should not be saved b/c the original series of commands has been erased.
+    assert(!undoHistory.isSaved(), "marked as saved");
+  }),
+  makeTest("isSaved() and addCommand() purging (edge cases)", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 37}, () => {someObject.foo -= 37}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 49}, () => {someObject.foo -= 49}));
+
+    undoHistory.save();
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 23}, () => {someObject.foo -= 23}));
+
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    // This invocation of addCommand() will purge the commands following it.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 12}, () => {someObject.foo -= 12}));
+
+    // Should not be saved b/c the original series of commands has been erased.
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 18}, () => {someObject.foo -= 18}));
+
+    // Should not be saved b/c the original series of commands has been erased.
+    assert(!undoHistory.isSaved(), "marked as saved");
+  }),
+  makeTest("isSaved() and addCommand() purging (corner case)", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    var someObject = {};
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo = 25}, () => {someObject.foo = undefined}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 16}, () => {someObject.foo -= 16}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 37}, () => {someObject.foo -= 37}));
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 49}, () => {someObject.foo -= 49}));
+
+    undoHistory.save();
+
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 23}, () => {someObject.foo -= 23}));
+
+    undoHistory.undoLastCommand();
+
+    // This invocation of addCommand() will purge the commands following it.
+    undoHistory.addCommand(makeTestCommand(() => {someObject.foo += 12}, () => {someObject.foo -= 12}));
+
+    // Should not be saved b/c the original series of commands has been erased.
+    assert(!undoHistory.isSaved(), "marked as saved");
+  }),
+  makeTest("ensure that accessing modifiesSaveData works correctly for various subclassing levels from Command", () => {
+    // Make barebones subclass of Command
+    var TestCommand1 = b3.Class(b3editor.Command);
+    TestCommand1.modifiesSaveData = false;
+    TestCommand1.prototype.initialize = function() {};
+    TestCommand1.prototype.run = function() {};
+    TestCommand1.prototype.undo = function() {};
+
+    // Make another barebones subclass of Command (must be direct)
+    var TestCommand2 = b3.Class(b3editor.Command);
+    TestCommand2.modifiesSaveData = true;
+    TestCommand2.prototype.initialize = function() {};
+    TestCommand2.prototype.run = function() {};
+    TestCommand2.prototype.undo = function() {};
+
+    // Subclass the second one.
+    var TestCommand2_1 = b3.Class(TestCommand2);
+
+    // Subclass above.
+    var TestCommand2_1_1 = b3.Class(TestCommand2_1);
+
+    // Now ensure that accessing modifiesSaveData works correctly.
+    var undoHistory1 = new b3editor.UndoStack();
+
+    undoHistory1.addCommand(new TestCommand1());
+
+    assert(undoHistory1.isSaved(), "marked as unsaved");
+
+    // TestCommand2
+    var undoHistory2 = new b3editor.UndoStack();
+
+    undoHistory2.addCommand(new TestCommand2());
+
+    assert(!undoHistory2.isSaved(), "marked as saved");
+
+    // TestCommand2_1
+    var undoHistory3 = new b3editor.UndoStack();
+
+    undoHistory3.addCommand(new TestCommand2_1());
+
+    assert(!undoHistory3.isSaved(), "marked as saved");
+
+    // TestCommand2_1_1
+    var undoHistory4 = new b3editor.UndoStack();
+
+    undoHistory4.addCommand(new TestCommand2_1_1());
+
+    assert(!undoHistory4.isSaved(), "marked as saved");
+  }),
+  makeTest("modifiesSaveData handling: basic functionality", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+
+    undoHistory.save();
+
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.undoLastCommand();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.redoNextCommand();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+  }),
+  makeTest("modifiesSaveData handling: already unsaved", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+
+    undoHistory.save();
+
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    undoHistory.undoLastCommand();
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    undoHistory.redoNextCommand();
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+  }),
+  makeTest("modifiesSaveData handling: multiple no-change commands", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+
+    undoHistory.save();
+
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.redoNextCommand();
+    undoHistory.redoNextCommand();
+    undoHistory.redoNextCommand();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+  }),
+  makeTest("modifiesSaveData handling: restoring save status at the right time", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    for (var i = 0; i < 3; i++)
+      undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+
+    undoHistory.save();
+
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();  // First command undone that results in an unsaved state.
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    undoHistory.redoNextCommand();  // Should now be saved.
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+  }),
+  makeTest("modifiesSaveData handling: more complex save status testing", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+
+    for (var i = 0; i < 3; i++)
+      undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    undoHistory.save();
+
+    for (var i = 0; i < 3; i++)
+      undoHistory.undoLastCommand();
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    // Now in the middle of the block of no-change commands.
+    undoHistory.save();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.redoNextCommand();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.redoNextCommand();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.redoNextCommand();  // Now has redone a command that leads to an unsaved state.
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+  }),
+  makeTest("modifiesSaveData handling: edge case", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.undoLastCommand();
+    undoHistory.undoLastCommand();  // Shouldn't cause any problems.
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.redoNextCommand();
+    undoHistory.redoNextCommand();  // Shouldn't cause any problems
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+  }),
+  makeTest("modifiesSaveData handling: addCommand() purge", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    for (var i = 0; i < 3; i++)
+      undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    undoHistory.addCommand(makeTestCommand(() => {}, () => {}));
+
+    undoHistory.save();
+
+    for (var i = 0; i < 3; i++)
+      undoHistory.undoLastCommand();
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    assert(!undoHistory.isSaved(), "marked as saved");
+  }),
+  makeTest("modifiesSaveData handling: addCommand() purge 2", () => {
+    var undoHistory = new b3editor.UndoStack();
+
+    for (var i = 0; i < 3; i++)
+      undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    undoHistory.save();
+
+    for (var i = 0; i < 2; i++)
+      undoHistory.undoLastCommand();
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+    undoHistory.addCommand(makeTestCommandNoChange(() => {}, () => {}));
+
+    assert(undoHistory.isSaved(), "marked as unsaved");
+  })
 ]
 
 module.exports = {testUndoStack: suite}

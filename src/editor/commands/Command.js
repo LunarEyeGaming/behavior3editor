@@ -4,17 +4,19 @@ this.b3editor = this.b3editor || {};
   "use strict";
 
   /**
-   * An interface representing a command (or a singular action that a user takes). Due to the way that classes are 
-   * constructed in this program, there is no direct way to represent an interface. Consequently, the methods in this
-   * class are callable but will throw an exception to let the programmer know that they have to implement the method.
-   * Programmers should instantiate subclasses of this class that implement all of the methods included in this one
-   * properly (by overriding them). The interface of this class (and all subclasses) is the following:
-   *   * run() - called when the command needs to be executed (when the command is first added and when redo is 
-   *     necessary, except when the redo method is defined, in which case the redo method is called instead)
-   *   * undo() - called when the command needs to be undone
+   * An abstract class representing a command (or a singular action that a user takes). Due to the way that classes are 
+   * constructed in this program, there is no direct way to represent an abstract class. Consequently, the methods in 
+   * this class are callable but will throw an exception to let the programmer know that they have to implement the
+   * method. Programmers should instantiate subclasses of this class that implement all of the methods included in this
+   * one properly (by overriding them). The interface of this class (and all subclasses) is the following:
+   *   * `Command.modifiesSaveData: boolean` - indicates whether or not the `Command` affects the save data of the
+   *     corresponding file. Defaults to true.
+   *   * `run(): () => void` - called when the command needs to be executed (when the command is first added)
+   *   * `undo(): () => void` - called when the command needs to be undone
+   *   * `redo(): () => void` - (optional) called when the command needs to be redone. Defaults to `run()`
    * 
-   * The programmer can have whatever constructors they need for subclasses. Please see subclasses of Command for examples
-   * on how to implement this interface.
+   * The programmer can have whatever constructors they need for subclasses. Please see subclasses of `Command` for
+   * examples on how to implement this interface.
    */
   var Command = b3.Class();
   var p = Command.prototype;
@@ -22,6 +24,8 @@ this.b3editor = this.b3editor || {};
   var notImplementedStub = function() {
     throw new ReferenceError("This method is not implemented. Please subclass Command and override the method.");
   }
+
+  Command.modifiesSaveData = true;
 
   /**
    * Initializes a Command.
@@ -35,6 +39,12 @@ this.b3editor = this.b3editor || {};
    * Undoes the command.
    */
   p.undo = notImplementedStub;
+  /**
+   * Redoes the command.
+   */
+  p.redo = function() {
+    this.run();
+  }
 
   /**
    * Defines a subclass of `Command` (using the `b3.Class` interface) and returns it.

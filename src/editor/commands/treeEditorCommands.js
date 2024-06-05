@@ -120,7 +120,9 @@ b3editor.RemoveBlocks = b3editor.defineCommand((_, p) => {
  *   * endPos: the ending position of the block (as 2D coordinates, where x is the x coordinate and y is the y 
  *     coordinate)
  */
-b3editor.MoveBlocks = b3editor.defineCommand((_, p) => {
+b3editor.MoveBlocks = b3editor.defineCommand((Class, p) => {
+  Class.modifiesSaveData = false;
+
   p.initialize = function(args) {
     this.editor = args.editor;
 
@@ -353,7 +355,9 @@ b3editor.Paste = b3editor.defineCommand((_, p) => {
 /**
  * A command representing organizing the entire tree.
  */
-b3editor.Organize = b3editor.defineCommand((_, p) => {
+b3editor.Organize = b3editor.defineCommand((Class, p) => {
+  Class.modifiesSaveData = false;
+
   p.initialize = function(args) {
     this.editor = args.editor;
 

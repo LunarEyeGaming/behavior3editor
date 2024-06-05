@@ -31,7 +31,9 @@ b3editor.AddNode = b3editor.defineCommand((_, p) => {
 /**
  * A command representing importing a set of nodes to the provided editor's node list.
  */
-b3editor.ImportNodes = b3editor.defineCommand((_, p) => {
+b3editor.ImportNodes = b3editor.defineCommand((Class, p) => {
+  Class.modifiesSaveData = false;
+
   p.initialize = function(args) {
     this.editor = args.editor;
 

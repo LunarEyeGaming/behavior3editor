@@ -12,8 +12,8 @@ this.b3editor = this.b3editor || {};
    * instances of the `ListNode` class. See documentation above for more details. An `UndoStack` instance is 
    * initialized as an empty list, with an optional `maxLength` given in an `args` object that is passed into the 
    * constructor. `maxLength` signifies the maximum length of the list, and if the list exceeds that length, the the
-   * oldest `Command` in the stack (i.e., the first one) will be removed. Each instance also has a `cursor`, which points
-   * to the last `Command` executed that was not undone (or `null` in the case of an empty list).
+   * oldest `Command` in the stack (i.e., the first one) will be removed. Each instance also has a `cursor`, which
+   * points to the last `Command` executed that was not undone (or `null` in the case of an empty list).
    * 
    * The `addCommand()` method invokes the `run()` method of a given `Command` and adds it to the stack at the position 
    * immediately following the `cursor`, deleting any subsequent `Command`s if present. The `undoLastCommand()` invokes
@@ -25,7 +25,9 @@ this.b3editor = this.b3editor || {};
    * Each `UndoStack` instance also has a "save cursor," which is the location of the cursor when the associated file
    * (which the programmer determines via external means) was last saved. The associated file is considered to be
    * "saved" if the save cursor matches the actual cursor, and the programmer can check if the file is saved using the 
-   * `isSaved()` method. The save cursor can be updated to match the actual cursor using the `save()` method.
+   * `isSaved()` method. The save cursor can be updated to match the actual cursor using the `save()` method. On a
+   * related note, if the `UndoStack` is saved and a `Command` with `modifiesSaveData` set to false is added, undone, 
+   * or redone, then the `UndoStack` will remain saved.
    * 
    * As a point of advice, one should make sure to handle references to variables outside of any functions fed into this
    * class; JavaScript will base references to external variables on the present variables at the time that the function
@@ -67,9 +69,10 @@ this.b3editor = this.b3editor || {};
     // Initialize to empty doubly-linked list.
     this.head = null;  
     this.cursor = null;
-    this.cursorPos = -1;
+    this.cursorPos = -1;  // The index of the actual cursor, -1 for at the beginning of the list
     this.length = 0;
-    this.saveCursorPos = -1;
+    this.saveCursorPos = -1;  // The index of the save cursor, -1 for at the beginning of the list.
+    this.canAccessSavedState = true;  // Whether or not the saved state can be accessed through undos and redos only.
     this.numRemoved = 0;
   }
 
@@ -78,8 +81,10 @@ this.b3editor = this.b3editor || {};
    * method of the `Command` immediately. If the cursor was not at the end of the stack, all Commands following its 
    * former position will be removed from the stack. It is up to the programmer to ensure that following an invocation
    * of the `run()` method with an invocation of the `undo()` method reverses the state of the editor and that following
-   * that invocation with a `redo()` method call (or another `run()` method call if `redo()` is not defined) will lead
-   * to the same result as simply calling `run()`.
+   * that invocation with a `redo()` method call will lead to the same result as simply calling `run()`.
+   * 
+   * If the `Command` that is added has `modifiesSaveData` set to false and the `UndoStack` is saved, then it will
+   * remain saved. Otherwise, it will become unsaved.
    * 
    * @param cmd the `Command` to add.
    * @throws TypeError if `cmd` is `null`, is `undefined`, or is not an instance of Command
@@ -90,6 +95,8 @@ this.b3editor = this.b3editor || {};
       throw new TypeError("cmd is undefined, is null, or is not a Command");
     }
 
+    var wasSaved = this.isSaved();
+
     // Run the command.
     cmd.run();
 
@@ -97,8 +104,14 @@ this.b3editor = this.b3editor || {};
     var newNode = new b3editor.ListNode(cmd, null, this.cursor);
 
     // If the cursor is not at the beginning of the list or in an empty list...
-    if (this.cursor !== null)
+    if (this.cursor !== null) {
+      // If the cursor is not at the end of the list and the save cursor is after the actual cursor...
+      if (this.cursor.next !== null && this.saveCursorPos > this.cursorPos + this.numRemoved)
+        // Indicate that the saved state can no longer be accessed.
+        this.canAccessSavedState = false;
+
       this.cursor.next = newNode;  // Appends to list if at the end; cuts off nodes following cursor otherwise.
+    }
     else  // Otherwise...
       this.head = newNode;  // Update the head of the list.
 
@@ -121,11 +134,20 @@ this.b3editor = this.b3editor || {};
       this.cursorPos--;  // cursorPos should be updated too.
       this.numRemoved++;  // Update the number of removed commands.
     }
+
+    // If the type of command added does not modify the save data and the UndoStack was saved prior to adding the 
+    // command...
+    if (!this._cmdModifiesSaveData(cmd) && wasSaved)
+      // Keep it saved.
+      this.save();
   }
 
   /**
    * Invokes the `undo()` method of the `Command` at the cursor and moves the cursor back by one `Command`. Has no
    * effect if the cursor is already at the beginning of the list.
+   * 
+   * If the `Command` that is undone has `modifiesSaveData` set to false and the `UndoStack` is saved, then it will
+   * remain saved. Otherwise, it will become unsaved.
    * 
    * @returns true if the undo action was successful (i.e., caused `undo()` to be run), false otherwise
    */
@@ -134,11 +156,20 @@ this.b3editor = this.b3editor || {};
 
     // If the cursor is not at the beginning of the list...
     if (this.cursor !== null) {
-      this.cursor.data.undo();  // Undo the command.
+      var cmd = this.cursor.data;
+      var wasSaved = this.isSaved();
+
+      cmd.undo();  // Undo the command.
 
       // Move back the cursor
       this.cursor = this.cursor.prev;
       this.cursorPos--;
+
+      // If the type of command undone does not modify the save data and the UndoStack was saved prior to undoing the
+      // command...
+      if (!this._cmdModifiesSaveData(cmd) && wasSaved)
+        // Keep it saved.
+        this.save();
 
       result = true;
     } else
@@ -148,9 +179,12 @@ this.b3editor = this.b3editor || {};
   }
 
   /**
-   * Reperforms the `Command` at the node immediately following the undo cursor and moves the cursor forward by one 
-   * `Command`. Reperforming the `Command` involves either running the `redo()` method, if defined, or running the 
-   * `run()` method otherwise. If there are no actions to redo, this method will have no effect.
+   * Invokes the `redo()` method on the `Command` at the node immediately following the undo cursor and moves the cursor
+   * forward by one `Command`. Reperforming the `Command` involves either running the `redo()` method, if defined, or
+   * running the `run()` method otherwise. If there are no actions to redo, this method will have no effect.
+   * 
+   * If the `Command` that is redone has `modifiesSaveData` set to false and the `UndoStack` is saved, then it will
+   * remain saved. Otherwise, it will be unsaved.
    * 
    * @returns true if the undo action was successful (i.e., caused `undo()` to be run), false otherwise
    */
@@ -168,16 +202,21 @@ this.b3editor = this.b3editor || {};
     // If the target is not null (i.e., the list is not empty when target === head; the cursor is not the last element 
     // otherwise)
     if (target !== null) {
-      // If the redo method is defined...
-      if (target.data.redo) {
-        target.data.redo();  // Use it
-      } else {  // Otherwise...
-        target.data.run();  // Use the run method
-      }
+      var cmd = target.data;
+      var wasSaved = this.isSaved();
+
+      // Invoke redo() method...
+      cmd.redo();
 
       // Move the cursor forward.
       this.cursor = target;
-      this.cursorPos++;
+      this.cursorPos++;      
+
+      // If the type of command redone does not modify the save data and the UndoStack was saved prior to redoing the
+      // command...
+      if (!this._cmdModifiesSaveData(cmd) && wasSaved)
+        // Keep it saved.
+        this.save();
 
       result = true;
     } else
@@ -187,21 +226,24 @@ this.b3editor = this.b3editor || {};
   }
 
   /**
-   * Returns whether or not the save cursor matches the actual cursor.
+   * Returns whether or not the current state of the `UndoStack` is saved.
    * 
-   * @returns true if the save cursor matches the actual cursor, false otherwise.
+   * @returns true if the current state of the `UndoStack` is saved, false otherwise.
    */
   p.isSaved = function() {
+    // True if and only if the save cursor position matches the true cursor position and the saved state can be 
+    // accessible.
     // this.cursorPos + this.numRemoved (the number of commands removed) gives the true cursor position.
-    return this.saveCursorPos == this.cursorPos + this.numRemoved;
+    return this.canAccessSavedState && this.saveCursorPos == this.cursorPos + this.numRemoved;
   }
 
   /**
-   * Sets the save cursor to the actual cursor.
+   * Makes the current state of the `UndoStack` the one that is saved.
    */
   p.save = function() {
     // this.cursorPos + this.numRemoved (the number of commands removed) gives the true cursor position.
     this.saveCursorPos = this.cursorPos + this.numRemoved;
+    this.canAccessSavedState = true;  // Can access the saved state again.
   }
 
   /**
@@ -212,6 +254,17 @@ this.b3editor = this.b3editor || {};
    */
   p.hasChainCommand = function() {
     return this.cursor !== null && this.cursor.data instanceof b3editor.ChainCommand;
+  }
+  
+  p._cmdModifiesSaveData = function(cmd) {
+    function cmdModifiesSaveDataHelper(proto) {
+      // Base case: modifiesSaveData is defined in the constructor or proto is not an instance of b3editor.Command.
+      if (proto.constructor.modifiesSaveData !== undefined || !(proto instanceof b3editor.Command))
+        return proto.constructor.modifiesSaveData;
+      // Recursive case
+      return cmdModifiesSaveDataHelper(Object.getPrototypeOf(proto));
+    }
+    return cmdModifiesSaveDataHelper(Object.getPrototypeOf(cmd));
   }
 
   b3editor.UndoStack = UndoStack;
