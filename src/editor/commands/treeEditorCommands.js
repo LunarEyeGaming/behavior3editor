@@ -138,9 +138,9 @@ b3editor.MoveBlocks = b3editor.defineCommand((_, p) => {
       movement.block.displayObject.x = movement.startPos.x;
       movement.block.displayObject.y = movement.startPos.y;
 
-      // Redraw the block and its connections.
-      movement.block.redraw();
-    })
+      // Redraw the block's connections.
+      movement.block.redrawConnections();
+    });
 
     // Update the canvas to reflect the change.
     this.editor.canvas.stage.update();
@@ -153,9 +153,12 @@ b3editor.MoveBlocks = b3editor.defineCommand((_, p) => {
       movement.block.displayObject.x = movement.endPos.x;
       movement.block.displayObject.y = movement.endPos.y;
 
-      // Redraw the block and its connections.
-      movement.block.redraw();
-    })
+      // Redraw the block's connections.
+      movement.block.redrawConnections();
+    });
+
+    // Update the canvas to reflect the change.
+    this.editor.canvas.stage.update();
   }
 })
 

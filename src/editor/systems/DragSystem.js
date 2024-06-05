@@ -77,8 +77,10 @@ this.b3editor = this.b3editor || {};
       block.displayObject.y = dy - dy%this.editor.settings.get('snap_y');
 
       // redraw connections linked to the entity
-      block.redraw();
+      block.redrawConnections();
     }
+
+    this.canvas.stage.update();
   }
 
   p.onMouseUp = function(event) {

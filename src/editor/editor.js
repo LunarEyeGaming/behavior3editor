@@ -1184,6 +1184,7 @@ this.b3editor = this.b3editor || {};
     this.selectTree(tree.id);
     this.select(this.blocks[0]);
     this.center();
+    this.canvas.stage.update();
 
     return tree;
   }
@@ -1639,6 +1640,9 @@ this.b3editor = this.b3editor || {};
 
     // Center camera.
     this.center();
+
+    // Update canvas stage.
+    this.canvas.stage.update();
   }
   p.snap = function(blocks) {
     if (!blocks) {
