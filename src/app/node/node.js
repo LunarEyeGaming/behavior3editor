@@ -334,7 +334,7 @@ angular.module('app.node', ['app.modal'])
   // SEARCH FUNCTIONALITY ------------------------------------------------------
   $scope.searchByName = function(node) {
     if ($scope.searchInfo.searchText !== undefined)
-      return node.prototype.title.toLowerCase().includes($scope.searchInfo.searchText.toLowerCase());
+      return $scope.getTitle(node).toLowerCase().includes($scope.searchInfo.searchText.toLowerCase());
     return true;
   }
 
