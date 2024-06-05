@@ -1414,9 +1414,11 @@ this.b3editor = this.b3editor || {};
       }  // Otherwise, if the window should be closed...
       else if (closeOnNoWarning) {
         closeWindow();
+      } // Otherwise...
+      else {
+        this_.onApplicationClose();  // Handle exiting the application.
+        // Allow the window to close.
       }
-
-      // Otherwise, allow the window to close.
     }
     /**
      * Overview of function behavior: Performs two checks before closing the application: Whether all nodes are saved 
