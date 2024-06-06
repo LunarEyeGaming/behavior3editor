@@ -211,10 +211,12 @@ angular.module('app.menu', ['app.modal'])
   $scope.onButtonZoomIn = function(e) {
     if (e) e.preventDefault();
     $window.app.editor.zoomIn();
+    $window.app.game.stage.update();
   }
   $scope.onButtonZoomOut = function(e) {
     if (e) e.preventDefault();
     $window.app.editor.zoomOut();
+    $window.app.game.stage.update();
   }
   $scope.onButtonCollapseAll = function(e) {
     if (e) e.preventDefault();

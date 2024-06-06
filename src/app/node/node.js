@@ -146,6 +146,15 @@ angular.module('app.node', ['app.modal'])
   $scope.categoryIsSaved = function(dirName, category) {
     return $window.app.editor.globalNodeUndoHistory.categoryIsSaved(dirName, category);
   }
+
+  /**
+   * Returns whether or not the mapping of action categories to node lists is empty.
+   * @param {*} nodesInDir the nodes in the directory
+   * @returns whether or not the mapping of action categories to node lists is empty.
+   */
+  $scope.actionCategoriesEmpty = function(nodesInDir) {
+    return Object.keys(nodesInDir.actionCategories).length === 0;
+  }
   // --------------------------------------------------------------------------
 
   // UPDATE NODES--------------------------------------------------------------
@@ -541,7 +550,6 @@ angular.module('app.node', ['app.modal'])
         var type = domOutputTypes[i].value;
         var key = domOutputKeys[i].value;
         var value = domOutputValues[i].value;
-        if (value === '') value = null;
         if (key)
           newNode.output[key] = value;
       }

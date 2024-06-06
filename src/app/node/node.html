@@ -5,7 +5,7 @@
 </div>
 <div class="node-panel panel" scrollable>
   <div>
-    <div ng-repeat="(dirName, nodesInDir) in filteredNodes" class="item">
+    <div ng-repeat="(dirName, nodesInDir) in (searchInfo.searchText ? filteredNodes : nodes)" class="item">
       <b3-collapsible-list class="type-list">
         <b3-collapsible-list-header>
           <span class="save-marker left" ng-hide="dirIsSaved(dirName)">*</span>
@@ -155,7 +155,7 @@
                 <span class="empty">Empty</span>
               </div>
             </div>
-            <div class="item" ng-show="nodesInDir.action.length===0 && !searchInfo.searchText">
+            <div class="item" ng-show="nodesInDir.action.length===0 && actionCategoriesEmpty(nodesInDir) && !searchInfo.searchText">
               <span class="empty">Empty</span>
             </div>
           </b3-collapsible-list>
