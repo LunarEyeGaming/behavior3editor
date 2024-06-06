@@ -1,19 +1,18 @@
-<div class="tree-panel panel" scrollable>
-  <ul class="item-list">
-    <li ng-repeat="tree in trees">
-      <a id="tree-{{tree.id}}" 
-         href="#"
-         ng-click="selectTree(tree.id);"
-         ng-class="{selected:tree.id===currentTree}"
-         onmouseover="this.lastElementChild.style.display='inline-block';"
-         onmouseout="this.lastElementChild.style.display='none';">
+<div class="tree-tabs-bar">
+  <div class="tree-tabs-container">
+    <div class="tree-tabs" id="tree-tabs">
+      <div ng-repeat="tree in trees" id="tree-{{tree.id}}" 
+          class="tab"
+          href="#"
+          ng-click="selectTree(tree.id);"
+          ng-class="{selected:tree.id===currentTree}">
         <div ng-hide="tree.isSaved" class="save-marker left">*</div>
         {{tree.name}}
-        <button href="#" title="Remove Tree From Editor" class="edit right" ng-show="canRemoveTree();" ng-click="removeTree(tree.id)" style="display: none;">&times;</button>
-      </a>
-    </li>
-  </ul>
-
-  <a class="button success" ng-click="addTree()" href="#">New Tree</a>
+        <!--$event.stopPropagation() stops the ng-click event in the parent from firing.-->
+        <button href="#" title="Close Tab" class="close right" ng-disabled="!canRemoveTree();" ng-click="removeTree(tree.id); $event.stopPropagation()">&times;</button>
+      </div>
+    </div>
+  </div>
+  <button class="success new-tree" ng-click="addTree()" href="#" title="New Tree">+</button>
 </div>
 

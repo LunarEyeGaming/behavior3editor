@@ -4,7 +4,7 @@ angular.module('app.tree', ['app.modal'])
 //
 // TREE CONTROLLER
 //
-.controller('TreeController', function($scope, $rootScope, $window, $timeout, ModalService) {
+.controller('TreeController', function($scope, $rootScope, $window, $timeout, $element, ModalService) {
   var this_ = this;
 
   $scope.currentTree = $window.app.editor.tree.id;
@@ -68,6 +68,8 @@ angular.module('app.tree', ['app.modal'])
   }
   this.onTreeSelected = function(e) {
     $timeout(function() {
+      this_.showTreeTab(e._target.id);
+
       $scope.$apply(function() {
         $scope.currentTree = e._target.id;
       });
@@ -80,6 +82,31 @@ angular.module('app.tree', ['app.modal'])
   }
   this.onTreeSaveStatusChanged = function(e) {
     this.updateTrees(e, e._target.id);
+  }
+  this.showTreeTab = function(id) {
+    // Find the element containing the tree tabs and the element containing the tab that was selected.
+    var treeTabs = $element[0].querySelector("#tree-tabs");
+    var treeTab = $element[0].querySelector("#tree-" + id);
+
+    // Get bound boxes for the two elements.
+    var treeTabsBounds = treeTabs.getBoundingClientRect();
+    var treeTabBounds = treeTab.getBoundingClientRect();
+
+    // Calculate the number of pixels horizontally that the currently selected tree tab is outside of the tab list box
+    // in either direction (positive values indicate too far to the left or to the right respectively).
+    var leftDeviation = treeTabsBounds.left - treeTabBounds.left;
+    var rightDeviation = treeTabBounds.right - treeTabsBounds.right;
+
+    // If the tab is too far to the left...
+    if (leftDeviation > 0)
+      // Shift the scrolling position to the left by that deviation (this moves the tabs to the right relative to the 
+      // viewport).
+      treeTabs.scrollLeft -= leftDeviation;
+    // Otherwise, if the tab is too far to the right...
+    else if (rightDeviation > 0)
+      // Shift the scrolling position to the right by that deviation (this moves the tabs to the left relative to the
+      // viewport)
+      treeTabs.scrollLeft += rightDeviation;
   }
 
   this.updateTrees();

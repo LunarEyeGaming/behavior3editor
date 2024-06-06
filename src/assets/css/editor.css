@@ -141,23 +141,101 @@ form .row input, form .row textarea, form .row select {
   padding: 3px;
 }
 
+.inner-topbar {
+  top: 25px;
+  position: absolute;
+  text-align: left;
+  margin: 0px;
+  border-bottom: 1px solid #aaaaaa;
+  left: 250px;  /* Required b/c the sidebar on the left will otherwise hide some of the text. */
+  width: calc(100% - 500px);
+  background-color: #ffffff;
+}
+
+/* ================================*/
+/* TREE TABS                       */
+/* ================================*/
+.tree-tabs-bar {
+  width: 100%;
+  background-color: #dadada;
+  border-bottom: #aaaaaa solid 1px;
+  display: inline-block;
+}
+.tree-tabs-container {
+  display: inline-block;
+  max-width: calc(100% - 45px);
+}
+.tree-tabs {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-right: #aaaaaa solid 1px;
+}
+
+.tree-tabs .tab {
+  font-size: 14px;
+  background-color: #dddddd;
+  border-right: #777777 solid 1px;
+  border-bottom: #777777 solid 1px;
+  padding: 5px 10px;
+  padding-top: 11px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.tree-tabs .tab.selected {
+  background-color: #ffffff;
+  border-bottom: #008CBA solid 4px;
+}
+
+.tree-tabs .tab .close {
+  position: relative;
+  bottom: 2px;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  padding: 0px;
+  margin-bottom: 0px;
+  margin-left: 5px;
+  color: #333333;
+  background-color: inherit;
+  transition: none;
+}
+
+.tree-tabs .tab .close:hover {
+  background-color: #fcfcfc;
+}
+
+.tree-tabs .tab.selected .close:enabled:hover {
+  background-color: #e6e6e6;
+}
+
+.tree-tabs .tab .close:disabled {
+  color: #999999;
+}
+
+.tree-tabs .new-tree, .tree-tabs-bar .new-tree {
+  padding: 5px 10px;
+  margin: 5px 5px;
+  flex: 0 0 auto;
+}
+.tree-tabs .tab .save-marker {
+  color: #f04124;
+  padding-right: 3px;
+}
+/* ================================*/
+
 /* ================================*/
 /* FILENAME DISPLAY                */
 /* ================================*/
 .filename-display {
-  font-size: 25px;
-  margin: 0px;
   padding: 5px;
-  text-align: left;
-  position: absolute;
-  top: 25px;
-  left: 250px;  /* Required b/c the sidebar on the left will otherwise hide some of the text. */
-  width: calc(100% - 510px);
+  font-size: 25px;
   height: 25px;
   background-color: #ffffff;
-  border-bottom: 1px solid #aaaaaa;
   overflow: hidden;
-  display: inline;
+  display: inline-block;
 }
 
 .filename-display .save-status-display {
@@ -745,79 +823,6 @@ div.collapsible-list-items.hidden {
   margin: 0px 1px;
 }
 .type-list .save-marker {
-  color: #f04124;
-  padding-right: 3px;
-}
-/* ================================*/
-
-/* ================================*/
-/* ITEM LIST                       */
-/* ================================*/
-.item-list, .item-list ul {
-  list-style: none;
-  padding: 0px;
-  margin: 0px;
-  margin-bottom: 10px;
-  text-align: left;
-}
-.item-list li {
-  padding: 0px;
-  margin: 0px;
-}
-.item-list li ul li {
-  padding: 2px;
-  margin: 2px;
-  border: 1px solid #333333;
-}
-.item-list a {
-  padding: 2px 0px 2px 10px;
-  color: #333333;
-  text-decoration: none;
-  display: block;
-}
-.item-list a.selected {
-  font-weight: 600;  
-  /*background-color: #606060;*/
-  /*pointer-events: none;*/
-  /*cursor: default;*/
-}
-.item-list .empty {
-  padding: 2px 0px 2px 10px;
-  color: #ACACAC;
-  display: block;
-}
-.item-list a:hover {
-  background-color: #ffffff;
-}
-.item-list a.header {
-  text-transform: uppercase;
-  padding: 3px 0px;
-  font-weight: 600!important;
-  color: #333333;
-  font-size: 1.2em;
-  border-style: none;
-}
-.item-list a.header:hover {
-  background-color: inherit;
-}
-.item-list a.category {
-  font-weight: 600;
-  color: #333333;
-  font-size: 1.1em;
-}
-.item-list .edit {
-  padding: 0px 5px;
-  margin: 0px 1px;
-  background-color: #ffffff;
-  color: #333333;
-}
-.item-list .new-node {
-  position: relative;
-  bottom: 1px;
-  padding: 2px 5px;
-  margin: 0px 1px;
-}
-.item-list .save-marker {
   color: #f04124;
   padding-right: 3px;
 }

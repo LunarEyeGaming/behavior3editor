@@ -1273,7 +1273,7 @@ this.b3editor = this.b3editor || {};
       this.conditionalWarning({
         predicate: () => !tree.undoHistory.isSaved(),
         conditionalCallback: removeTreeHelper,
-        message: "The tree '" + tree.blocks[0].title + "' is unsaved. Do you want to save the tree before removing it?",
+        message: "Save changes to '" + tree.blocks[0].title + "' before closing?",
         choices: [
           {name: "Yes", triggersCallback: false},
           {name: "No", triggersCallback: true},

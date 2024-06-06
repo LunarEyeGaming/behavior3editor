@@ -89,11 +89,9 @@
         <sidebar class="left">
           <div class="tabset" ng-controller="TabController">
             <ul class="header">
-              <li><a href="#" ng-class="{active:visible(0)}" ng-click="select(0)">Trees</a></li>
               <li><a href="#" ng-class="{active:visible(1)}" ng-click="select(1)">Nodes</a></li>
             </ul>
     
-            <div ng-show="visible(0)"><treepanel>0</treepanel></div>
             <div ng-show="visible(1)"><nodepanel>1</nodepanel></div>
           </div>
         </sidebar>
@@ -115,7 +113,10 @@
 
       <b3-focus-editor-linker></b3-focus-editor-linker>
 
-      <filename></filename>
+      <div class="inner-topbar">
+        <b3-tree-tabs></b3-tree-tabs>
+        <filename></filename>
+      </div>
     </b3-focus-list>
     
   </div>

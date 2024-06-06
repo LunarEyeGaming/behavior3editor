@@ -1,6 +1,6 @@
 angular.module('app.tree')
 
-.directive('treepanel', function() {
+.directive('b3TreeTabs', function() {
   return {
     restrict: 'E',
     controller: 'TreeController',
