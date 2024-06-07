@@ -239,6 +239,7 @@ form .row input, form .row textarea, form .row select {
   background-color: #ffffff;
   overflow: hidden;
   display: inline-block;
+  width: calc(100% - 10px);
 }
 
 .filename-display .save-status-display {
@@ -698,6 +699,12 @@ div.collapsible-list-items.hidden {
   padding: 2px;
   margin: 2px;
   border: 1px solid #333333;
+}
+.node-list .item .abbreviated {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 .node-list a {
   padding: 2px 0px 2px 10px;

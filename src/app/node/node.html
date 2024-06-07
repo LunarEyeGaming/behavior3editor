@@ -59,17 +59,14 @@
               <a id="node-{{node.prototype.name}}" 
                  href="#"
                  draggable-node
-                 onmouseover="this.lastElementChild.style.display='inline-block';"
-                 onmouseout="this.lastElementChild.style.display='none';">
-                <b3-highlightable str="getTitle(node)" search-text="searchInfo.searchText"></b3-highlightable>
-                <button 
-                   href="#"
-                   class="edit right"
-                   ng-show="canEditNode(node.prototype.name);"
-                   ng-click="showEditNodeModal(node.prototype.name)"
-                   style="display: none;">
+                 onmouseover="this.firstElementChild.style.display='inline-block';"
+                 onmouseout="this.firstElementChild.style.display='none';"
+                 title="{{getTitle(node)}}">
+                <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);"
+                ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">
                   Edit
                 </button>
+                <b3-highlightable str="getTitle(node)" class="abbreviated" search-text="searchInfo.searchText"></b3-highlightable>
               </a>
             </div>
             <div class="item" ng-show="nodesInDir.composite.length===0 && !searchInfo.searchText">
@@ -95,13 +92,14 @@
               <a id="node-{{node.prototype.name}}" 
                  href="#"
                  draggable-node
-                 onmouseover="this.lastElementChild.style.display='inline-block';"
-                 onmouseout="this.lastElementChild.style.display='none';">
-                <b3-highlightable str="getTitle(node)" search-text="searchInfo.searchText"></b3-highlightable>
+                 onmouseover="this.firstElementChild.style.display='inline-block';"
+                 onmouseout="this.firstElementChild.style.display='none';"
+                 title="{{getTitle(node)}}">
                 <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);"
                 ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">
                   Edit
                 </button>
+                <b3-highlightable str="getTitle(node)" class="abbreviated" search-text="searchInfo.searchText"></b3-highlightable>
               </a>
             </div>
             <div class="item" ng-show="nodesInDir.decorator.length===0 && !searchInfo.searchText">
@@ -141,13 +139,14 @@
                   <a id="node-{{node.prototype.name}}" 
                      href="#"
                      draggable-node
-                     onmouseover="this.lastElementChild.style.display='inline-block';"
-                     onmouseout="this.lastElementChild.style.display='none';">
-                    <b3-highlightable str="getTitle(node)" search-text="searchInfo.searchText"></b3-highlightable>
+                     onmouseover="this.firstElementChild.style.display='inline-block';"
+                     onmouseout="this.firstElementChild.style.display='none';"
+                     title="{{getTitle(node)}}">
                     <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);"
                     ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">
                       Edit
                     </button>
+                    <b3-highlightable str="getTitle(node)" class="abbreviated" search-text="searchInfo.searchText"></b3-highlightable>
                   </a>
                 </div>
               </b3-collapsible-list>
@@ -178,13 +177,14 @@
               <a id="node-{{node.prototype.name}}" 
                  href="#"
                  draggable-node
-                 onmouseover="this.lastElementChild.style.display='inline-block';"
-                 onmouseout="this.lastElementChild.style.display='none';">
-                <b3-highlightable str="getTitle(node)" search-text="searchInfo.searchText"></b3-highlightable>
+                 onmouseover="this.firstElementChild.style.display='inline-block';"
+                 onmouseout="this.firstElementChild.style.display='none';"
+                 title="{{getTitle(node)}}">
                 <button href="#" class="edit right" ng-show="canEditNode(node.prototype.name);"
                 ng-click="showEditNodeModal(node.prototype.name)" style="display: none;">
                   Edit
                 </button>
+                <b3-highlightable str="getTitle(node)" class="abbreviated" search-text="searchInfo.searchText"></b3-highlightable>
               </a>
             </div>
             <div class="item" ng-show="nodesInDir.module.length===0 && !searchInfo.searchText">

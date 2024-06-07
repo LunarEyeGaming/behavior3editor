@@ -380,7 +380,14 @@ this.b3editor = this.b3editor || {};
     }
   }
   p.importFromJSON = function(json) {
-    var data = JSON.parse(json);
+    // Handle parse error.
+    try {
+      var data = JSON.parse(json);
+    } catch (err) {
+      // Log error and abort.
+      this.logger.error("Error while parsing file: " + err);
+      return;
+    }
 
     this.logger.info("Import tree "+data.name);
 
@@ -879,7 +886,15 @@ this.b3editor = this.b3editor || {};
   // json is the JSON contents of the .nodes file; originDirectory is the directory from which it originated.
   // isCommand is whether or not to treat the act of importing the nodes as a command.
   p.importNodes = function(json, originDirectory, isCommand) {
-    var nodes = JSON.parse(json);
+    // Handle parse error
+    try {
+      var nodes = JSON.parse(json);
+    } catch (err) {
+      // Log error and abort.
+      this.logger.error("Error while parsing file: " + err);
+      return;
+    }
+
     var nodesImported = [];
 
     // Go through each node, try to construct it, and add it to the list of nodes to add, nodesImported.
@@ -1090,10 +1105,6 @@ this.b3editor = this.b3editor || {};
     var oldOriginDirectory = node.prototype.originDirectory;
     var oldCategory = node.prototype.category;
 
-    // Remove the node from the export hierarchy.
-    // this.removeFromExportHierarchy(this.nodes[oldName].prototype.originDirectory, 
-    //   this.nodes[oldName].prototype.category || this.nodes[oldName].prototype.type);
-
     // Remove old node from the node definition list.
     delete this.nodes[oldName];
     this.nodes[newNode.name] = node;
@@ -1148,9 +1159,6 @@ this.b3editor = this.b3editor || {};
     this.deselectAll();
 
     var node = this.nodes[name];
-
-    // Update the export hierarchy.
-    // this.removeFromExportHierarchy(node.prototype.originDirectory, node.prototype.category || node.prototype.type);
 
     delete this.nodes[name];
     this.trigger('noderemoved', node);
