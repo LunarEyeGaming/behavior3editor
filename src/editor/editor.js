@@ -1287,6 +1287,42 @@ this.b3editor = this.b3editor || {};
       });
     }
   }
+  /**
+   * Moves a tree with id `id` to index `idx`.
+   * 
+   * @precondition `0 <= idx <= this.trees.length`
+   * @param {string} id the ID of the tree to move
+   * @param {number} idx the new place to which to move the tree
+   */
+  p.moveTree = function(id, idx) {
+    var oldIdx = -1;
+    var treeToMove = null;
+
+    // For each tree...
+    for (var i = 0; i < this.trees.length; i++) {
+      var tree = this.trees[i];
+      // If the tree's ID matches the one given...
+      if (tree.id === id) {
+        oldIdx = i;  // set old index.
+        treeToMove = tree;  // Set the tree to move.
+        break;  // Break out of loop to stop the search.
+      }
+    }
+
+    // If the tree is found...
+    if (oldIdx != -1) {
+      this.trees.splice(oldIdx, 1);  // Remove it from the list where it is...
+
+      // Special case: oldIdx < idx (idx will have to be decremented because everything following oldIdx was shifted 
+      // back by one).
+      if (oldIdx < idx)
+        idx--;
+
+      this.trees.splice(idx, 0, treeToMove);  // And add it back at the right location.
+    }
+
+    this.trigger("treemoved");
+  }
   // TODO: Move to separate module.
   /**
    * Calls to this function should include a reference to "this" within the context of the Editor object as the first

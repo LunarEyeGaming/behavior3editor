@@ -224,6 +224,9 @@ form .row input, form .row textarea, form .row select {
   color: #f04124;
   padding-right: 3px;
 }
+.tree-tabs .tab-insert-slot {
+  border-right: #e7c800 solid 3px;
+}
 /* ================================*/
 
 /* ================================*/
