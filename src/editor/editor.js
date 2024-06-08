@@ -1114,9 +1114,6 @@ this.b3editor = this.b3editor || {};
     node.prototype.title = newNode.title;
     node.prototype.originDirectory = originDirectory;
 
-    // Update the export hierarchy
-    this.addToExportHierarchy(originDirectory, node.prototype.category || node.prototype.type);
-
     if (newNode.properties)
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
     if (node.prototype.type == "action") {
@@ -1124,6 +1121,9 @@ this.b3editor = this.b3editor || {};
       node.prototype.script = newNode.script;
       node.prototype.category = newNode.category;
     }
+
+    // Update the export hierarchy
+    this.addToExportHierarchy(originDirectory, node.prototype.category || node.prototype.type);
 
     // Across all trees...
     this.trees.forEach(tree => {
