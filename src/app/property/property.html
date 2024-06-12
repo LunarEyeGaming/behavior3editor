@@ -38,13 +38,34 @@
             </table>
           </div>
           <div ng-show="type == 'json'">
-            <a href="#" ng-click="addJSONPair('value-json'); onInput()" class="button success right">+</a>
+            <label>Sub-Type</label>
+            <select id="json-subtype" ng-model="subType" onchange="element(this).onChange(this); element(this).onInput(this)">
+              <option ng-repeat="(typeOpt, text) in subTypes" ng-selected="typeOpt == subType" value="{{typeOpt}}">{{text}}</option>
+            </select>
+            <label>Value</label>
+            <div ng-show="subType == 'dict'">
+              <a href="#" ng-click="addDictPair('value-json-dict'); onInput()" class="button success right">+</a>
 
-            <table id="value-json" class="data-aggregate data-json">
-              <tbody>
-                <!-- Items are dynamically inserted here -->
-              </tbody>
-            </table>
+              <table id="value-json-dict" class="data-aggregate data-json">
+                <tbody>
+                  <!-- Items are dynamically inserted here -->
+                </tbody>
+              </table>
+            </div>
+            <div ng-show="subType == 'list'">
+              <a href="#" ng-click="addListItem('value-json-list'); onInput()" class="button success right">+</a>
+  
+              <table id="value-json-list" class="data-aggregate">
+                <tbody>
+                  <!-- Items are dynamically inserted here -->
+                </tbody>
+              </table>
+            </div>
+            <input id="value-json-string" type="text" placeholder="value" ng-show="subType == 'string'" b3-property-change-listener>
+            <input id="value-json-bool" type="checkbox" ng-show="subType == 'bool'" onchange="element(this).onInput(this); element(this).onChange(this)">
+            <input id="value-json-number" type="text" placeholder="value" ng-show="subType == 'number'" b3-property-change-listener>
+            <div class="null" ng-show="subType == 'null'">NULL</div>
+            <!--"null" shows nothing-->
           </div>
           <div ng-show="type == 'table'">
             <label for="is-numbered">Numbered: </label>
@@ -60,9 +81,9 @@
               </table>
             </div>
             <div ng-hide="tableIsNumbered">
-              <a href="#" ng-click="addJSONPair('value-table-json'); onInput()" class="button success right">+</a>
+              <a href="#" ng-click="addDictPair('value-table-dict'); onInput()" class="button success right">+</a>
 
-              <table id="value-table-json" class="data-aggregate data-json">
+              <table id="value-table-dict" class="data-aggregate data-json">
                 <tbody>
                   <!-- Items are dynamically inserted here -->
                 </tbody>

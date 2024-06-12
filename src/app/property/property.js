@@ -181,7 +181,7 @@ angular.module('app.property', [])
     var result;
 
     // If the data has a value...
-    if (data.value) {
+    if (data.value !== undefined) {
       // Convert the data.
       result = {};
       result.name = data.name;
@@ -359,7 +359,7 @@ angular.module('app.property', [])
           </tr>\
         ';
 
-        this.jsonPairTemplate ='\
+        this.dictPairTemplate ='\
           <tr>\
             <td><input id="key" type="text" value="{0}" placeholder="key"></td>\
             <td><input id="value" type="text" value="{1}" placeholder="jsonValue"></td>\
@@ -402,7 +402,7 @@ angular.module('app.property', [])
                 contents.value = this._parseNumber($element[0].querySelector("#value-number").value);
                 break;
               case "entity":
-                var number = this._parseNumber($element[0].querySelector("#value-" + $scope.type).value);
+                var number = this._parseNumber($element[0].querySelector("#value-entity").value);
 
                 // If the number is an integer...
                 if (Number.isInteger(number))
@@ -418,7 +418,7 @@ angular.module('app.property', [])
                 contents.value = this._getList("#value-list");
                 break;
               case "json":
-                contents.value = this._getJSON("#value-json");
+                contents.value = this._getJSON();
                 break;
               case "table":
                 // If the entries are numbered...
@@ -426,7 +426,7 @@ angular.module('app.property', [])
                   contents.value = this._getList("#value-table-list");
                 }  // Otherwise...
                 else {
-                  contents.value = this._getJSON("#value-table-json");
+                  contents.value = this._getDict("#value-table-dict");
                 }
                 break;
               case "bool":
@@ -483,54 +483,58 @@ angular.module('app.property', [])
             // Set the key to the value given.
             $element[0].querySelector("#key").setAttribute("value", $scope.value);
           }  // Otherwise, if the value is defined...
-          else if ($scope.value) {
-            var value = $scope.value;  // Assumed to be valid JSON.
+          else if ($scope.value !== undefined) {
+            // If the value is not null (to prevent unnecessary error notifications)...
+            if ($scope.value !== null) {
+              // Do something according to the type
+              switch ($scope.type) {
+                case "bool":
+                  this._setChecked("#value-bool", $scope.value);
+                  break;
+                case "position":
+                  // FALL THROUGH
+                case "vec2":
+                  this._setVec2($scope.type, $scope.value);
+                  break;
+                case "entity":
+                  this._setInteger($scope.type, $scope.value);
+                  break;
+                case "number":
+                  this._setNumber($scope.type, $scope.value);
+                  break;
+                case "list":
+                  this._setList("value-list", $scope.value);
+                  break;
+                case "table":
+                  // If the value is an array...
+                  if (Array.isArray($scope.value)) {
+                    // Update the checkbox accordingly (doing it this way b/c ng-model has an unbreakable grip on the 
+                    // "checked" attribute).
+                    $scope.tableIsNumbered = true;
 
-            // Do something according to the type...
-            switch ($scope.type) {
-              case "bool":
-                this._setChecked("#value-bool", value);
-                break;
-              case "position":
-                // FALL THROUGH
-              case "vec2":
-                this._setVec2($scope.type, value);
-                break;
-              case "entity":
-                this._setInteger($scope.type, value);
-                break;
-              case "number":
-                this._setNumber($scope.type, value);
-                break;
-              case "list":
-                this._setList("value-list", value);
-                break;
-              case "json":
-                this._setJSON("value-json", value);
-                break;
-              case "table":
-                // If the value is an array...
-                if (Array.isArray(value)) {
-                  // Update the checkbox accordingly (doing it this way b/c ng-model has an unbreakable grip on the 
-                  // "checked" attribute).
-                  $scope.tableIsNumbered = true;
+                    this._setList("value-table-list", $scope.value);
+                  } else {
+                    // Update the checkbox accordingly.
+                    $scope.tableIsNumbered = false;
 
-                  this._setList("value-table-list", value);
-                } else {
-                  // Update the checkbox accordingly.
-                  $scope.tableIsNumbered = false;
+                    this._setDict("value-table-json", $scope.value);
+                  }
+                  break;
+                case "string":
+                  // If the value is a string...
+                  if (typeof $scope.value === "string") {
+                    $element[0].querySelector("#value-string").value = $scope.value;
+                  } else {
+                    this._sendPropertySetError("Value is not a string", $scope.value);
+                  }
+                  break;
+                // JSON case is handled by code below.
+              }
+            }
 
-                  this._setJSON("value-table-json", value);
-                }
-                break;
-              case "string":
-                // If the value is a string...
-                if (typeof value === "string") {
-                  $element[0].querySelector("#value-string").value = value;
-                } else {
-                  this._sendPropertySetError("Value is not a string", value);
-                }
-                break;
+            // If the type is "json"...
+            if ($scope.type === "json") {
+              this._setJSON($scope.value);
             }
           }
         }
@@ -630,16 +634,57 @@ angular.module('app.property', [])
          * @param {string} id the ID of the list element into which the values will be fed
          * @param {*} value the value to use as the basis for building the dictionary
          */
-        this._setJSON = function(id, value) {
+        this._setDict = function(id, value) {
           // If the value is an object but not an array...
           if (typeof value === "object" && !Array.isArray(value)) {
             // For each key-value pair in value...
             for (var key in value) {
               // Add the corresponding key-value pair.
-              $scope.addJSONPair(id, key, value[key]);
+              $scope.addDictPair(id, key, value[key]);
             }
           } else {
             this._sendPropertySetError("Value is not an object", value);
+          }
+        }
+
+        /**
+         * Sets the inputs corresponding to a JSON value (sub-type and corresponding input) depending on the type of 
+         * `value` given.
+         * 
+         * @param {*} value the JSON value to set
+         */
+        this._setJSON = function(value) {
+          // If the value is null...
+          if (value === null) {
+            // Set subType to "null".
+            $scope.subType = "null";
+          }  // Otherwise, if the value is a boolean...
+          else if (typeof value === "boolean") {
+            $scope.subType = "bool";
+
+            this._setChecked("#value-json-bool", value);
+          }  // Otherwise, if the value is a number...
+          else if (typeof value === "number") {
+            $scope.subType = "number";
+
+            this._setNumber("json-number", value);
+          }  // Otherwise, if the value is a string...
+          else if (typeof value === "string") {
+            $scope.subType = "string";
+
+            $element[0].querySelector("#value-json-string").value = value;
+          }  // Otherwise, if the value is an array..
+          else if (Array.isArray(value)) {
+            $scope.subType = "list";
+
+            this._setList("value-json-list", value);
+          }  // Otherwise, if the value is an object...
+          else if (typeof value === "object") {
+            $scope.subType = "dict";
+
+            this._setDict("value-json-dict", value);
+          } else {
+            this._sendPropertySetError("Unknown subtype '" + (typeof value) + "'");
           }
         }
 
@@ -652,7 +697,8 @@ angular.module('app.property', [])
         this._sendPropertySetError = function(msg, value) {
           $window.app.editor.trigger("notification", undefined, {
             level: "error",
-            message: "Failed to set value for property '" + $scope.propName + "'. <br>" + msg + ": " + b3editor.escapeHtml(JSON.stringify(value))
+            message: "Failed to set value for property '" + $scope.propName + "'. <br>" + msg + ": " +
+              b3editor.escapeHtml(JSON.stringify(value))
           });
         }
 
@@ -746,7 +792,7 @@ angular.module('app.property', [])
          * @param {string} baseSelector the ID of the table from which to get the JSON
          * @returns an object extracted from the list of key-value pairs in the table with selector `baseSelector`
          */
-        this._getJSON = function(baseSelector) {
+        this._getDict = function(baseSelector) {
           var kvPairs = {};
 
           // Get all the elements with this selector.
@@ -789,6 +835,49 @@ angular.module('app.property', [])
         }
 
         /**
+         * The "json" type represents a catch-all type inside the behavior editor, so this method gets the data 
+         * depending on the set sub-type (selected via an Angular model).
+         */
+        this._getJSON = function() {
+          var result;
+
+          // Do something according to the sub-type.
+          switch ($scope.subType) {
+            case "string":
+              result = $element[0].querySelector("#value-json-string").value;
+              break;
+            case "number":
+              result = this._parseNumber($element[0].querySelector("#value-json-number").value);
+              break;
+            case "list":
+              result = this._getList("#value-json-list");
+              break;
+            case "dict":
+              result = this._getDict("#value-json-dict");
+              break;
+            case "bool":
+              // Boolean coersion.
+              result = !!$element[0].querySelector("#value-json-bool").checked;
+              break;
+            case "null":
+              result = null;
+              break;
+          }
+
+          return result;
+        }
+
+        $scope.subTypes = {
+          "dict": "Dictionary",
+          "list": "List",
+          "number": "Number",
+          "bool": "Boolean",
+          "string": "String",
+          "null": "Null"
+        };
+        $scope.subType = "dict";  // Default sub-type.
+
+        /**
          * Inserts a list item into the current element's list. Only appropriate if `$scope.type` is `list` or `table`.
          * 
          * @param {string} id the ID of the target list element
@@ -813,14 +902,14 @@ angular.module('app.property', [])
         }
 
         /**
-         * Inserts a JSON key-value pair into the current element's list. Only appropriate if `$scope.type` is `json`
-         * or `table`.
+         * Inserts a dictionary key-value pair into the current element's list. Only appropriate if `$scope.type` is 
+         * `json` or `table`.
          * 
          * @param {string} id the ID of the target JSON element
          * @param {string} key (optional) the key of the JSON item to set
          * @param {*} value (optional) the value of the JSON item to insert
          */
-        $scope.addJSONPair = function(id, key, value) {
+        $scope.addDictPair = function(id, key, value) {
           // If the key is undefined...
           if (key === undefined)
             key = '';
@@ -832,13 +921,13 @@ angular.module('app.property', [])
             value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
 
           // Get JSON element (jqLite wrapped).
-          var jsonElement = angular.element($element[0].querySelector("#" + id));
+          var dictElement = angular.element($element[0].querySelector("#" + id));
 
           // Create list item template.
-          var template = this_.jsonPairTemplate.format(key, value);
+          var template = this_.dictPairTemplate.format(key, value);
 
           // Compile and append template to the list.
-          jsonElement.append($compile(template)($scope));
+          dictElement.append($compile(template)($scope));
         }
 
         $scope.showContents = function() {
