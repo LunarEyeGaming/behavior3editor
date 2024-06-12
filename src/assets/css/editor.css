@@ -932,3 +932,60 @@ div.collapsible-list-items.hidden {
   padding-left: 2px;
 }
 /* ================================*/
+
+
+
+/* ================================*/
+/*  PROPERTY DISPLAY               */
+/* ================================*/
+table.property {
+  margin: 15px 0px;
+  border: #333333 solid 1px;
+}
+table.property label {
+  display: inline-block;
+}
+table.property tr {
+  vertical-align: top;
+}
+table.property td {
+  padding: 3px;
+}
+table.property td:nth-child(1) {
+  width: 10%;
+}
+table.property td:nth-child(2) {
+  width: auto;
+}
+table.property .property-type {
+  color: #9d9d9d;
+}
+table.property input {
+  width: auto;
+}
+table.property input[type=checkbox] {
+  display: inline-block;
+  margin-left: 5px;
+}
+table.property input.coords {
+  width: 81%;
+  display: inline-block;
+}
+table.property .balloon-container {
+  width: 20px;
+  height: 20px;
+  float: right;
+}
+table.property #value .button {
+  padding: 0px;
+}
+table.property .data-aggregate input {
+  width: 80%;
+}
+table.property .data-json td:nth-child(1) {
+  width: 30%;
+}
+#value-json input {
+  width: 80%;
+}
+/* ================================*/
