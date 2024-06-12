@@ -110,7 +110,7 @@ this.b3editor = this.b3editor || {};
   }
   
   p.copy = function() {
-    var block = new b3editor.Block({node: this.node});
+    var block = new b3editor.Block({node: this.node, shouldRender: false});
 
     block.displayObject.x = this.displayObject.x;
     block.displayObject.y = this.displayObject.y;
@@ -123,6 +123,8 @@ this.b3editor = this.b3editor || {};
     block.properties      = JSON.parse(JSON.stringify(this.properties));
     block.output          = this.output ? JSON.parse(JSON.stringify(this.output)) : null;
     block.isRegistered    = this.isRegistered;
+
+    block.redraw();
 
     return block;
   }

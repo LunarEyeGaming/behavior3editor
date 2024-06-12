@@ -528,7 +528,7 @@ angular.module('app.property', [])
                 if (typeof value === "string") {
                   $element[0].querySelector("#value-string").value = value;
                 } else {
-                  this._sendPropertySetError("Value is not a string.");
+                  this._sendPropertySetError("Value is not a string", value);
                 }
                 break;
             }
@@ -566,7 +566,7 @@ angular.module('app.property', [])
             $element[0].querySelector("#value-" + type + "-x").value = value[0];
             $element[0].querySelector("#value-" + type + "-y").value = value[1];
           } else {
-            this._sendPropertySetError("Value is not an array of length 2.");
+            this._sendPropertySetError("Value is not an array of length 2", value);
           }
         }
 
@@ -582,7 +582,7 @@ angular.module('app.property', [])
           if (typeof value === "number") {
             $element[0].querySelector("#value-" + type).value = value;
           } else {
-            this._sendPropertySetError("Value is not a number.");
+            this._sendPropertySetError("Value is not a number", value);
           }
         }
 
@@ -598,7 +598,7 @@ angular.module('app.property', [])
           if (Number.isInteger(value)) {
             $element[0].querySelector("#value-" + type).value = value;
           } else {
-            this._sendPropertySetError("Value is not a number.");
+            this._sendPropertySetError("Value is not an integer", value);
           }
         }
 
@@ -618,7 +618,7 @@ angular.module('app.property', [])
               $scope.addListItem(id, item);  // Add the list item.
             });
           } else {
-            this._sendPropertySetError("Value is not an array.");
+            this._sendPropertySetError("Value is not an array", value);
           }
         }
 
@@ -639,19 +639,20 @@ angular.module('app.property', [])
               $scope.addJSONPair(id, key, value[key]);
             }
           } else {
-            this._sendPropertySetError("Value is not an object.");
+            this._sendPropertySetError("Value is not an object", value);
           }
         }
 
         /**
-         * Sends a message to the editor about an error that occurred while setting a property.
+         * Sends a message to the editor about an error that occurred while setting a property, displaying the value
+         * `value`.
          * 
          * @param {string} msg the message to send
          */
-        this._sendPropertySetError = function(msg) {
+        this._sendPropertySetError = function(msg, value) {
           $window.app.editor.trigger("notification", undefined, {
             level: "error",
-            message: "Failed to set value for property '" + $scope.propName + "'. <br>" + msg
+            message: "Failed to set value for property '" + $scope.propName + "'. <br>" + msg + ": " + b3editor.escapeHtml(JSON.stringify(value))
           });
         }
 

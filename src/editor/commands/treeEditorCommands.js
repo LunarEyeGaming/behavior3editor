@@ -332,6 +332,9 @@ b3editor.Paste = b3editor.defineCommand((_, p) => {
     this.redo();
 
     this.editor.snap(this.blocks);
+
+    // Update the stage as the positions of the blocks might have changed.
+    this.editor.canvas.stage.update();
   }
 
   p.undo = function() {
