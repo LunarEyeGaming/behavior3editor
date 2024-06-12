@@ -147,7 +147,6 @@ this.b3editor = this.b3editor || {};
     return true;
   }
 
-  // UNFINISHED
   /**
    * Marks the node groups in `NodeUndoStack` included in `exportHierarchy` as saved.
    * 

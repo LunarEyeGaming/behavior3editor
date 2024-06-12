@@ -910,6 +910,27 @@ angular.module('app.node', ['app.modal'])
   $scope.exportNodes = function() {
     $window.app.editor.exportNodes($scope.exportHierarchy);
   }
+
+  /**
+   * Returns whether or not all nodes in directory `dirName` are saved.
+   * 
+   * @param {string} dirName the save location to check
+   * @returns true if all nodes in directory `dirName` are saved, false otherwise
+   */
+  $scope.dirIsSaved = function(dirName) {
+    return $window.app.editor.globalNodeUndoHistory.dirIsSaved(dirName);
+  }
+
+  /**
+   * Returns whether or not all nodes in group `groupName` in save location `dirName` are saved.
+   * 
+   * @param {string} dirName the save location in which to check
+   * @param {string} groupName the category to check
+   * @returns true if all nodes in group `groupName` in save location `dirName` are saved, false otherwise
+   */
+  $scope.groupIsSaved = function(dirName, groupName) {
+    return $window.app.editor.globalNodeUndoHistory.categoryIsSaved(dirName, groupName);
+  }
 })
 
 .directive('propertyremovable', function() {

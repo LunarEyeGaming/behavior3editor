@@ -120,6 +120,10 @@ button.alert:hover, .button.alert:hover {
   background-color: #fff568;
 }
 
+.save-marker {
+  color: #f04124;
+}
+
 /* ================================*/
 /* FORM                            */
 /* ================================*/
@@ -221,7 +225,6 @@ form .row input, form .row textarea, form .row select {
   flex: 0 0 auto;
 }
 .tree-tabs .tab .save-marker {
-  color: #f04124;
   padding-right: 3px;
 }
 .tree-tabs .tab-insert-slot {
@@ -681,7 +684,6 @@ div.collapsible-list-items.hidden {
 }
 .directory-list-header .save-marker {
   font-size: 1.5em;
-  color: #f04124;
   padding-right: 3px;
 }
 /* ================================*/
@@ -757,7 +759,6 @@ div.collapsible-list-items.hidden {
   margin: 0px 1px;
 }
 .node-list .save-marker {
-  color: #f04124;
   padding-right: 3px;
 }
 .node-list .collapsible-list-items {
@@ -833,7 +834,6 @@ div.collapsible-list-items.hidden {
   margin: 0px 1px;
 }
 .type-list .save-marker {
-  color: #f04124;
   padding-right: 3px;
 }
 /* ================================*/
