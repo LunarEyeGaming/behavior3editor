@@ -451,13 +451,7 @@ angular.module('app.node', ['app.modal'])
 
   this.propertyTemplate = '\
     <tr>\
-      <td>\
-        <select id="type">\
-          <option ng-repeat="valueType in valueTypes" value="{{valueType.id}}">{{valueType.name}}</option>\
-        </select>\
-      </td>\
-      <td><input id="key" type="text" value="" placeholder="key" /></td>\
-      <td><input id="value" type="text" value="" placeholder="value" /></td>\
+      <td><b3-property editable="true" is-output="{0}"><b3-property></td>\
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
     </tr>\
   ';
@@ -465,7 +459,7 @@ angular.module('app.node', ['app.modal'])
   var this_ = this;
 
   $scope.addProperty = function() {
-    var template = this_.propertyTemplate.format();
+    var template = this_.propertyTemplate.format("");
     var propertiesTable = angular.element(
       document.querySelectorAll('#addnode-properties-table>tbody')
     );
@@ -473,7 +467,7 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.addOutput = function() {
-    var template = this_.propertyTemplate.format();
+    var template = this_.propertyTemplate.format("non-empty string");
     var outputTable = angular.element(
       document.querySelectorAll('#addnode-output-table>tbody')
     );
@@ -501,9 +495,7 @@ angular.module('app.node', ['app.modal'])
     var domType = document.querySelector('#addnode-modal #type');
     var domName = document.querySelector('#addnode-modal #name');
     var domTitle = document.querySelector('#addnode-modal #title');
-    var domPropertyTypes = document.querySelectorAll('#addnode-properties #type');
-    var domPropertyKeys = document.querySelectorAll('#addnode-properties #key');
-    var domPropertyValues = document.querySelectorAll('#addnode-properties #value');
+    var domProperties = document.querySelectorAll('#addnode-properties b3-property');
 
     var originDirectory;
 
@@ -535,10 +527,8 @@ angular.module('app.node', ['app.modal'])
       properties: {}
     }
 
-    if (newNode.type == 'action'){
-      var domOutputTypes = document.querySelectorAll('#addnode-output #type');
-      var domOutputKeys = document.querySelectorAll('#addnode-output #key');
-      var domOutputValues = document.querySelectorAll('#addnode-output #value');
+    if (newNode.type == 'action') {
+      var domOutputs = document.querySelectorAll("#addnode-output b3-property");
       var domCategory = document.querySelector('#addnode-modal #category');
       var domScript = document.querySelector('#addnode-modal #script');
 
@@ -546,58 +536,74 @@ angular.module('app.node', ['app.modal'])
       newNode.category = domCategory.value;
       newNode.output = {};
 
-      for (var i=0; i<domOutputKeys.length; i++) {
-        var type = domOutputTypes[i].value;
-        var key = domOutputKeys[i].value;
-        var value = domOutputValues[i].value;
-        if (key)
-          newNode.output[key] = value;
-      }
-    }
+      // For each output in the DOM...
+      for (var i = 0; i < domOutputs.length; i++) {
+        // Get the data of the output through the b3Property's controller.
+        var outputData = angular.element(domOutputs[i]).controller("b3Property").getContents();
 
-    for (var i=0; i<domPropertyKeys.length; i++) {
-      var type = domPropertyTypes[i].value;
-      var key = domPropertyKeys[i].value;
-      var value = domPropertyValues[i].value;
-
-      if (type != 'string' && value != '') {
-        try {
-          value = JSON.parse(value);
-        } catch (e){
+        // If the property does not have a non-empty string as a name...
+        if (!outputData.name) {
+          // Send an error and abort.
           $window.app.editor.trigger('notification', name, {
             level: 'error',
-            message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+            message: "Output at index " + i + " does not have a name."
           });
+          return;
         }
-      }
 
-      if (value === '') value = null;
-      if (key) {
-        newNode.properties[key] = {
-          type: type,
-          value: value
+        // Add to new node.
+        newNode.output[outputData.name] = {
+          type: outputData.type,
+          key: outputData.key,
+          value: outputData.value
         };
       }
     }
 
-    // If the name is not empty or otherwise undefined...
-    if (newNode.name) {
-      // Attempt to make the node class.
-      var nodeClass = $window.app.editor.makeNode(newNode, originDirectory);
-
-      // If a node class was returned (i.e., the operation succeeded)...
-      if (nodeClass) {
-        var affectedGroups = [{originDirectory, category: newNode.category, type: newNode.type}];
-        // Push the command to the editor.
-        $window.app.editor.pushCommandNode(affectedGroups, 'AddNode', {node: nodeClass});
-        $scope.close("Yes");
-      }
-    } else {
+    // If the name is empty or undefined...
+    if (!newNode.name) {
+      // Send an error and abort.
       $window.app.editor.trigger('notification', name, {
         level: 'error',
         message: "Please enter a name for your node."
       });
+      return;
     }
+
+    // For each property in the DOM...
+    for (var i = 0; i < domProperties.length; i++) {
+      // Get the data of the property through the b3Property's controller.
+      var propertyData = angular.element(domProperties[i]).controller("b3Property").getContents();
+
+      // If the property does not have a non-empty string as a name...
+      if (!propertyData.name) {
+        // Send an error and abort.
+        $window.app.editor.trigger('notification', name, {
+          level: 'error',
+          message: "Property at index " + i + " does not have a name."
+        });
+        return;
+      }
+
+      // Add to new node.
+      newNode.properties[propertyData.name] = {
+        type: propertyData.type,
+        key: propertyData.key,
+        value: propertyData.value
+      };
+    }
+
+    // Attempt to make the node class.
+    var nodeClass = $window.app.editor.makeNode(newNode, originDirectory);
+
+    // If no node class was returned (i.e., the operation failed)...
+    if (!nodeClass)
+      return;  // Abort
+
+    var affectedGroups = [{originDirectory, category: newNode.category, type: newNode.type}];
+    // Push the command to the editor.
+    $window.app.editor.pushCommandNode(affectedGroups, 'AddNode', {node: nodeClass});
+    $scope.close("Yes");
   }
 
   $timeout(function() {
@@ -637,36 +643,31 @@ angular.module('app.node', ['app.modal'])
   $scope.selectedDirMode = $scope.defaultDirMode;
   $scope.directories = $window.app.editor.getOriginDirectories();
 
-  this.jsonProperties = function(properties){
-    var props = {}
-    for (key in properties) {
-      props[key] = {
-        type: properties[key].type
-      }
-      if (properties[key].type != 'string') {
-        if (properties[key].value === null)
-          props[key].value = '';
-        else
-          props[key].value = JSON.stringify(properties[key].value);
-      } else {
-        props[key].value = properties[key].value;
-      }
-    }
-    return props;
-  }
+  // this.jsonProperties = function(properties){
+  //   var props = {}
+  //   for (key in properties) {
+  //     props[key] = {
+  //       type: properties[key].type
+  //     }
+  //     if (properties[key].type != 'string') {
+  //       if (properties[key].value === null)
+  //         props[key].value = '';
+  //       else
+  //         props[key].value = JSON.stringify(properties[key].value);
+  //     } else {
+  //       props[key].value = properties[key].value;
+  //     }
+  //   }
+  //   return props;
+  // }
 
-  $scope.properties = this.jsonProperties($scope.node.prototype.properties);
+  // $scope.properties = this.jsonProperties($scope.node.prototype.properties);
+  $scope.properties = $scope.node.prototype.properties;
   $scope.output = $scope.node.prototype.output;
 
   this.propertyTemplate = '\
     <tr>\
-      <td>\
-        <select id="type">\
-          <option ng-repeat="valueType in valueTypes" value="{{valueType.id}}">{{valueType.name}}</option>\
-        </select>\
-      </td>\
-      <td><input id="key" type="text" value="" placeholder="key" /></td>\
-      <td><input id="value" type="text" value="" placeholder="value" /></td>\
+      <td><b3-property editable="true" is-output="{0}"><b3-property></td>\
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
     </tr>\
   ';
@@ -674,7 +675,7 @@ angular.module('app.node', ['app.modal'])
   var this_ = this;
 
   $scope.addProperty = function() {
-    var template = this_.propertyTemplate.format();
+    var template = this_.propertyTemplate.format("");
     var propertiesTable = angular.element(
       document.querySelectorAll('#editnode-properties-table>tbody')
     );
@@ -682,7 +683,7 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.addOutput = function() {
-    var template = this_.propertyTemplate.format();
+    var template = this_.propertyTemplate.format("non-empty string");
     var outputTable = angular.element(
       document.querySelectorAll('#editnode-output-table>tbody')
     );
@@ -692,9 +693,7 @@ angular.module('app.node', ['app.modal'])
   $scope.saveNode = function() {
     var domName = document.querySelector('#editnode-form #name');
     var domTitle = document.querySelector('#editnode-form #title');
-    var domTypes = document.querySelectorAll('#editnode-properties #type');
-    var domKeys = document.querySelectorAll('#editnode-properties #key');
-    var domValues = document.querySelectorAll('#editnode-properties #value');
+    var domProperties = document.querySelectorAll('#editnode-properties b3-property');
 
     var originDirectory;
 
@@ -725,10 +724,8 @@ angular.module('app.node', ['app.modal'])
       properties: {}
     }
 
-    if ($scope.node.prototype.type == 'action'){
-      var domOutputTypes = document.querySelectorAll('#editnode-output #type');
-      var domOutputKeys = document.querySelectorAll('#editnode-output #key');
-      var domOutputValues = document.querySelectorAll('#editnode-output #value');
+    if ($scope.node.prototype.type == 'action') {
+      var domOutputs = document.querySelectorAll("#editnode-output b3-property");
       var domCategory = document.querySelector('#editnode-modal #category');
       var domScript = document.querySelector('#editnode-modal #script');
 
@@ -736,47 +733,64 @@ angular.module('app.node', ['app.modal'])
       newNode.category = domCategory.value;
       newNode.output = {};
 
-      for (var i=0; i<domOutputKeys.length; i++) {
-        var type = domOutputTypes[i].value;
-        var key = domOutputKeys[i].value;
-        var value = domOutputValues[i].value;
-        if (value === '') value = null;
-        if (key)
-          newNode.output[key] = {
-            type: type,
-            key: value
-          };
-      }
-    }
+      // For each output in the DOM...
+      for (var i = 0; i < domOutputs.length; i++) {
+        // Get the data of the output through the b3Property's controller.
+        var outputData = angular.element(domOutputs[i]).controller("b3Property").getContents();
 
-    for (var i=0; i<domKeys.length; i++) {
-      var type = domTypes[i].value
-      var key = domKeys[i].value;
-      var value = domValues[i].value;
-
-      if (type != 'string' && value != '') {
-        try {
-          value = JSON.parse(value);
-        } catch (e){
+        // If the property does not have a non-empty string as a name...
+        if (!outputData.name) {
+          // Send an error and abort.
           $window.app.editor.trigger('notification', name, {
             level: 'error',
-            message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
+            message: "Output at index " + i + " does not have a name."
           });
+          return;
         }
-      }
 
-      if (value === '') value = null;
-      if (key) {
-        newNode.properties[key] = {
-          type: type,
-          value: value
+        // Add to new node.
+        newNode.output[outputData.name] = {
+          type: outputData.type,
+          key: outputData.key,
+          value: outputData.value
         };
       }
     }
 
-    if (newNode.name) {
-      $window.app.editor.editNode(node, newNode, originDirectory, true);
+    // If the name is empty or undefined...
+    if (!newNode.name) {
+      // Send an error and abort.
+      $window.app.editor.trigger('notification', name, {
+        level: 'error',
+        message: "Please enter a name for your node."
+      });
+      return;
     }
+
+    // For each property in the DOM...
+    for (var i = 0; i < domProperties.length; i++) {
+      // Get the data of the property through the b3Property's controller.
+      var propertyData = angular.element(domProperties[i]).controller("b3Property").getContents();
+
+      // If the property does not have a non-empty string as a name...
+      if (!propertyData.name) {
+        // Send an error and abort.
+        $window.app.editor.trigger('notification', name, {
+          level: 'error',
+          message: "Property at index " + i + " does not have a name."
+        });
+        return;
+      }
+
+      // Add to new node.
+      newNode.properties[propertyData.name] = {
+        type: propertyData.type,
+        key: propertyData.key,
+        value: propertyData.value
+      };
+    }
+
+    $window.app.editor.editNode(node, newNode, originDirectory, true);
   }
 
   $scope.removeNode = function() {

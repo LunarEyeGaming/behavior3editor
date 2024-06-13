@@ -28,14 +28,11 @@
 
             <table id="editnode-properties-table">
               <tbody>
-                  <tr ng-repeat="(key, value) in properties">
+                  <tr ng-repeat="(name, contents) in properties">
                     <td>
-                      <select id="type">
-                        <option ng-repeat="valueType in valueTypes" ng-model="value.type" value="{{valueType.id}}" ng-selected="value.type == valueType.id">{{valueType.name}}</option>
-                      </select>
+                      <b3-property name="name" type="contents.type" key="contents.key" value="contents.value"
+                                   editable="true"></b3-property>
                     </td>
-                    <td><input id="key" type="text" value="{{key}}" placeholder="key" /></td>
-                    <td><input id="value" type="text" value="{{value.value}}" placeholder="value" /></td>
                     <td><a href="#" propertyremovable class="button alert right">-</a></td>
                   </tr>
               </tbody>
@@ -50,14 +47,11 @@
 
             <table id="editnode-output-table">
               <tbody>
-                  <tr ng-repeat="(key, value) in output">
+                  <tr ng-repeat="(name, contents) in output">
                     <td>
-                      <select id="type">
-                        <option ng-repeat="valueType in valueTypes" ng-model="value.type" value="{{valueType.id}}" ng-selected="value.type == valueType.id">{{valueType.name}}</option>
-                      </select>
+                      <b3-property name="name" type="contents.type" key="contents.key" value="contents.value"
+                                   editable="true" is-output="true"></b3-property>
                     </td>
-                    <td><input id="key" type="text" value="{{key}}" placeholder="key" /></td>
-                    <td><input id="value" type="text" value="{{value.key}}" placeholder="value" /></td>
                     <td><a href="#" propertyremovable class="button alert right">-</a></td>
                   </tr>
               </tbody>

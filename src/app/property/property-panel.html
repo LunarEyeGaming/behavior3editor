@@ -44,9 +44,9 @@
         </table>
 
         <b3-property id="property-panel-property" ng-repeat="prop in properties"
-        prop-name="prop.propName"
+        name="prop.name"
         type="prop.type"
-        uses-key="prop.usesKey"
+        key="prop.key"
         value="prop.value"
         b3-on-change="editProperties()"
         b3-on-input="markForChange()"></b3-property>

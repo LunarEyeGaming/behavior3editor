@@ -93,25 +93,33 @@ angular.module('app.property', [])
         domName.value = block.name;
         domTitle.value = block.title || '';
 
-        // Add properties from node prototype. This has no effect when the block is the root.
-        for (key in block.node.prototype.properties) {
-          var protoData = block.node.prototype.properties[key];
+        // Add properties from node prototype to be used by ng-repeat. This has no effect when the block is the root.
+        for (var name in block.node.prototype.properties) {
+          var prop = {};
+          prop.name = name;
+          prop.type = block.node.prototype.properties[name].type;
 
-          properties.push(this.toB3PropertyData(key, block.properties[key], protoData));
+          // If the block has a corresponding entry for the property...
+          if (block.properties[name] != undefined) {
+            prop.key = block.properties[name].key;
+            prop.value = block.properties[name].value;
+          }
+
+          properties.push(prop);
         }
 
         // If the block is the root...
         if (block.type == 'root') {
           // Add root properties.
-          for (key in block.properties) {
-            $scope.addRootProperty(key, block.properties[key]);
+          for (var name in block.properties) {
+            $scope.addRootProperty(name, block.properties[name]);
           }
         }
 
         if (block.type == 'action') {
-          for (key in block.node.prototype.output) {
-            // The tertiary statement is necessary because block.output[key] can be undefined.
-            $scope.addOutput(key, block.output[key] ? block.output[key].key : undefined);
+          for (var name in block.node.prototype.output) {
+            // The tertiary statement is necessary because block.output[name] can be undefined.
+            $scope.addOutput(name, block.output[name] ? block.output[name].key : undefined);
           }
         }
       } else {  // Otherwise...
@@ -132,75 +140,69 @@ angular.module('app.property', [])
     }, 0, false);
   }
   
-  /**
-   * Based on the provided property name `key`, the value of the property `value`, and the node definition data
-   * corresponding to the property, generates and returns data to use when generating a `b3-property` element. Schema:
-   * * `type: string` - The type of the property
-   * * `value: any` - The value of the property
-   * * `usesKey: boolean` - Whether or not the property uses a key as its value.
-   * * `propName: string` - The name of the property to display
-   * 
-   * @param {string} key the name of the property
-   * @param {*} value the value of the property that the block has.
-   * @param {*} protoData node definition data corresponding to the property
-   * @returns data to use when generating a `b3-property` element
-   */
-  this.toB3PropertyData = function(key, value, protoData) {
-    var result = {};
-    result.propName = key;
-    result.type = protoData.type;
+  // /**
+  //  * Based on the provided property name `key`, the value of the property `value`, and the node definition data
+  //  * corresponding to the property, generates and returns data to use when generating a `b3-property` element. Schema:
+  //  * * `type: string` - The type of the property
+  //  * * `value: any` - The value of the property
+  //  * * `usesKey: boolean` - The key of the property
+  //  * * `name: string` - The name of the property to display
+  //  * 
+  //  * @param {string} name the name of the property
+  //  * @param {*} contents the contents of the property that the block has.
+  //  * @param {*} protoData node definition data corresponding to the property
+  //  * @returns data to use when generating a `b3-property` element
+  //  */
+  // this.toB3PropertyData = function(name, contents, protoData) {
+  //   var result = {};
+  //   result.name = name;
+  //   result.type = protoData.type;
 
-    // If a value is defined inside the block...
-    if (value != undefined) {
-      // If a key is defined...
-      if (value.key) {
-        result.usesKey = true;
-        result.value = value.key;
-      } else {
-        result.usesKey = false;
-        result.value = value.value;
-      }
-    }
+  //   // If a value is defined inside the block...
+  //   if (contents != undefined) {
+  //     result.key = contents.key;
+  //     result.value = contents.value;
+  //   }
 
-    return result;
-  }
+  //   return result;
+  // }
 
-  /**
-   * Converts b3-property contents into the property format used by blocks and returns the result, or `undefined` if the
-   * given data has no `value`
-   * 
-   * @param {object} data the contents of the b3-property directive to convert
-   * @param {string} data.name the name of the property
-   * @param {string} data.type the type of the property
-   * @param {boolean} data.usesKey whether or not the value is a board variable reference
-   * @param {*} data.value the value of the data
-   * @returns an object containing the `name` (key) and `contents` (value) of the property, or `undefined` if the data's
-   * `value` is `undefined`.
-   */
-  this.fromB3PropertyData = function(data) {
-    var result;
+  // /**
+  //  * Converts b3-property contents into the property format used by blocks and returns the result, or `undefined` if the
+  //  * given data has no `value`
+  //  * 
+  //  * @param {object} data the contents of the b3-property directive to convert
+  //  * @param {string} data.name the name of the property
+  //  * @param {string} data.type the type of the property
+  //  * @param {boolean} data.usesKey whether or not the value is a board variable reference
+  //  * @param {*} data.value the value of the data
+  //  * @returns an object containing the `name` (key) and `contents` (value) of the property, or `undefined` if the data's
+  //  * `value` is `undefined`.
+  //  */
+  // this.fromB3PropertyData = function(data) {
+  //   var result;
 
-    // If the data has a value...
-    if (data.value !== undefined) {
-      // Convert the data.
-      result = {};
-      result.name = data.name;
-      result.contents = {};
-      result.contents.type = data.type;
+  //   // If the data has a value...
+  //   if (data.value !== undefined) {
+  //     // Convert the data.
+  //     result = {};
+  //     result.name = data.name;
+  //     result.contents = {};
+  //     result.contents.type = data.type;
       
-      // If the data uses a key...
-      if (data.usesKey) {
-        result.contents.key = data.value;
-      } else {
-        result.contents.value = data.value;
-      }
-    } else {
-      // Return undefined.
-      result = undefined;
-    }
+  //     // If the data uses a key...
+  //     if (data.usesKey) {
+  //       result.contents.key = data.value;
+  //     } else {
+  //       result.contents.value = data.value;
+  //     }
+  //   } else {
+  //     // Return undefined.
+  //     result = undefined;
+  //   }
 
-    return result;
-  }
+  //   return result;
+  // }
 
   // UPDATE PROPERTIES ON NODE
   $scope.editProperties = function() {
@@ -254,12 +256,16 @@ angular.module('app.property', [])
         var propertyCtrl = angular.element(property).controller("b3Property");
 
         // Get property data.
-        var propertyData = this_.fromB3PropertyData(propertyCtrl.getContents());
+        var propertyData = propertyCtrl.getContents();
 
-        // If the data is defined...
-        if (propertyData)
+        // If the data has a defined key or value...
+        if (propertyData.key !== undefined || propertyData.value !== undefined)
           // Add to new node.
-          newNode.properties[propertyData.name] = propertyData.contents;
+          newNode.properties[propertyData.name] = {
+            type: propertyData.type,
+            key: propertyData.key,
+            value: propertyData.value
+          };
       });
     }
 
@@ -324,28 +330,67 @@ angular.module('app.property', [])
 })
 
 /**
- * A directive for a GUI element that contains data about a node property. Consists of a label (which displays the name
- * of the property `propName` and its type `type`), a checkbox input (initially set based on `usesKey`--an empty string
- * for false, nonempty string for true) signifying whether or not the property's value is a board variable reference,
- * and a value, whose representation depends on the given `type`. Separate sets of elements are activated depending on
- * the type of the property and whether or not a key is used. The `value` attribute sets the initial value to display
- * and is a JSON value. If it does not match the given type, no initial value will be set.
+ * A directive for displaying different input forms depending on the type of the node property (and whether or not the 
+ * property uses a key). It is used by the properties panel to allow the user to edit the arguments to supply to the
+ * nodes and by the addnode and editnode modals to allow the user to edit the properties that the node has. Whether or
+ * not the elements for editing the node name and node type can be displayed is configured through the `editable` 
+ * attribute, which evaluates to true if defined and a non-empty string and false otherwise. If `editable` is false,
+ * then these elements are replaced with a display for the name and type of the property.
  * 
- * The data that this directive holds can be retrieved by invoking the `getContents()` method on the corresponding
- * controller. If any values retrieved are invalid, a notification is sent to the editor, and the value will be 
- * undefined.
- * OUTDATED
+ * The `b3-property`'s initial fields are set through the `type`, `key`, `value`, and `name` attributes respectively.
+ * `name` is the name of the property and `type` is the type of the property. `value` indicates the raw value to use,
+ * and `key` indicates the board variable to look up for the value. `key` and `value` are mutually exclusive, and if
+ * both are defined, then `key` is used instead. All of these attributes take in expressions to evaluate in the outside
+ * scope, and the directive autofills the inputs depending on these fields. As an intermediary step, a slight conversion
+ * is made. If `key` is used, then `usesKey` is true and `value` is set to the contents of `key`. Otherwise, `usesKey`
+ * is false and `value` is set to the new value.
+ * The `b3-property`'s initial fields are set through the `type`, `value`, `usesKey`, and `propName` attributes 
+ * respectively. All of these attributes take in expressions to evaluate in the outside scope, and the directive 
+ * autofills the inputs depending on these fields. If `usesKey` is false, the `value` must have the right format for the
+ * `type`, or an error will be sent to the editor GUI and autofill will not take place. If `usesKey` is true, then the
+ * `value` attribute instead represents a board variable to look up, so the prompt will always be a single text field in
+ * that case regardless of type. `usesKey` and the current value can be modified by the user through the checkbox
+ * labeled "Key" and the input element(s) respectively. The following are the types and descriptions of the
+ * corresponding `value` formats as well as the form of the input element(s):
+ * * `string`: Any string. The input prompt is a single text field.
+ * * `vec2`: An array of length 2. The input prompt is two text fields labeled "X" and "Y" respectively.
+ * * `position`: An array of length 2. The input prompt is two text fields labeled "X" and "Y" respectively.
+ * * `bool`: A boolean. The input prompt is a checkbox.
+ * * `number`: A number. The input prompt is a single text field.
+ * * `entity`: An integer signifying the ID of an entity. The input prompt is a single text field.
+ * * `list`: An array. The input prompt is an interactive GUI for adding and removing list items, which are raw JSON 
+ *   values
+ * * `table`: An array or a dictionary / object. The input prompt has a checkbox indicating whether or not the entries
+ *   are numbered. If they not numbered, they are described by keys given in text fields. Otherwise, the prompt is 
+ *   identical to that of a `list` prompt. The values must contain valid JSON.
+ * * `json`: Any valid JSON value. The input prompt has a dropdown menu describing the sub-type (boolean, dictionary, 
+ *   list, null, number, and string) and a second field that changes according to this sub-type. The second field is
+ *   identical in appearance to the `bool`, `table` (if not numbered), `list`, `number`, and `string` prompts when the
+ *   sub-type is boolean, dictionary, list, number, and string respectively. The null subtype has no second field.
+ * 
+ * In addition, the value can be set to `null` to signify that the input should not be autofilled, except for when the
+ * type is `json`, in which case the sub-type is set to null.
+ * 
+ * The current contents of a `b3-property` can be retrieved through the `getContents()` method of the corresponding
+ * controller. The `updateIndices()` method (used solely for list fields) requests the controller to update the indices
+ * of the list fields.
+ * 
+ * The `isOutput` attribute determines whether or not the property element is an output. By default, the attribute
+ * evaluates to false because it is undefined. If `isOutput` evaluates to true, then the autofiller expects a `key` to
+ * be provided.
  */
 .directive('b3Property', function() {
   return {
     restrict: 'E',
     scope: {
-      type: "=",  // The type of the property
-      value: "=",  // The value of the property
-      usesKey: "=",  // Whether or not the property uses a key as its value.
-      propName: "=",  // The name of the property to display
+      initialType: "=type",  // The initial type of the property
+      initialValue: "=value",  // The initial value of the property
+      initialKey: "=key",  // The initial key of the property. Has higher precedence than value.
+      initialName: "=name",  // The name of the property to display
       onChange: "&b3OnChange",  // Analogous to oninput event
-      onInput: "&b3OnInput"  // Analogous to onchange event
+      onInput: "&b3OnInput",  // Analogous to onchange event
+      editable: "@",  // Whether or not the name and type can be edited.
+      isOutput: "@"  // Whether or not the property element is an output
     },
     controller: ["$scope", "$element", "$window", "$compile", 
       function PropertyController($scope, $element, $window, $compile) {
@@ -354,7 +399,7 @@ angular.module('app.property', [])
         this.listItemTemplate = '\
           <tr id="list-item">\
             <td id="key">{0}</td>\
-            <td><input id="value" type="text" value="{1}" placeholder="jsonValue"></td>\
+            <td><input id="value" type="text" value="{1}" placeholder="jsonValue" b3-property-change-listener></td>\
             <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="{2}" class="button alert right">-</a></td>\
           </tr>\
         ';
@@ -362,30 +407,27 @@ angular.module('app.property', [])
         this.dictPairTemplate ='\
           <tr>\
             <td><input id="key" type="text" value="{0}" placeholder="key"></td>\
-            <td><input id="value" type="text" value="{1}" placeholder="jsonValue"></td>\
+            <td><input id="value" type="text" value="{1}" placeholder="jsonValue" b3-property-change-listener></td>\
             <td><a href="#" propertyremovable ng-click="onInput()" class="button alert right">-</a></td>\
           </tr>\
         ';
 
         /**
-         * Returns an object representing the data contained in the current property. It contains the following keys:
-         * * `propName: string` - the name of the property
-         * * `type: string` - the type of the property
-         * * `usesKey: boolean` - whether or not the `value` is a key.
-         * * `value: any` - the actual value of the property.
+         * Returns an object representing the data contained in the current property. It contains the `name` of the 
+         * property as well as its `type`, `key` reference, and `value` reference (with `key` and `value` being mutually
+         * exclusive).
          * 
-         * If any parsing fails, a notification will be displayed in the editor, and the returned value will be
+         * If any parsing fails, a notification will be displayed in the editor, and the returned `value` will be
          * `undefined`.
          */
         this.getContents = function() {
           var contents = {};
-          contents.name = $scope.propName;
+          contents.name = $scope.name;
           contents.type = $scope.type;
-          contents.usesKey = $scope.usesKeyInput;
 
           // If a key is being used...
-          if ($scope.usesKeyInput) {
-            contents.value = $element[0].querySelector("#key").value;
+          if ($scope.usesKey) {
+            contents.key = $element[0].querySelector("#key").value;
           }  // Otherwise...
           else {
             // Do something according to the type.
@@ -472,16 +514,29 @@ angular.module('app.property', [])
 
         /**
          * Sets the input contents depending on the type. This method assumes that the elements corresponding to the 
-         * type of the current property are all defined.
+         * type of the current property are all defined. This method also initializes some scope fields that are used
+         * later. If the type of the given initial value does not conform to the given initial type, then autofilling
+         * does not take place and an error is sent to the editor GUI. An undefined type string defaults to "json".
          */
         this._setContents = function() {
-          // Update check status.
-          $scope.usesKeyInput = $scope.usesKey;
+          $scope.type = $scope.initialType || "json";
+          $scope.name = $scope.initialName;
+
+          // If the initial key is defined as a nonempty string or the property is an output...
+          if ($scope.initialKey || $scope.isOutput) {
+            $scope.usesKey = true;
+            $scope.value = $scope.initialKey;
+          } else {
+            $scope.usesKey = false;
+            $scope.value = $scope.initialValue;
+          }
 
           // If a key is being used...
-          if ($scope.usesKeyInput) {
-            // Set the key to the value given.
-            $element[0].querySelector("#key").setAttribute("value", $scope.value);
+          if ($scope.usesKey) {
+            // If the key is not null or undefined...
+            if ($scope.value != undefined)
+              // Set the key to the value given.
+              $element[0].querySelector("#key").setAttribute("value", $scope.value);
           }  // Otherwise, if the value is defined...
           else if ($scope.value !== undefined) {
             // If the value is not null (to prevent unnecessary error notifications)...
@@ -776,7 +831,7 @@ angular.module('app.property', [])
             // Parse the value and add the result if defined.
             var parsed = this._parseProperty(domValues[i].value, i);
 
-            if (parsed)
+            if (parsed !== undefined)
               values.push(parsed);
           }
 
@@ -802,7 +857,7 @@ angular.module('app.property', [])
           // For each key-value pair on the DOM (enumerated)...
           for (var i = 0; i < domValues.length; i++) {
             // If the key is defined...
-            if (domKeys[i].value) {
+            if (domKeys[i].value !== undefined) {
               // Parse the value and set the corresponding key to that value.
               kvPairs[domKeys[i].value] = this._parseProperty(domValues[i].value, domKeys[i].value);
             }

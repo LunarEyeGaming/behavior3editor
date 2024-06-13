@@ -2248,16 +2248,6 @@ this.b3editor = this.b3editor || {};
     return img;
   }
 
-  p.onConditionShowWarning = function(args) {
-    // Args: 
-    // condition: when it's displayed, 
-    // message: the message to display,
-    // choices: the buttons to show,
-    // callbackChoices: when the callback should be called
-    // defaultCallback: 
-    // callback: called when choice 0 is made or no warning should be displayed,
-    // 
-  }
   // ==========================================================================
 
   b3editor.Editor = Editor;

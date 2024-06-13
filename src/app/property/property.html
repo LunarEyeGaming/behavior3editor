@@ -1,30 +1,44 @@
 <table class="property">
   <tbody>
     <tr>
-      <td>Key</td>
+      <td ng-hide="isOutput">Key</td>
       <td>
-        <label id="prop-name">
-          {{propName}}<span class="property-type">: {{type}}</span>
+        <div id="prop-name-editable" ng-show="editable">
+          <label for="type">Type</label>
+          <select id="type" ng-model="type">
+            <option ng-repeat="valueType in ['json', 'bool', 'vec2', 'position', 'entity', 'number', 'table', 'list', 'string']"
+            value="{{valueType}}" ng-selected="valueType == type">{{valueType}}</option>
+          </select>
+          <label for="prop-name">Property Name</label>
+          <input id="prop-name" type="text" value="" placeholder="name" ng-model="name">
+        </div>
+        <label id="prop-name-display" ng-hide="editable">
+          {{name}}<span class="property-type">: {{type}}</span>
         </label>
       </td>
       <td class="balloon-container">
       </td>
     </tr>
     <tr>
-      <td><input id="uses-key" type="checkbox" ng-model="usesKeyInput" onchange="element(this).onChange(this); element(this).onInput(this)"></td>
+      <td ng-hide="isOutput">
+        <input id="uses-key" type="checkbox" ng-model="usesKey" 
+               onchange="element(this).onChange(this); element(this).onInput(this)">
+      </td>
       <td colspan="2">
-        <input id="key" type="text" placeholder="key" ng-show="usesKeyInput" b3-property-change-listener>
-        <span ng-hide="usesKeyInput" id="value">
+        <input id="key" type="text" placeholder="key" ng-show="usesKey" b3-property-change-listener>
+        <span ng-hide="usesKey" id="value">
           <input id="value-string" type="text" placeholder="value" ng-show="type == 'string'" b3-property-change-listener>
           <div ng-show="type == 'position'">
             <label for="value-position-x" class="sub">X:</label>
             <input id="value-position-x" type="text" placeholder="jsonValue" class="coords" b3-property-change-listener>
+            <br>
             <label for="value-position-y" class="sub">Y:</label>
             <input id="value-position-y" type="text" placeholder="jsonValue" class="coords" b3-property-change-listener>
           </div>
           <div ng-show="type == 'vec2'">
             <label for="value-vec2-x" class="sub">X:</label>
             <input id="value-vec2-x" type="text" placeholder="jsonValue" class="coords" b3-property-change-listener>
+            <br>
             <label for="value-vec2-y" class="sub">Y:</label>
             <input id="value-vec2-y" type="text" placeholder="jsonValue" class="coords" b3-property-change-listener>
           </div>
