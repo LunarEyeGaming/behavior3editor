@@ -57,10 +57,13 @@
           <span class="left">Output</span>
         </label>
 
-        <table id="property-output-table">
-          <tbody>
-          </tbody>
-        </table>
+        <b3-property id="property-panel-output" ng-repeat="output in outputs"
+        name="output.name"
+        type="output.type"
+        key="output.key"
+        is-output="non-empty string"
+        b3-on-change="editProperties()"
+        b3-on-input="markForChange()"></b3-property>
       </div>
     </form>
   </div>

@@ -939,12 +939,16 @@ div.collapsible-list-items.hidden {
 /*  PROPERTY DISPLAY               */
 /* ================================*/
 table.property {
-  margin: 15px 0px;
+  /* margin: 15px 0px; */
+  margin: 0px;
   border: #333333 solid 1px;
 }
-table.property label {
+table.property .inline {
   display: inline-block;
 }
+/* table.property label {
+  display: inline-block;
+} */
 table.property tr {
   vertical-align: top;
 }
@@ -952,7 +956,7 @@ table.property td {
   padding: 3px;
 }
 table.property td:nth-child(1) {
-  width: 10%;
+  width: 20px;
 }
 table.property td:nth-child(2) {
   width: auto;
@@ -962,15 +966,16 @@ table.property .property-type {
 }
 table.property input {
   width: auto;
+  max-width: 150px;
 }
 table.property input[type=checkbox] {
   display: inline-block;
   margin-left: 5px;
 }
-table.property input.coords {
+/* table.property input.coords {
   width: 81%;
   display: inline-block;
-}
+} */
 table.property .balloon-container {
   width: 20px;
   height: 20px;
@@ -980,7 +985,13 @@ table.property #value .button {
   padding: 0px;
 }
 table.property .data-aggregate input {
-  width: 80%;
+  width: calc(100% - 10px);
+}
+table.property .data-aggregate tr {
+  display: flex;
+}
+table.property .data-aggregate td:last-child {
+  flex-grow: 1;
 }
 table.property .data-json td:nth-child(1) {
   width: 30%;
@@ -988,17 +999,27 @@ table.property .data-json td:nth-child(1) {
 table.property .null {
   color: #9d9d9d;
 }
-table.property select#type {
-  width: 25%;
+table.property .json-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+table.property .json-type-container {
+  flex-grow: 0;
+}
+table.property .json-value-container {
+  flex-grow: 1;
+}
+table.property select {
+  width: auto;
   display: inline-block;
 }
-table.property #prop-name-editable {
+/* table.property #prop-name-editable {
   display: inline-block;
   width: 100%;
-}
-table.property #prop-name-editable input {
+} */
+/* table.property #prop-name-editable input {
   display: inline-block;
-}
+} */
 table.property #value-json input {
   width: 80%;
 }

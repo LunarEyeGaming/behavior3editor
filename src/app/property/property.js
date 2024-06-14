@@ -25,20 +25,6 @@ angular.module('app.property', [])
   this.propertyTable = angular.element(
     document.querySelector('#property-properties-table>tbody')
   );
-  this.outputTable = angular.element(
-    document.querySelector('#property-output-table>tbody')
-  );
-  this.template = '\
-    <tr>\
-      <td>Key<input id="is_key" type="checkbox" onchange="element(this).editProperties(this);" {0} readonly/></td>\
-      <td><label id="key" for="{2}">{1}</label><input id="value" type="text" value="{2}" onchange="element(this).editProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="value" /></td>\
-    </tr>\
-  ';
-  this.outputTemplate = '\
-    <tr>\
-      <td><label id="key" for="{1}">{0}</label><input id="value" type="text" value="{1}" onchange="element(this).editProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="value" /></td>\
-    </tr>\
-  ';
   this.rootTemplate ='\
     <tr>\
       <td><input id="key" type="text" value="{0}" onchange="element(this).editProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="key" /></td>\
@@ -56,13 +42,6 @@ angular.module('app.property', [])
     this_.propertyTable.append($compile(template)($scope));
   }
 
-  $scope.addOutput = function(key, value) {
-    if (key == undefined) key = '';
-    if (value == undefined) value = '';
-    var template = this_.outputTemplate.format(key, value);
-    this_.outputTable.append($compile(template)($scope));
-  }
-
   // SELECTION/DESELECTION
   $scope.block = null;
   this.updatePropertiesDisplay = function() {
@@ -71,6 +50,7 @@ angular.module('app.property', [])
 
     var selectedBlocks = $window.app.editor.selectedBlocks;
     var properties = undefined;
+    var outputs = undefined;
     var block = null;
     var screen;
     // If exactly one block has been selected...
@@ -83,15 +63,14 @@ angular.module('app.property', [])
         block = selectedBlocks[0];
         screen = $scope.SCRN_SELECTED;
 
-        properties = [];
-
         this_.propertyTable.html('');
-        this_.outputTable.html('');
         var domName = document.querySelector('#property-panel #name');
         var domTitle = document.querySelector('#property-panel #title');
 
         domName.value = block.name;
         domTitle.value = block.title || '';
+
+        properties = [];
 
         // Add properties from node prototype to be used by ng-repeat. This has no effect when the block is the root.
         for (var name in block.node.prototype.properties) {
@@ -117,9 +96,19 @@ angular.module('app.property', [])
         }
 
         if (block.type == 'action') {
+          outputs = [];
+
           for (var name in block.node.prototype.output) {
-            // The tertiary statement is necessary because block.output[name] can be undefined.
-            $scope.addOutput(name, block.output[name] ? block.output[name].key : undefined);
+            var output = {};
+            output.name = name;
+            output.type = block.node.prototype.output[name].type;
+
+            // If the block has a corresponding entry for the property...
+            if (block.output[name] != undefined) {
+              output.key = block.output[name].key;
+            }
+
+            outputs.push(output);
           }
         }
       } else {  // Otherwise...
@@ -135,74 +124,11 @@ angular.module('app.property', [])
       $scope.$apply(function() {
         $scope.block = block;
         $scope.properties = properties;
+        $scope.outputs = outputs;
         $scope.screen = screen;
       });
     }, 0, false);
   }
-  
-  // /**
-  //  * Based on the provided property name `key`, the value of the property `value`, and the node definition data
-  //  * corresponding to the property, generates and returns data to use when generating a `b3-property` element. Schema:
-  //  * * `type: string` - The type of the property
-  //  * * `value: any` - The value of the property
-  //  * * `usesKey: boolean` - The key of the property
-  //  * * `name: string` - The name of the property to display
-  //  * 
-  //  * @param {string} name the name of the property
-  //  * @param {*} contents the contents of the property that the block has.
-  //  * @param {*} protoData node definition data corresponding to the property
-  //  * @returns data to use when generating a `b3-property` element
-  //  */
-  // this.toB3PropertyData = function(name, contents, protoData) {
-  //   var result = {};
-  //   result.name = name;
-  //   result.type = protoData.type;
-
-  //   // If a value is defined inside the block...
-  //   if (contents != undefined) {
-  //     result.key = contents.key;
-  //     result.value = contents.value;
-  //   }
-
-  //   return result;
-  // }
-
-  // /**
-  //  * Converts b3-property contents into the property format used by blocks and returns the result, or `undefined` if the
-  //  * given data has no `value`
-  //  * 
-  //  * @param {object} data the contents of the b3-property directive to convert
-  //  * @param {string} data.name the name of the property
-  //  * @param {string} data.type the type of the property
-  //  * @param {boolean} data.usesKey whether or not the value is a board variable reference
-  //  * @param {*} data.value the value of the data
-  //  * @returns an object containing the `name` (key) and `contents` (value) of the property, or `undefined` if the data's
-  //  * `value` is `undefined`.
-  //  */
-  // this.fromB3PropertyData = function(data) {
-  //   var result;
-
-  //   // If the data has a value...
-  //   if (data.value !== undefined) {
-  //     // Convert the data.
-  //     result = {};
-  //     result.name = data.name;
-  //     result.contents = {};
-  //     result.contents.type = data.type;
-      
-  //     // If the data uses a key...
-  //     if (data.usesKey) {
-  //       result.contents.key = data.value;
-  //     } else {
-  //       result.contents.value = data.value;
-  //     }
-  //   } else {
-  //     // Return undefined.
-  //     result = undefined;
-  //   }
-
-  //   return result;
-  // }
 
   // UPDATE PROPERTIES ON NODE
   $scope.editProperties = function() {
@@ -270,21 +196,26 @@ angular.module('app.property', [])
     }
 
     if ($scope.block.type == 'action') {
-      var domKeys = document.querySelectorAll('#property-output-table #key');
-      var domValues = document.querySelectorAll('#property-output-table #value');
+      // Get the property data from the controllers corresponding to the properties.
+      var domOutputs = document.querySelectorAll("b3-property#property-panel-output");
 
       newNode.output = {};
 
-      for (var i=0; i<domKeys.length; i++) {
-        var key = domKeys[i].innerText;
-        var value = domValues[i].value;
-        if (value == '') value = null;
+      domOutputs.forEach(output => {
+        // Get controller.
+        var propertyCtrl = angular.element(output).controller("b3Property");
 
-        newNode.output[key] = {
-          type: node.prototype.output[key].type,
-          key: value || null
-        }
-      }
+        // Get property data.
+        var outputData = propertyCtrl.getContents();
+
+        // If the data has a defined non-empty key...
+        if (outputData.key)
+          // Add to new node.
+          newNode.output[outputData.name] = {
+            type: outputData.type,
+            key: outputData.key
+          };
+      });
     }
 
     $window.app.editor.pushCommandTree('EditBlock', {
