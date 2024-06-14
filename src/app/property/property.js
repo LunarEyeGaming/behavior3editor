@@ -503,7 +503,7 @@ angular.module('app.property', [])
                     // Update the checkbox accordingly.
                     $scope.tableIsNumbered = false;
 
-                    this._setDict("value-table-json", $scope.value);
+                    this._setDict("value-table-dict", $scope.value);
                   }
                   break;
                 case "string":
