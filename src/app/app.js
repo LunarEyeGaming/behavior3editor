@@ -13,5 +13,6 @@ var app = angular.module('app', [
   'app.fileinput',
   'app.project',
   'app.collapsibleList',
-  'app.highlight'
+  'app.highlight',
+  'app.jsonDisplay'
 ]);

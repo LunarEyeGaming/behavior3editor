@@ -643,25 +643,6 @@ angular.module('app.node', ['app.modal'])
   $scope.selectedDirMode = $scope.defaultDirMode;
   $scope.directories = $window.app.editor.getOriginDirectories();
 
-  // this.jsonProperties = function(properties){
-  //   var props = {}
-  //   for (key in properties) {
-  //     props[key] = {
-  //       type: properties[key].type
-  //     }
-  //     if (properties[key].type != 'string') {
-  //       if (properties[key].value === null)
-  //         props[key].value = '';
-  //       else
-  //         props[key].value = JSON.stringify(properties[key].value);
-  //     } else {
-  //       props[key].value = properties[key].value;
-  //     }
-  //   }
-  //   return props;
-  // }
-
-  // $scope.properties = this.jsonProperties($scope.node.prototype.properties);
   $scope.properties = $scope.node.prototype.properties;
   $scope.output = $scope.node.prototype.output;
 

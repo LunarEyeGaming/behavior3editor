@@ -124,6 +124,10 @@ button.alert:hover, .button.alert:hover {
   color: #f04124;
 }
 
+.monospace {
+  font-family: 'Courier New', Courier, monospace;
+}
+
 /* ================================*/
 /* FORM                            */
 /* ================================*/
@@ -968,6 +972,9 @@ table.property input {
   width: auto;
   max-width: 150px;
 }
+table.property input.json-display {
+  width: calc(100% - 50px);
+}
 table.property input[type=checkbox] {
   display: inline-block;
   margin-left: 5px;
@@ -986,6 +993,9 @@ table.property #value .button {
 }
 table.property .data-aggregate input {
   width: calc(100% - 10px);
+}
+table.property .data-aggregate input.json-display {
+  width: calc(100% - 40px);
 }
 table.property .data-aggregate tr {
   display: flex;
@@ -1022,5 +1032,22 @@ table.property select {
 } */
 table.property #value-json input {
   width: 80%;
+}
+/* ================================*/
+
+
+
+/* ================================*/
+/* JSON DISPLAY ETC.               */
+/* ================================*/
+.json-display-thrownaway {
+  width: calc(100% - 30px);  /* Based on the width of the button */
+}
+.json-expand {
+  padding: 3px 5px;
+  margin: 0px;
+}
+.expanded-json {
+  font-size: 1.2em;
 }
 /* ================================*/

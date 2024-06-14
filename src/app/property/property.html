@@ -34,30 +34,49 @@
           <div ng-show="type == 'position'">
             <div class="inline">
               <label for="value-position-x" class="inline">X:</label>
-              <input id="value-position-x" class="inline" type="text" placeholder="jsonValue" b3-property-change-listener>
+              <b3-json-input id="value-position-x" onblur="element(this).onChange(this)"
+                            initial-value="typedValues.position[0]" b3-on-change="onInput()">
+              </b3-json-input>
             </div>
             <div class="inline">
               <label for="value-position-y" class="inline">Y:</label>
-              <input id="value-position-y" class="inline" type="text" placeholder="jsonValue" b3-property-change-listener>
+              <b3-json-input id="value-position-y" onblur="element(this).onChange(this)"
+                             initial-value="typedValues.position[1]" b3-on-change="onInput()">
+              </b3-json-input>
             </div>
           </div>
 
           <div ng-show="type == 'vec2'">
             <div class="inline">
               <label for="value-vec2-x" class="inline">X:</label>
-              <input id="value-vec2-x" class="inline" type="text" placeholder="jsonValue" b3-property-change-listener>
+              <!-- <b3-json-input id="value-vec2-x" onblur="element(this).onChange(this)" b3-on-change="onInput()">
+              </b3-json-input> -->
+              <b3-json-input id="value-vec2-x" onblur="element(this).onChange(this)" initial-value="typedValues.vec2[0]"
+                             b3-on-change="onInput()">
+              </b3-json-input>
             </div>
             <div class="inline">
               <label for="value-vec2-y" class="inline">Y:</label>
-              <input id="value-vec2-y" class="inline" type="text" placeholder="jsonValue" b3-property-change-listener>
+              <b3-json-input id="value-vec2-y" onblur="element(this).onChange(this)" initial-value="typedValues.vec2[1]"
+                             b3-on-change="onInput()">
+              </b3-json-input>
             </div>
           </div>
 
           <div ng-show="type == 'list'">
             <a href="#" ng-click="addListItem('value-list'); onInput()" class="button success right">+</a>
 
-            <table id="value-list" class="data-aggregate">
-              <tbody>
+            <table class="data-aggregate">
+              <tbody id="value-list">
+                <tr id="list-item" ng-repeat="item in typedValues.list track by $index">
+                  <td id="key">{{$index}}</td>
+                  <td>
+                    <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                  initial-value="item">
+                    </b3-json-input>
+                  </td>
+                  <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-list" class="button alert right">-</a></td>
+                </tr>
                 <!-- Items are dynamically inserted here -->
               </tbody>
             </table>
@@ -79,8 +98,17 @@
                 <div ng-show="subType == 'dict'">
                   <a href="#" ng-click="addDictPair('value-json-dict'); onInput()" class="button success right">+</a>
     
-                  <table id="value-json-dict" class="data-aggregate data-json">
-                    <tbody>
+                  <table class="data-aggregate data-json">
+                    <tbody id="value-json-dict">
+                      <tr ng-repeat="(key, item) in typedValues.jsonDict">
+                        <td><input id="key" type="text" value="{{key}}" placeholder="key"></td>
+                        <td>
+                          <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                        initial-value="item">
+                          </b3-json-input>
+                        </td>
+                        <td><a href="#" propertyremovable ng-click="onInput()" class="button alert right">-</a></td>
+                      </tr>
                       <!-- Items are dynamically inserted here -->
                     </tbody>
                   </table>
@@ -88,8 +116,17 @@
                 <div ng-show="subType == 'list'">
                   <a href="#" ng-click="addListItem('value-json-list'); onInput()" class="button success right">+</a>
       
-                  <table id="value-json-list" class="data-aggregate">
-                    <tbody>
+                  <table class="data-aggregate">
+                    <tbody id="value-json-list">
+                      <tr id="list-item" ng-repeat="item in typedValues.jsonList track by $index">
+                        <td id="key">{{$index}}</td>
+                        <td>
+                          <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                        initial-value="item">
+                          </b3-json-input>
+                        </td>
+                        <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-json-list" class="button alert right">-</a></td>
+                      </tr>
                       <!-- Items are dynamically inserted here -->
                     </tbody>
                   </table>
@@ -120,8 +157,17 @@
                 <div ng-show="tableIsNumbered">
                   <a href="#" ng-click="addListItem('value-table-list'); onInput()" class="button success right">+</a>
   
-                  <table id="value-table-list" class="data-aggregate">
-                    <tbody>
+                  <table class="data-aggregate">
+                    <tbody id="value-table-list">
+                      <tr id="list-item" ng-repeat="item in typedValues.tableList track by $index">
+                        <td id="key">{{$index}}</td>
+                        <td>
+                          <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                        initial-value="item">
+                          </b3-json-input>
+                        </td>
+                        <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-table-list" class="button alert right">-</a></td>
+                      </tr>
                       <!-- Items are dynamically inserted here -->
                     </tbody>
                   </table>
@@ -129,8 +175,17 @@
                 <div ng-hide="tableIsNumbered">
                   <a href="#" ng-click="addDictPair('value-table-dict'); onInput()" class="button success right">+</a>
   
-                  <table id="value-table-dict" class="data-aggregate data-json">
-                    <tbody>
+                  <table class="data-aggregate data-json">
+                    <tbody id="value-table-dict">
+                      <tr ng-repeat="(key, item) in typedValues.tableDict">
+                        <td><input id="key" type="text" value="{{key}}" placeholder="key"></td>
+                        <td>
+                          <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                        initial-value="item">
+                          </b3-json-input>
+                        </td>
+                        <td><a href="#" propertyremovable ng-click="onInput()" class="button alert right">-</a></td>
+                      </tr>
                       <!-- Items are dynamically inserted here -->
                     </tbody>
                   </table>
