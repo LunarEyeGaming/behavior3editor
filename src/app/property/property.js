@@ -283,7 +283,8 @@ angular.module('app.property', [])
  * that case regardless of type. `usesKey` and the current value can be modified by the user through the checkbox
  * labeled "Key" and the input element(s) respectively. The following are the types and descriptions of the
  * corresponding `value` formats as well as the form of the input element(s):
- * * `string`: Any string. The input prompt is a single text field.
+ * * `string`: Any string. The input prompt is a single text field with a checkbox indicating whether or not a string
+ *   should be defined.
  * * `vec2`: An array of length 2. The input prompt is two text fields labeled "X" and "Y" respectively.
  * * `position`: An array of length 2. The input prompt is two text fields labeled "X" and "Y" respectively.
  * * `bool`: A boolean. The input prompt is a checkbox.
@@ -300,7 +301,8 @@ angular.module('app.property', [])
  *   sub-type is boolean, dictionary, list, number, and string respectively. The null subtype has no second field.
  * 
  * In addition, the value can be set to `null` to signify that the input should not be autofilled, except for when the
- * type is `json`, in which case the sub-type is set to null.
+ * type is `json`, in which case the sub-type is set to null. Similarly, if a string is `null`, then the checkbox for
+ * whether or not to include a string is left unticked.
  * 
  * The current contents of a `b3-property` can be retrieved through the `getContents()` method of the corresponding
  * controller. The `updateIndices()` method (used solely for list fields) requests the controller to update the indices
@@ -371,7 +373,10 @@ angular.module('app.property', [])
             // Do something according to the type.
             switch ($scope.type) {
               case "string":
-                contents.value = $element[0].querySelector("#value-string").value;
+                // If a string is defined...
+                if ($scope.stringIsDefined)
+                  contents.value = $element[0].querySelector("#value-string").value;
+
                 break;
               case "position":
                 // FALL THROUGH
@@ -393,21 +398,29 @@ angular.module('app.property', [])
                     message: "Property '" + $scope.name + "' is not an integer (entity IDs must be integers)."
                   });
                 }
+
                 break;
               case "list":
-                contents.value = this._getList("#value-list");
+                // If a list is defined...
+                if ($scope.listIsDefined)
+                  contents.value = this._getList("#value-list");
+
                 break;
               case "json":
                 contents.value = this._getJSON();
                 break;
               case "table":
-                // If the entries are numbered...
-                if ($scope.tableIsNumbered) {
-                  contents.value = this._getList("#value-table-list");
-                }  // Otherwise...
-                else {
-                  contents.value = this._getDict("#value-table-dict");
+                // If a table is defined...
+                if ($scope.tableIsDefined) {
+                  // If the entries are numbered...
+                  if ($scope.tableIsNumbered) {
+                    contents.value = this._getList("#value-table-list");
+                  }  // Otherwise...
+                  else {
+                    contents.value = this._getDict("#value-table-dict");
+                  }
                 }
+                
                 break;
               case "bool":
                 // Boolean coersion.
@@ -481,28 +494,43 @@ angular.module('app.property', [])
               $element[0].querySelector("#key").setAttribute("value", $scope.value);
           }  // Otherwise, if the value is defined...
           else if ($scope.value !== undefined) {
-            // If the value is not null (to prevent unnecessary error notifications)...
-            if ($scope.value !== null) {
-              // Do something according to the type
-              switch ($scope.type) {
-                case "bool":
-                  this._setChecked("#value-bool", $scope.value);
-                  break;
-                case "position":
-                  // FALL THROUGH
-                case "vec2":
+            // Do something according to the type
+            switch ($scope.type) {
+              case "bool":
+                this._setChecked("#value-bool", $scope.value);
+                break;
+              case "position":
+                // FALL THROUGH
+              case "vec2":
+                // If the value is not null...
+                if ($scope.value !== null)
                   this._setVec2($scope.type, $scope.value);
-                  break;
-                case "entity":
+                break;
+              case "entity":
+                // If the value is not null...
+                if ($scope.value !== null)
                   this._setInteger($scope.type, $scope.value);
-                  break;
-                case "number":
+                break;
+              case "number":
+                // If the value is not null...
+                if ($scope.value !== null)
                   this._setNumber($scope.type, $scope.value);
-                  break;
-                case "list":
+                break;
+              case "list":
+                // If the value is not null...
+                if ($scope.value !== null) {
+                  $scope.listIsDefined = true;
+
                   this._setList("list", $scope.value);
-                  break;
-                case "table":
+                } else {
+                  $scope.listIsDefined = false;
+                }
+                break;
+              case "table":
+                // If the value is not null...
+                if ($scope.value !== null) {
+                  $scope.tableIsDefined = true;
+
                   // If the value is an array...
                   if (Array.isArray($scope.value)) {
                     // Update the checkbox accordingly (doing it this way b/c ng-model has an unbreakable grip on the 
@@ -516,22 +544,25 @@ angular.module('app.property', [])
 
                     this._setDict("tableDict", $scope.value);
                   }
-                  break;
-                case "string":
-                  // If the value is a string...
-                  if (typeof $scope.value === "string") {
-                    $element[0].querySelector("#value-string").value = $scope.value;
-                  } else {
-                    this._sendPropertySetError("Value is not a string", $scope.value);
-                  }
-                  break;
-                // JSON case is handled by code below.
-              }
-            }
-
-            // If the type is "json"...
-            if ($scope.type === "json") {
-              this._setJSON($scope.value);
+                } else {
+                  $scope.tableIsDefined = false;
+                }
+                break;
+              case "json":
+                this._setJSON($scope.value);
+                break;
+              case "string":
+                // If the value is a string...
+                if (typeof $scope.value === "string") {
+                  $element[0].querySelector("#value-string").value = $scope.value;
+                  $scope.stringIsDefined = true;
+                }  // Otherwise, if the string is null...
+                else if ($scope.value === null) {
+                  $scope.stringIsDefined = false;
+                } else {
+                  this._sendPropertySetError("Value is not a string", $scope.value);
+                }
+                break;
             }
           }
         }
@@ -736,24 +767,28 @@ angular.module('app.property', [])
 
         /**
          * Attempts to parse the value `value` as a number. If parsing fails, an error is shown in the editor, and the 
-         * function returns `undefined`.
+         * function returns `undefined`. If the value is an empty string, `null`, or `undefined`, then `undefined` is 
+         * returned without an error.
          * 
-         * @param {string} value the value to parse
-         * @returns the parsed number, or `undefined` if parsing fails.
+         * @param {string | null | undefined} value the value to parse
+         * @returns the parsed number, or `undefined` if parsing fails or if the string is a falsy value.
          */
         this._parseNumber = function(value) {
-          var newValue = Number(value);
-          var result;
+          var result = undefined;
+          
+          // If `value` is a non-empty string...
+          if (value) {
+            var newValue = Number(value);
 
-          // If `value` could be converted to a number...
-          if (!isNaN(newValue)) {
-            result = newValue;
-          } else {
-            $window.app.editor.trigger('notification', undefined, {
-              level: 'error',
-              message: 'Property \'' + $scope.name + '\' is not a number.'
-            });
-            result = undefined;
+            // If `value` could be converted to a number...
+            if (!isNaN(newValue)) {
+              result = newValue;
+            } else {
+              $window.app.editor.trigger('notification', undefined, {
+                level: 'error',
+                message: 'Property \'' + $scope.name + '\' is not a number.'
+              });
+            }
           }
 
           return result;
@@ -889,7 +924,7 @@ angular.module('app.property', [])
           "string": "String",
           "null": "Null"
         };
-        $scope.subType = "dict";  // Default sub-type.
+        $scope.subType = "null";  // Default sub-type.
 
         /**
          * Inserts a list item into the current element's list. Only appropriate if `$scope.type` is `list` or `table`.

@@ -29,7 +29,14 @@
       <td>
         <input id="key" type="text" placeholder="key" ng-show="usesKey" b3-property-change-listener>
         <span ng-hide="usesKey" id="value">
-          <input id="value-string" type="text" placeholder="value" ng-show="type == 'string'" b3-property-change-listener>
+          <div ng-show="type == 'string'">
+            <label for="string-is-defined" class="inline">Define a String?:</label>
+            <input id="string-is-defined" type="checkbox" ng-model="stringIsDefined"
+                   onchange="element(this).onInput(this); element(this).onChange(this)">
+
+            <input ng-show="stringIsDefined" id="value-string" type="text" placeholder="value"
+                   b3-property-change-listener>
+          </div>
 
           <div ng-show="type == 'position'">
             <div class="inline">
@@ -64,22 +71,31 @@
           </div>
 
           <div ng-show="type == 'list'">
-            <a href="#" ng-click="addListItem('value-list'); onInput()" class="button success right">+</a>
+            <label for="list-is-defined" class="inline">Define a List?:</label>
+            <input id="list-is-defined" type="checkbox" ng-model="listIsDefined"
+                   onchange="element(this).onInput(this); element(this).onChange(this)">
+            
+            <div ng-show="listIsDefined">
+              <a href="#" ng-click="addListItem('value-list'); onInput()" class="button success right">+</a>
 
-            <table class="data-aggregate">
-              <tbody id="value-list">
-                <tr id="list-item" ng-repeat="item in typedValues.list track by $index">
-                  <td id="key">{{$index}}</td>
-                  <td>
-                    <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
-                                  initial-value="item">
-                    </b3-json-input>
-                  </td>
-                  <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-list" class="button alert right">-</a></td>
-                </tr>
-                <!-- Items are dynamically inserted here -->
-              </tbody>
-            </table>
+              <table class="data-aggregate">
+                <tbody id="value-list">
+                  <tr id="list-item" ng-repeat="item in typedValues.list track by $index">
+                    <td id="key">{{$index}}</td>
+                    <td>
+                      <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                    initial-value="item">
+                      </b3-json-input>
+                    </td>
+                    <td>
+                      <a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-list"
+                         class="button alert right">-</a>
+                    </td>
+                  </tr>
+                  <!-- Items are dynamically inserted here -->
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div ng-show="type == 'json'">
@@ -125,7 +141,10 @@
                                         initial-value="item">
                           </b3-json-input>
                         </td>
-                        <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-json-list" class="button alert right">-</a></td>
+                        <td>
+                          <a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-json-list"
+                             class="button alert right">-</a>
+                        </td>
                       </tr>
                       <!-- Items are dynamically inserted here -->
                     </tbody>
@@ -147,9 +166,13 @@
           </div>
 
           <div ng-show="type == 'table'">
-            <div class="json-container">
+            <label for="table-is-defined" class="inline">Define a Table?:</label>
+            <input id="table-is-defined" type="checkbox" ng-model="tableIsDefined"
+                   onchange="element(this).onInput(this); element(this).onChange(this)">
+
+            <div class="json-container" ng-show="tableIsDefined">
               <div class="json-type-container">
-                <label for="is-numbered" class="inline">Numbered: </label>
+                <label for="is-numbered" class="inline">Numbered?:</label>
                 <input id="is-numbered" type="checkbox" ng-model="tableIsNumbered"
                        onchange="element(this).onInput(this); element(this).onChange(this)">
               </div>
