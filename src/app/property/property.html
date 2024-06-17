@@ -34,39 +34,45 @@
             <input id="string-is-defined" type="checkbox" ng-model="stringIsDefined"
                    onchange="element(this).onInput(this); element(this).onChange(this)">
 
-            <input ng-show="stringIsDefined" id="value-string" type="text" placeholder="value"
-                   b3-property-change-listener>
+            <b3-text-input id="value-string" ng-show="stringIsDefined" onblur="element(this).onChange(this)"
+                           b3-on-change="onInput()" initial-value="typedValues.string" placeholder="value"
+                           expandable="a">
+            </b3-text-input>
           </div>
 
           <div ng-show="type == 'position'">
             <div class="inline">
               <label for="value-position-x" class="inline">X:</label>
-              <b3-json-input id="value-position-x" onblur="element(this).onChange(this)"
-                            initial-value="typedValues.position[0]" b3-on-change="onInput()">
-              </b3-json-input>
+              <b3-text-input id="value-position-x" onblur="element(this).onChange(this)"
+                             initial-value="typedValues.position[0]" b3-on-change="onInput()" placeholder="jsonValue"
+                             b3-formatter="parseJson(input)" expandable="a">
+              </b3-text-input>
             </div>
             <div class="inline">
               <label for="value-position-y" class="inline">Y:</label>
-              <b3-json-input id="value-position-y" onblur="element(this).onChange(this)"
-                             initial-value="typedValues.position[1]" b3-on-change="onInput()">
-              </b3-json-input>
+              <b3-text-input id="value-position-y" onblur="element(this).onChange(this)"
+                             initial-value="typedValues.position[1]" b3-on-change="onInput()" placeholder="jsonValue"
+                             b3-formatter="parseJson(input)" expandable="a">
+              </b3-text-input>
             </div>
           </div>
 
           <div ng-show="type == 'vec2'">
             <div class="inline">
               <label for="value-vec2-x" class="inline">X:</label>
-              <!-- <b3-json-input id="value-vec2-x" onblur="element(this).onChange(this)" b3-on-change="onInput()">
-              </b3-json-input> -->
-              <b3-json-input id="value-vec2-x" onblur="element(this).onChange(this)" initial-value="typedValues.vec2[0]"
-                             b3-on-change="onInput()">
-              </b3-json-input>
+              <!-- <b3-text-input id="value-vec2-x" onblur="element(this).onChange(this)" b3-on-change="onInput()">
+              </b3-text-input> -->
+              <b3-text-input id="value-vec2-x" onblur="element(this).onChange(this)" initial-value="typedValues.vec2[0]"
+                             b3-on-change="onInput()" placeholder="jsonValue" b3-formatter="parseJson(input)"
+                             expandable="a">
+              </b3-text-input>
             </div>
             <div class="inline">
               <label for="value-vec2-y" class="inline">Y:</label>
-              <b3-json-input id="value-vec2-y" onblur="element(this).onChange(this)" initial-value="typedValues.vec2[1]"
-                             b3-on-change="onInput()">
-              </b3-json-input>
+              <b3-text-input id="value-vec2-y" onblur="element(this).onChange(this)" initial-value="typedValues.vec2[1]"
+                             b3-on-change="onInput()" placeholder="jsonValue" b3-formatter="parseJson(input)"
+                             expandable="a">
+              </b3-text-input>
             </div>
           </div>
 
@@ -83,9 +89,10 @@
                   <tr id="list-item" ng-repeat="item in typedValues.list track by $index">
                     <td id="key">{{$index}}</td>
                     <td>
-                      <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
-                                    initial-value="item">
-                      </b3-json-input>
+                      <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                     initial-value="item" placeholder="jsonValue" b3-formatter="parseJson(input)"
+                                     expandable="a">
+                      </b3-text-input>
                     </td>
                     <td>
                       <a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-list"
@@ -119,9 +126,10 @@
                       <tr ng-repeat="(key, item) in typedValues.jsonDict">
                         <td><input id="key" type="text" value="{{key}}" placeholder="key"></td>
                         <td>
-                          <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
-                                        initial-value="item">
-                          </b3-json-input>
+                          <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                         initial-value="item" placeholder="jsonValue" b3-formatter="parseJson(input)"
+                                         expandable="a">
+                          </b3-text-input>
                         </td>
                         <td><a href="#" propertyremovable ng-click="onInput()" class="button alert right">-</a></td>
                       </tr>
@@ -137,9 +145,10 @@
                       <tr id="list-item" ng-repeat="item in typedValues.jsonList track by $index">
                         <td id="key">{{$index}}</td>
                         <td>
-                          <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
-                                        initial-value="item">
-                          </b3-json-input>
+                          <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                         initial-value="item" placeholder="jsonValue" b3-formatter="parseJson(input)"
+                                         expandable="a">
+                          </b3-text-input>
                         </td>
                         <td>
                           <a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-json-list"
@@ -150,15 +159,20 @@
                     </tbody>
                   </table>
                 </div>
-                <input id="value-json-string" type="text" placeholder="value" ng-show="subType == 'string'"
-                       b3-property-change-listener>
+
+                <b3-text-input id="value-json-string" ng-show="subType == 'string'"
+                               onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                               initial-value="typedValues.jsonString" placeholder="value" expandable="a">
+                </b3-text-input>
                 <div ng-show="subType == 'bool'">
                   <label for="value-json-bool" class="inline">Value:</label>
                   <input id="value-json-bool" type="checkbox"
                          onchange="element(this).onInput(this); element(this).onChange(this)">
                 </div>
-                <input id="value-json-number" type="text" placeholder="value" ng-show="subType == 'number'"
-                       b3-property-change-listener>
+                <b3-text-input id="value-json-number" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                               initial-value="typedValues.jsonNumber" placeholder="value"
+                               b3-formatter="parseNumber(input)" expandable="a" ng-show="subType == 'number'">
+                </b3-text-input>
                 <div class="null" ng-show="subType == 'null'">NULL</div>
                 <!--"null" shows nothing-->
               </div>
@@ -185,9 +199,10 @@
                       <tr id="list-item" ng-repeat="item in typedValues.tableList track by $index">
                         <td id="key">{{$index}}</td>
                         <td>
-                          <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
-                                        initial-value="item">
-                          </b3-json-input>
+                          <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                         initial-value="item" placeholder="jsonValue" b3-formatter="parseJson(input)"
+                                         expandable="a">
+                          </b3-text-input>
                         </td>
                         <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-table-list" class="button alert right">-</a></td>
                       </tr>
@@ -203,9 +218,10 @@
                       <tr ng-repeat="(key, item) in typedValues.tableDict">
                         <td><input id="key" type="text" value="{{key}}" placeholder="key"></td>
                         <td>
-                          <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
-                                        initial-value="item">
-                          </b3-json-input>
+                          <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                                         initial-value="item" placeholder="jsonValue" b3-formatter="parseJson(input)"
+                                         expandable="a">
+                          </b3-text-input>
                         </td>
                         <td><a href="#" propertyremovable ng-click="onInput()" class="button alert right">-</a></td>
                       </tr>
@@ -217,16 +233,20 @@
             </div>
           </div>
 
-          <input id="value-entity" type="text" placeholder="value" ng-show="type == 'entity'"
-                 b3-property-change-listener>
+          <b3-text-input id="value-entity" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                         initial-value="typedValues.entity" placeholder="value" b3-formatter="parseEntity(input)"
+                         expandable="a" ng-show="type == 'entity'">
+          </b3-text-input>
 
           <div ng-show="type == 'bool'">
             <label for="value-bool" class="inline">Value:</label>
             <input id="value-bool" type="checkbox" onchange="element(this).onInput(this); element(this).onChange(this)">
           </div>
 
-          <input id="value-number" type="text" placeholder="value" ng-show="type == 'number'"
-                 b3-property-change-listener>
+          <b3-text-input id="value-number" onblur="element(this).onChange(this)" b3-on-change="onInput()"
+                         initial-value="typedValues.number" placeholder="value" b3-formatter="parseNumber(input)"
+                         expandable="a" ng-show="type == 'number'">
+          </b3-text-input>
         </span>
       </td>
     </tr>

@@ -14,5 +14,5 @@ var app = angular.module('app', [
   'app.project',
   'app.collapsibleList',
   'app.highlight',
-  'app.jsonDisplay'
+  'app.textInput'
 ]);

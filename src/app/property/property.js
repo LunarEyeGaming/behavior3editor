@@ -334,10 +334,13 @@ angular.module('app.property', [])
           <tr id="list-item">\
             <td id="key">{0}</td>\
             <td>\
-              <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()">\
-              </b3-json-input>\
+              <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"\
+                             placeholder="jsonValue" b3-formatter="parseJson(input)" expandable="a">\
+              </b3-text-input>\
             </td>\
-            <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="{2}" class="button alert right">-</a></td>\
+            <td>\
+              <a href="#" b3-property-removable2 ng-click="onInput()" list-id="{2}" class="button alert right">-</a>\
+            </td>\
           </tr>\
         ';
 
@@ -345,8 +348,9 @@ angular.module('app.property', [])
           <tr>\
             <td><input id="key" type="text" value="{0}" placeholder="key"></td>\
             <td>\
-              <b3-json-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()">\
-              </b3-json-input>\
+              <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"\
+                             placeholder="jsonValue" b3-formatter="parseJson(input)" expandable="a">\
+              </b3-text-input>\
             </td>\
             <td><a href="#" propertyremovable ng-click="onInput()" class="button alert right">-</a></td>\
           </tr>\
@@ -375,7 +379,7 @@ angular.module('app.property', [])
               case "string":
                 // If a string is defined...
                 if ($scope.stringIsDefined)
-                  contents.value = $element[0].querySelector("#value-string").value;
+                  contents.value = this._requestTextInputValue(this._getController("#value-string", "b3TextInput"));
 
                 break;
               case "position":
@@ -384,21 +388,10 @@ angular.module('app.property', [])
                 contents.value = this._getVec2($scope.type);
                 break;
               case "number":
-                contents.value = this._parseNumber($element[0].querySelector("#value-number").value);
+                contents.value = this._requestTextInputValue(this._getController("#value-number", "b3TextInput"));
                 break;
               case "entity":
-                var number = this._parseNumber($element[0].querySelector("#value-entity").value);
-
-                // If the number is an integer...
-                if (Number.isInteger(number))
-                  contents.value = number;
-                else {
-                  $window.app.editor.trigger("notification", undefined, {
-                    level: "error",
-                    message: "Property '" + $scope.name + "' is not an integer (entity IDs must be integers)."
-                  });
-                }
-
+                contents.value = this._requestTextInputValue(this._getController("#value-entity", "b3TextInput"));
                 break;
               case "list":
                 // If a list is defined...
@@ -473,8 +466,8 @@ angular.module('app.property', [])
           $scope.type = $scope.initialType || "json";
           $scope.name = $scope.initialName;
 
-          // This dictionary is necessary because b3-json-input elements aren't compiled until after this function runs,
-          // and setAttribute has no effect on b3-json-input elements as far as I know.
+          // This dictionary is necessary because b3-text-input elements aren't compiled until after this function runs,
+          // and setAttribute has no effect on b3-text-input elements as far as I know.
           $scope.typedValues = {};
 
           // If the initial key is defined as a nonempty string or the property is an output...
@@ -509,7 +502,7 @@ angular.module('app.property', [])
               case "entity":
                 // If the value is not null...
                 if ($scope.value !== null)
-                  this._setInteger($scope.type, $scope.value);
+                  this._setEntity($scope.type, $scope.value);
                 break;
               case "number":
                 // If the value is not null...
@@ -554,7 +547,7 @@ angular.module('app.property', [])
               case "string":
                 // If the value is a string...
                 if (typeof $scope.value === "string") {
-                  $element[0].querySelector("#value-string").value = $scope.value;
+                  $scope.typedValues.string = $scope.value;
                   $scope.stringIsDefined = true;
                 }  // Otherwise, if the string is null...
                 else if ($scope.value === null) {
@@ -585,7 +578,7 @@ angular.module('app.property', [])
         }
 
         /**
-         * Checks if `value` is an array of length 2 and, if so, sets the inputs corresponding to `type` in the current
+         * Checks if `value` is an array of length 2 and, if so, sets the value corresponding to `type` in the current
          * property to contain the value. Otherwise, sends an error to the editor GUI and does nothing to the inputs.
          * 
          * @param {string} type the type of vec2 value to set
@@ -595,8 +588,8 @@ angular.module('app.property', [])
           // If the value is a proper vec2 (i.e., is an array with length 2)...
           if (Array.isArray(value) && value.length == 2) {
             // // Set x and y values.
-            // this._getController("#value-" + type + "-x", "b3JsonInput").setValue(value[0]);
-            // this._getController("#value-" + type + "-y", "b3JsonInput").setValue(value[1]);
+            // this._getController("#value-" + type + "-x", "b3TextInput").setValue(value[0]);
+            // this._getController("#value-" + type + "-y", "b3TextInput").setValue(value[1]);
             // Set x and y values (scope values will be looked up by json input element during binding process).
             $scope.typedValues[type] = [JSON.stringify(value[0]), JSON.stringify(value[1])];
             // $element[0].querySelector("#value-" + type + "-x").setAttribute("initial-value", JSON.stringify(value[0]));
@@ -607,8 +600,8 @@ angular.module('app.property', [])
         }
 
         /**
-         * Checks if `value` is numeric and, if so, sets the input corresponding to `type` in the current property to
-         * contain the value. Otherwise, sends an error to the editor GUI and does nothing to the inputs.
+         * Checks if `value` is numeric and, if so, sets the value corresponding to `type` in the current property.
+         * Otherwise, sends an error to the editor GUI and does nothing to the inputs.
          * 
          * @param {string} type the type of numeric value to set
          * @param {*} value the value to which to set the number
@@ -616,23 +609,23 @@ angular.module('app.property', [])
         this._setNumber = function(type, value) {
           // If the value is a number...
           if (typeof value === "number") {
-            $element[0].querySelector("#value-" + type).value = value;
+            $scope.typedValues[type] = value;
           } else {
             this._sendPropertySetError("Value is not a number", value);
           }
         }
 
         /**
-         * Checks if `value` is an integer and, if so, sets the input corresponding to `type` in the current property to
-         * contain the value. Otherwise, sends an error to the editor GUI and does nothing to the inputs.
+         * Checks if `value` represents an integer and, if so, sets the input corresponding to `type` in the current
+         * property. Otherwise, sends an error to the editor GUI and does nothing to the inputs.
          * 
          * @param {string} type the type of integer value to set
          * @param {*} value the value to which to set the number
          */
-        this._setInteger = function(type, value) {
-          // If the value is an integer
+        this._setEntity = function(type, value) {
+          // If the value is an integer...
           if (Number.isInteger(value)) {
-            $element[0].querySelector("#value-" + type).value = value;
+            $scope.typedValues[type] = value;
           } else {
             this._sendPropertySetError("Value is not an integer", value);
           }
@@ -701,12 +694,12 @@ angular.module('app.property', [])
           else if (typeof value === "number") {
             $scope.subType = "number";
 
-            this._setNumber("json-number", value);
+            this._setNumber("jsonNumber", value);
           }  // Otherwise, if the value is a string...
           else if (typeof value === "string") {
             $scope.subType = "string";
 
-            $element[0].querySelector("#value-json-string").value = value;
+            $scope.typedValues.jsonString = value;
           }  // Otherwise, if the value is an array..
           else if (Array.isArray(value)) {
             $scope.subType = "list";
@@ -736,59 +729,64 @@ angular.module('app.property', [])
           });
         }
 
+        // /**
+        //  * Gets the value from the text input controller `controller` and parses it in JSON. If parsing succeeds, the
+        //  * parsed value is returned. Otherwise, `undefined` is returned, and a pop-up error is displayed in the editor.
+        //  * If `propExtra` is defined, it is displayed in the error message. If `value` is an empty string, the function
+        //  * simply returns `undefined` instead.
+        //  * 
+        //  * @precondition the value returned by `controller` is valid JSON
+        //  * @param {TextInputController} controller the controller containing the value of the property being parsed
+        //  * @param {string?} propExtra (optional) extra information to display about where the error occurred.
+        //  * @returns the parsed value, or `undefined` if parsing fails
+        //  */
+        // this._parseProperty = function(controller, propExtra) {
+        //   var result = undefined;
+
+        //   // If propExtra is defined, prepend it with a dot. Otherwise, use an empty string.
+        //   var propLocator = propExtra !== undefined ? ("." + propExtra) : '';
+
+        //   var response = controller.requestValue();
+
+        //   // If the value is valid and defined as a non-empty string...
+        //   if (response.validValue && response.value) {
+        //     result = JSON.parse(response.value);
+        //   }  // Otherwise, if the value is invalid...
+        //   else if (!response.validValue) {
+        //     // Notify the editor about the error.
+        //     $window.app.editor.trigger('notification', undefined, {
+        //       level: "error",
+        //       message: "Error with property '" + $scope.name + propLocator + "'. <br>" + response.errorMessage
+        //     });
+        //   }
+
+        //   return result;
+        // }
+
         /**
-         * Attempts to get the value from the JSON controller `controller`. If parsing succeeds, the parsed value is returned. 
-         * Otherwise, `undefined` is returned, and a pop-up error is displayed in the editor. If `propExtra` is defined,
-         * it is displayed in the error message. If `value` is an empty string, the function simply returns `undefined`
-         * instead.
+         * Attempts to get a value from a text input controller `controller`, returning the contained value if valid and
+         * relaying the error message to the editor GUI otherwise.
          * 
-         * @param {JsonInputController} controller the controller containing the value of the property being parsed
+         * @param {TextInputController} controller the controller from which to reqest the value
          * @param {string?} propExtra (optional) extra information to display about where the error occurred.
-         * @returns the parsed value, or `undefined` if parsing fails
+         * @returns the value returned by `controller`, or `undefined` if the value is invalid.
          */
-        this._handleParseError = function(controller, propExtra) {
+        this._requestTextInputValue = function(controller, propExtra) {
           var result = undefined;
 
           // If propExtra is defined, prepend it with a dot. Otherwise, use an empty string.
           var propLocator = propExtra !== undefined ? ("." + propExtra) : '';
 
-          try {
-            // result can be undefined here.
-            result = controller.getValue();
-          } catch (err) {
+          var response = controller.requestValue();
+          // If the value is valid...
+          if (response.isValid) {
+            result = response.value;
+          } else {
+            // Notify the editor about the error.
             $window.app.editor.trigger('notification', undefined, {
-              level: 'error',
-              message: 'Invalid JSON value in property \'' + $scope.name + propLocator + '\'. <br>' + err
+              level: "error",
+              message: "Could not change property '" + $scope.name + propLocator + "'. <br>" + response.invalidMessage
             });
-          }
-
-          return result;
-        }
-
-        /**
-         * Attempts to parse the value `value` as a number. If parsing fails, an error is shown in the editor, and the 
-         * function returns `undefined`. If the value is an empty string, `null`, or `undefined`, then `undefined` is 
-         * returned without an error.
-         * 
-         * @param {string | null | undefined} value the value to parse
-         * @returns the parsed number, or `undefined` if parsing fails or if the string is a falsy value.
-         */
-        this._parseNumber = function(value) {
-          var result = undefined;
-          
-          // If `value` is a non-empty string...
-          if (value) {
-            var newValue = Number(value);
-
-            // If `value` could be converted to a number...
-            if (!isNaN(newValue)) {
-              result = newValue;
-            } else {
-              $window.app.editor.trigger('notification', undefined, {
-                level: 'error',
-                message: 'Property \'' + $scope.name + '\' is not a number.'
-              });
-            }
           }
 
           return result;
@@ -810,11 +808,11 @@ angular.module('app.property', [])
 
           // For each value on the DOM (enumerated)...
           for (var i = 0; i < domValues.length; i++) {
-            // Parse the value and add the result if defined.
-            var parsed = this._handleParseError(angular.element(domValues[i]).controller("b3JsonInput"), i);
+            // Get the text input's value and add it if defined.
+            var value = this._requestTextInputValue(angular.element(domValues[i]).controller("b3TextInput"), i);
 
-            if (parsed !== undefined)
-              values.push(parsed);
+            if (value !== undefined)
+              values.push(value);
           }
 
           return values;
@@ -840,9 +838,9 @@ angular.module('app.property', [])
           for (var i = 0; i < domValues.length; i++) {
             // If the key is defined and a non-empty string...
             if (domKeys[i].value) {
-              var inputCtrl = angular.element(domValues[i]).controller("b3JsonInput");
-              // Parse the value and set the corresponding key to that value.
-              kvPairs[domKeys[i].value] = this._handleParseError(inputCtrl, domKeys[i].value);
+              var inputCtrl = angular.element(domValues[i]).controller("b3TextInput");
+              // Get the text input's value and set the corresponding key to that value.
+              kvPairs[domKeys[i].value] = this._requestTextInputValue(inputCtrl, domKeys[i].value);
             }
           }
 
@@ -858,8 +856,8 @@ angular.module('app.property', [])
          * @returns an array representing a vec2 from the DOM, or `undefined` if either value is invalid.
          */
         this._getVec2 = function(type) {
-          var xValue = this._handleParseError(this._getController("#value-" + type + "-x", "b3JsonInput"), "x");
-          var yValue = this._handleParseError(this._getController("#value-" + type + "-y", "b3JsonInput"), "y");
+          var xValue = this._requestTextInputValue(this._getController("#value-" + type + "-x", "b3TextInput"), "x");
+          var yValue = this._requestTextInputValue(this._getController("#value-" + type + "-y", "b3TextInput"), "y");
           var result;
 
           // If both values are defined (i.e., the parsin succeeded)...
@@ -882,10 +880,10 @@ angular.module('app.property', [])
           // Do something according to the sub-type.
           switch ($scope.subType) {
             case "string":
-              result = $element[0].querySelector("#value-json-string").value;
+              result = this._requestTextInputValue(this._getController("#value-json-string", "b3TextInput"));
               break;
             case "number":
-              result = this._parseNumber($element[0].querySelector("#value-json-number").value);
+              result = this._requestTextInputValue(this._getController("#value-json-number", "b3TextInput"));
               break;
             case "list":
               result = this._getList("#value-json-list");
@@ -977,6 +975,119 @@ angular.module('app.property', [])
 
           // Compile and append template to the list.
           dictElement.append($compile(template)($scope));
+        }
+
+        /**
+         * The returned value is an object matching the schema provided in the `b3TextInput` directive's documentation.
+         * `isValid` is true if either `value` is an empty string or parsing the value is successful. `result` is the
+         * result of parsing the value if parsing is successful and `value` is an empty string. Otherwise, it is
+         * `undefined`. If parsing fails, `alert` will be defined to be an object with `level` "error" and a `message`
+         * containing why the parsing failed.
+         * 
+         * @param {string} value the value to validate
+         * @returns an object. See method documentation body for more information.
+         */
+        $scope.parseJson = function(value) {
+          var result = {};
+
+          // If the value is defined as a non-empty string...
+          if (value) {
+            // Try to parse the value.
+            try {
+              var parsed = JSON.parse(value);
+
+              result.isValid = true;
+              result.result = parsed;
+            } catch (err) {
+              // On error, state that the input is invalid and include the reason why parsing failed as an alert.
+              result.isValid = false;
+              result.alert = {
+                level: "error",
+                message: "Invalid JSON value: " + err.message
+              };
+            }
+          } else {
+            // Mark as valid and make the result undefined.
+            result.isValid = true;
+            result.result = undefined;
+          }
+
+          return result;
+        }
+
+        /**
+         * Attempts to parse the value `value` as a number. Returns an object containing three possible fields 
+         * `isValid`, `result`, and `alert`. The value is considered valid if it represents a valid number or is an
+         * empty string. If invalid, an `alert` is given stating that the number is invalid, and the `result` becomes
+         * `undefined`. The `result` is also `undefined` if the `value` is an empty string.
+         * 
+         * @param {string | null | undefined} value the value to parse as a number
+         * @returns an object. See method documentation body for more information.
+         */
+        $scope.parseNumber = function(value) {
+          var result = {};
+          
+          // If `value` is a non-empty string...
+          if (value) {
+            var newValue = Number(value);
+
+            // If `value` could be converted to a number...
+            if (!isNaN(newValue)) {
+              result.isValid = true;
+              result.result = newValue;
+            } else {
+              result.isValid = false;
+              result.alert = {
+                level: "error",
+                message: "Property is not a number."
+              };
+            }
+          } else {
+            result.isValid = true;
+            result.result = undefined;
+          }
+
+          return result;
+        }
+
+        /**
+         * Attempts to parse the value `value` as an entity ID. Returns an object containing three possible fields 
+         * `isValid`, `result`, and `alert`. The value is considered valid if it represents a valid entity ID or is an
+         * empty string. If invalid, an `alert` is given stating that the ID is invalid, and the `result` becomes
+         * `undefined`. The `result` is also `undefined` if the `value` is an empty string.
+         * 
+         * @param {string | null | undefined} value the value to parse as an entity ID
+         * @returns an object. See method documentation body for more information.
+         */
+        $scope.parseEntity = function(value) {
+          var result = {};
+          
+          // If `value` is a non-empty string...
+          if (value) {
+            var newValue = Number(value);
+
+            // If `value` could be converted to a number and represents an integer...
+            if (!isNaN(newValue) && Number.isInteger(newValue)) {
+              result.isValid = true;
+              result.result = newValue;
+              // Using an entity ID as a number should show a warning.
+              result.alert = {
+                level: "warning",
+                message: "Raw values should not be used for this data type. Use keys instead."
+              };
+            } else {
+              result.isValid = false;
+              result.alert = {
+                level: "error",
+                message: "Property is not a valid entity ID (entity IDs must be integers)."
+              };
+            }
+          } else {
+            result.isValid = true;
+            result.result = undefined;
+          }
+
+          return result;
         }
 
         $scope.showContents = function() {

@@ -1,0 +1,10 @@
+<input type="text" class="monospace inline" ng-model="value" ng-change="onChange(); updateAlert()"
+       placeholder="{{placeholder}}"
+       ng-class="{expandable: expandable, 'border-warning': inputAlert.level == 'warning',
+                  'border-error': inputAlert.level == 'error'}">
+<button class="secondary inline text-expand" title="Show More" ng-click="expandText()" ng-show="expandable">...</button>
+<br>
+<span ng-class="{expandable: expandable, 'balloon-warning': inputAlert.level == 'warning', 'balloon-error': inputAlert.level == 'error'}">
+  {{inputAlert.message}}
+</span>
+<!-- <button ng-click="getValue()">Show Value</button> -->

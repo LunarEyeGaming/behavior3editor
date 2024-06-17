@@ -1,15 +1,21 @@
-<div id="expanded-json-modal" class="modal">
+<div id="expanded-text-modal" class="modal">
   <div class='modal-overlay' ng-click='close("Cancel")'></div>
   <div class="modal-dialog">
     <div class="modal-dialog-content">
       <a class="button modal-close" ng-click="close('Cancel')" data-dismiss="modal" aria-hidden="true" href="#">&times;</a>
 
       <div class="modal-header">
-        <h1 class="modal-title">Edit JSON</h1>
+        <h1 class="modal-title">Edit Text Field</h1>
       </div>
 
       <div class="modal-body">
-        <textarea class="monospace expanded-json" cols="80" rows="20" ng-model="value"></textarea>
+        <textarea class="monospace expanded-text" cols="80" rows="20" ng-model="value" ng-change="updateAlert()"
+                  ng-class="{expandable: expandable, 'border-warning': inputAlert.level == 'warning', 'border-error': inputAlert.level == 'error'}">
+        </textarea>
+        <br>
+        <span ng-class="{expandable: expandable, 'balloon-warning': inputAlert.level == 'warning', 'balloon-error': inputAlert.level == 'error'}">
+          {{inputAlert.message}}
+        </span>
       </div>
     </div>
 

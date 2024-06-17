@@ -128,6 +128,17 @@ button.alert:hover, .button.alert:hover {
   font-family: 'Courier New', Courier, monospace;
 }
 
+.inner-topbar {
+  top: 25px;
+  position: absolute;
+  text-align: left;
+  margin: 0px;
+  border-bottom: 1px solid #aaaaaa;
+  left: 250px;  /* Required b/c the sidebar on the left will otherwise hide some of the text. */
+  width: calc(100% - 500px);
+  background-color: #ffffff;
+}
+
 /* ================================*/
 /* FORM                            */
 /* ================================*/
@@ -147,17 +158,6 @@ form .row input, form .row textarea, form .row select {
   width: 95%;
   color: #111;
   padding: 3px;
-}
-
-.inner-topbar {
-  top: 25px;
-  position: absolute;
-  text-align: left;
-  margin: 0px;
-  border-bottom: 1px solid #aaaaaa;
-  left: 250px;  /* Required b/c the sidebar on the left will otherwise hide some of the text. */
-  width: calc(100% - 500px);
-  background-color: #ffffff;
 }
 
 /* ================================*/
@@ -972,7 +972,7 @@ table.property input {
   width: auto;
   max-width: 150px;
 }
-table.property input.json-display {
+table.property input.text-input {
   width: calc(100% - 50px);
 }
 table.property input[type=checkbox] {
@@ -994,7 +994,7 @@ table.property #value .button {
 table.property .data-aggregate input {
   width: calc(100% - 10px);
 }
-table.property .data-aggregate input.json-display {
+table.property .data-aggregate input.expandable {
   width: calc(100% - 40px);
 }
 table.property .data-aggregate tr {
@@ -1038,16 +1038,28 @@ table.property #value-json input {
 
 
 /* ================================*/
-/* JSON DISPLAY ETC.               */
+/* TEXT INPUT ETC.               */
 /* ================================*/
-.json-display-thrownaway {
+.text-input-thrownaway {
   width: calc(100% - 30px);  /* Based on the width of the button */
 }
-.json-expand {
+.text-expand {
   padding: 3px 5px;
   margin: 0px;
 }
-.expanded-json {
+.expanded-text {
   font-size: 1.2em;
+}
+.border-warning {
+  border: #ffe11f solid 1px;
+}
+.border-error {
+  border: #ff1c1c solid 1px;
+}
+.balloon-warning {
+  color: #a99514;
+}
+.balloon-error {
+  color: #a91414;
 }
 /* ================================*/
