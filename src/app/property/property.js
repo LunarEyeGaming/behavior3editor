@@ -1,6 +1,6 @@
-angular.module('app.property', [])
+angular.module('app.property', ["app.textInput"])
 
-.controller('PropertyPanelController', function($scope, $timeout, $compile, $window) {
+.controller('PropertyPanelController', function($scope, $timeout, $compile, $window, b3Format) {
   /*
   General comment:
   onchange is hooked up to trigger the $scope.editProperties() function, which causes changes in the block to be 
@@ -27,19 +27,24 @@ angular.module('app.property', [])
   );
   this.rootTemplate ='\
     <tr>\
-      <td><input id="key" type="text" value="{0}" onchange="element(this).editProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="key" /></td>\
-      <td><input id="value" type="text" value="{1}" onchange="element(this).editProperties(this);" onkeyup="element(this).markForChange(this);" placeholder="value" /></td>\
+      <td>\
+        <b3-text-input id="key" onblur="element(this).editProperties(this);" on-change="markForChange()"\
+                       placeholder="key" expandable="a">\
+        </b3-text-input>\
+      </td>\
+      <td>\
+        <b3-text-input id="value" onblur="element(this).editProperties(this);" on-change="markForChange()"\
+                       placeholder="value" expandable="a" formatter="parseJson(input)">\
+        </b3-text-input>\
+      </td>\
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
     </tr>\
   ';
 
   var this_ = this;
-  $scope.addRootProperty = function(key, value) {
-    if (typeof key == 'undefined') key = '';
-    if (typeof value == 'undefined') value = '';
-    value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
-    var template = this_.rootTemplate.format(key, value);
-    this_.propertyTable.append($compile(template)($scope));
+  $scope.addRootProperty = function() {
+    var template = this_.rootTemplate.format();
+    angular.element(document.querySelector('#property-properties-table>tbody')).append($compile(template)($scope));
   }
 
   // SELECTION/DESELECTION
@@ -63,7 +68,6 @@ angular.module('app.property', [])
         block = selectedBlocks[0];
         screen = $scope.SCRN_SELECTED;
 
-        this_.propertyTable.html('');
         var domName = document.querySelector('#property-panel #name');
         var domTitle = document.querySelector('#property-panel #title');
 
@@ -72,26 +76,28 @@ angular.module('app.property', [])
 
         properties = [];
 
-        // Add properties from node prototype to be used by ng-repeat. This has no effect when the block is the root.
-        for (var name in block.node.prototype.properties) {
-          var prop = {};
-          prop.name = name;
-          prop.type = block.node.prototype.properties[name].type;
+        // Add the properties according to whether or not the block is the root (because the schema of properties 
+        // varies). The template will handle displaying the properties accordingly.
+        // If the block is not the root...
+        if (block.type != "root") {
+          // Add properties from node prototype to be used by ng-repeat.
+          for (var name in block.node.prototype.properties) {
+            var prop = {};
+            prop.name = name;
+            prop.type = block.node.prototype.properties[name].type;
 
-          // If the block has a corresponding entry for the property...
-          if (block.properties[name] != undefined) {
-            prop.key = block.properties[name].key;
-            prop.value = block.properties[name].value;
+            // If the block has a corresponding entry for the property...
+            if (block.properties[name] != undefined) {
+              prop.key = block.properties[name].key;
+              prop.value = block.properties[name].value;
+            }
+
+            properties.push(prop);
           }
-
-          properties.push(prop);
-        }
-
-        // If the block is the root...
-        if (block.type == 'root') {
+        } else {
           // Add root properties.
           for (var name in block.properties) {
-            $scope.addRootProperty(name, block.properties[name]);
+            properties.push({name, value: JSON.stringify(block.properties[name])});
           }
         }
 
@@ -155,22 +161,27 @@ angular.module('app.property', [])
       var domValues = document.querySelectorAll('#property-properties-table #value');
 
       for (var i=0; i<domKeys.length; i++) {
-        var key = domKeys[i].value;  // Property name
-        var value = domValues[i].value;  // Contained value
-        if (value == '') value = null;
+        var keyCtrl = angular.element(domKeys[i]).controller("b3TextInput");
+        var key = keyCtrl.requestValue().value;  // Property name
 
-        try {
-          value = JSON.parse(value);
-        } catch (e){
-          $window.app.editor.trigger('notification', name, {
-            level: 'error',
-            message: 'Invalid JSON value in property \'' + key + '\'. <br>' + e
-          });
-        }
-
-        // If the property name is defined...
+        // If the key is defined as a non-empty string...
         if (key) {
-          newNode.properties[key] = value
+          var valueCtrl = angular.element(domValues[i]).controller("b3TextInput");
+
+          // Try to get value.
+          var response = valueCtrl.requestValue();
+  
+          // If the value is valid...
+          if (response.isValid) {
+            newNode.properties[key] = response.value;
+          } else {
+            // Report error and make the value undefined. This prevents the key from disappearing when an error occurs.
+            $window.app.editor.trigger("notification", undefined, {
+              level: "error",
+              message: "Cannot set property '" + key + "'. <br>" + response.invalidMessage
+            });
+            newNode.properties[key] = undefined;
+          }
         }
       }
     } else {
@@ -231,6 +242,13 @@ angular.module('app.property', [])
 
   $scope.markForChange = function() {
     $scope.changesMade = true;
+  }
+
+  /**
+   * See `b3Format.parseJson` for more details.
+   */
+  $scope.parseJson = function(value) {
+    return b3Format.parseJson(value);
   }
 
   $window.app.editor.on('blockselected', this.updatePropertiesDisplay, this);
@@ -326,30 +344,34 @@ angular.module('app.property', [])
       editable: "@",  // Whether or not the name and type can be edited.
       isOutput: "@"  // Whether or not the property element is an output
     },
-    controller: ["$scope", "$element", "$window", "$compile", "$timeout", 
-      function PropertyController($scope, $element, $window, $compile, $timeout) {
+    controller: ["$scope", "$element", "$window", "$compile", "b3Format", 
+      function PropertyController($scope, $element, $window, $compile, b3Format) {
         var this_ = this;
 
         this.listItemTemplate = '\
           <tr id="list-item">\
             <td id="key">{0}</td>\
             <td>\
-              <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"\
-                             placeholder="jsonValue" b3-formatter="parseJson(input)" expandable="a">\
+              <b3-text-input id="value" onblur="element(this).onChange(this)" on-change="onInput()"\
+                             placeholder="jsonValue" formatter="parseJson(input)" expandable="a">\
               </b3-text-input>\
             </td>\
             <td>\
-              <a href="#" b3-property-removable2 ng-click="onInput()" list-id="{2}" class="button alert right">-</a>\
+              <a href="#" b3-property-removable2 ng-click="onInput()" list-id="{1}" class="button alert right">-</a>\
             </td>\
           </tr>\
         ';
 
         this.dictPairTemplate ='\
           <tr>\
-            <td><input id="key" type="text" value="{0}" placeholder="key"></td>\
             <td>\
-              <b3-text-input id="value" onblur="element(this).onChange(this)" b3-on-change="onInput()"\
-                             placeholder="jsonValue" b3-formatter="parseJson(input)" expandable="a">\
+              <b3-text-input id="key" onblur="element(this).onChange(this)" on-change="onInput()"\
+                             placeholder="key" expandable="a">\
+              </b3-text-input>\
+            </td>\
+            <td>\
+              <b3-text-input id="value" onblur="element(this).onChange(this)" on-change="onInput()"\
+                             placeholder="jsonValue" formatter="parseJson(input)" expandable="a">\
               </b3-text-input>\
             </td>\
             <td><a href="#" propertyremovable ng-click="onInput()" class="button alert right">-</a></td>\
@@ -587,13 +609,8 @@ angular.module('app.property', [])
         this._setVec2 = function(type, value) {
           // If the value is a proper vec2 (i.e., is an array with length 2)...
           if (Array.isArray(value) && value.length == 2) {
-            // // Set x and y values.
-            // this._getController("#value-" + type + "-x", "b3TextInput").setValue(value[0]);
-            // this._getController("#value-" + type + "-y", "b3TextInput").setValue(value[1]);
             // Set x and y values (scope values will be looked up by json input element during binding process).
             $scope.typedValues[type] = [JSON.stringify(value[0]), JSON.stringify(value[1])];
-            // $element[0].querySelector("#value-" + type + "-x").setAttribute("initial-value", JSON.stringify(value[0]));
-            // $element[0].querySelector("#value-" + type + "-y").setAttribute("initial-value", JSON.stringify(value[1]));
           } else {
             this._sendPropertySetError("Value is not an array of length 2", value);
           }
@@ -836,11 +853,15 @@ angular.module('app.property', [])
 
           // For each key-value pair on the DOM (enumerated)...
           for (var i = 0; i < domValues.length; i++) {
+            var inputCtrlKey = angular.element(domKeys[i]).controller("b3TextInput");
+            var extractedKey = this._requestTextInputValue(inputCtrlKey, "<pair #" + (i + 1) + ">");
+
             // If the key is defined and a non-empty string...
-            if (domKeys[i].value) {
-              var inputCtrl = angular.element(domValues[i]).controller("b3TextInput");
+            if (extractedKey) {
+              var inputCtrlValue = angular.element(domValues[i]).controller("b3TextInput");
+
               // Get the text input's value and set the corresponding key to that value.
-              kvPairs[domKeys[i].value] = this._requestTextInputValue(inputCtrl, domKeys[i].value);
+              kvPairs[extractedKey] = this._requestTextInputValue(inputCtrlValue, extractedKey);
             }
           }
 
@@ -925,94 +946,44 @@ angular.module('app.property', [])
         $scope.subType = "null";  // Default sub-type.
 
         /**
-         * Inserts a list item into the current element's list. Only appropriate if `$scope.type` is `list` or `table`.
+         * Inserts a blank list item into the current element's list. Only appropriate if `$scope.type` is `list` or
+         * `table`.
          * 
          * @param {string} id the ID of the target list element
-         * @param {*} value (optional) the value of the list item to insert
          */
-        $scope.addListItem = function(id, value) {
-          // If the value is undefined...
-          if (value === undefined)
-            value = '';  // Set it to null so that it isn't displayed.
-          else  // Otherwise...
-            // Convert to stringified JSON; HTML escape quotes and apostrophes.
-            value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
-
+        $scope.addListItem = function(id) {
           // Get list element (jqLite wrapped).
           var listElement = angular.element($element[0].querySelector("#" + id));
 
-          // Create list item template based on the current index, value, and ID.
-          var template = this_.listItemTemplate.format(listElement.children().length, value, id);
+          // Create list item template based on the current index and ID.
+          var template = this_.listItemTemplate.format(listElement.children().length, id);
 
           // Compile and append template to the list.
           listElement.append($compile(template)($scope));
         }
 
         /**
-         * Inserts a dictionary key-value pair into the current element's list. Only appropriate if `$scope.type` is 
-         * `json` or `table`.
+         * Inserts a blank dictionary key-value pair into the current element's list. Only appropriate if `$scope.type`
+         * is `json` or `table`.
          * 
          * @param {string} id the ID of the target JSON element
-         * @param {string} key (optional) the key of the JSON item to set
-         * @param {*} value (optional) the value of the JSON item to insert
          */
-        $scope.addDictPair = function(id, key, value) {
-          // If the key is undefined...
-          if (key === undefined)
-            key = '';
-          // If the value is undefined...
-          if (value === undefined)
-            value = '';  // Set it to null so that it isn't displayed.
-          else  // Otherwise...
-            // Convert to stringified JSON; HTML escape quotes and apostrophes.
-            value = JSON.stringify(value).replace(/["]/g, "&quot;").replace(/['"']/g, "&apos;");
-
+        $scope.addDictPair = function(id) {
           // Get JSON element (jqLite wrapped).
           var dictElement = angular.element($element[0].querySelector("#" + id));
 
           // Create list item template.
-          var template = this_.dictPairTemplate.format(key, value);
+          var template = this_.dictPairTemplate.format();
 
           // Compile and append template to the list.
           dictElement.append($compile(template)($scope));
         }
 
         /**
-         * The returned value is an object matching the schema provided in the `b3TextInput` directive's documentation.
-         * `isValid` is true if either `value` is an empty string or parsing the value is successful. `result` is the
-         * result of parsing the value if parsing is successful and `value` is an empty string. Otherwise, it is
-         * `undefined`. If parsing fails, `alert` will be defined to be an object with `level` "error" and a `message`
-         * containing why the parsing failed.
-         * 
-         * @param {string} value the value to validate
-         * @returns an object. See method documentation body for more information.
+         * See `b3Format.parseJson` documentation for more details.
          */
         $scope.parseJson = function(value) {
-          var result = {};
-
-          // If the value is defined as a non-empty string...
-          if (value) {
-            // Try to parse the value.
-            try {
-              var parsed = JSON.parse(value);
-
-              result.isValid = true;
-              result.result = parsed;
-            } catch (err) {
-              // On error, state that the input is invalid and include the reason why parsing failed as an alert.
-              result.isValid = false;
-              result.alert = {
-                level: "error",
-                message: "Invalid JSON value: " + err.message
-              };
-            }
-          } else {
-            // Mark as valid and make the result undefined.
-            result.isValid = true;
-            result.result = undefined;
-          }
-
-          return result;
+          return b3Format.parseJson(value);
         }
 
         /**

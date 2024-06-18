@@ -902,7 +902,7 @@ div.collapsible-list-items.hidden {
 /*  PROPERTYPANEL                  */
 /* ================================*/
 .property-panel .row .button {
-  padding: 1px 20px;
+  padding: 1px 3px;
   font-size: inherit; 
   margin: 0px;
   width: 20px;
@@ -917,6 +917,10 @@ div.collapsible-list-items.hidden {
   width: 85%;
   padding: 3px 5px !important;
 }
+.property-panel table input.expandable {
+  width: 58%;
+  display: inline-block;
+}
 .property-panel table .button {
   width: 20px;
   /*height: 23px;*/
@@ -925,10 +929,10 @@ div.collapsible-list-items.hidden {
   padding: 1px;
 }
 .property-panel table td:nth-child(1) {
-  width: 40%;
+  width: 50%;
 }
 .property-panel table td:nth-child(2) {
-  width: 40%;
+  width: 50%;
 }
 .property-panel table td:nth-child(3) {
   vertical-align: middle;
@@ -943,16 +947,12 @@ div.collapsible-list-items.hidden {
 /*  PROPERTY DISPLAY               */
 /* ================================*/
 table.property {
-  /* margin: 15px 0px; */
   margin: 0px;
   border: #333333 solid 1px;
 }
 table.property .inline {
   display: inline-block;
 }
-/* table.property label {
-  display: inline-block;
-} */
 table.property tr {
   vertical-align: top;
 }
@@ -972,17 +972,13 @@ table.property input {
   width: auto;
   max-width: 150px;
 }
-table.property input.text-input {
+table.property input.expandable {
   width: calc(100% - 50px);
 }
 table.property input[type=checkbox] {
   display: inline-block;
   margin-left: 5px;
 }
-/* table.property input.coords {
-  width: 81%;
-  display: inline-block;
-} */
 table.property .balloon-container {
   width: 20px;
   height: 20px;
@@ -1004,7 +1000,7 @@ table.property .data-aggregate td:last-child {
   flex-grow: 1;
 }
 table.property .data-json td:nth-child(1) {
-  width: 30%;
+  width: auto;
 }
 table.property .null {
   color: #9d9d9d;
@@ -1023,13 +1019,6 @@ table.property select {
   width: auto;
   display: inline-block;
 }
-/* table.property #prop-name-editable {
-  display: inline-block;
-  width: 100%;
-} */
-/* table.property #prop-name-editable input {
-  display: inline-block;
-} */
 table.property #value-json input {
   width: 80%;
 }
@@ -1038,11 +1027,8 @@ table.property #value-json input {
 
 
 /* ================================*/
-/* TEXT INPUT ETC.               */
+/* TEXT INPUT ETC.                 */
 /* ================================*/
-.text-input-thrownaway {
-  width: calc(100% - 30px);  /* Based on the width of the button */
-}
 .text-expand {
   padding: 3px 5px;
   margin: 0px;

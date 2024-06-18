@@ -23,12 +23,13 @@
     <form>
       <div class="row">
         <label>Name</label>
-        <input id="name" type="text" placeholder="name" readonly/>
+        <input id="name" type="text" placeholder="name" class="monospace" readonly>
       </div>
 
       <div class="row">
         <label>Title</label>
-        <input id="title" type="text" onchange="element(this).editProperties(this)" onkeyup="element(this).markForChange(this)" placeholder="title"/>
+        <input id="title" type="text" onchange="element(this).editProperties(this)"
+               onkeyup="element(this).markForChange(this)" placeholder="title">
       </div>
 
       <div class="row">
@@ -37,19 +38,28 @@
           <a href="#" ng-click="addRootProperty()" ng-show="block.type == 'root'" class="button success right">+</a>
         </label>
 
-        <table id="property-properties-table" ng-show="block.type == 'root'">
+        <table id="property-properties-table" ng-if="block.type == 'root'">
           <tbody>
-            
+            <tr ng-repeat="prop in properties">
+              <td>
+                <b3-text-input id="key" onblur="element(this).editProperties(this);" on-change="markForChange()"
+                               placeholder="key" expandable="a" value="prop.name">
+                </b3-text-input>
+              </td>
+              <td>
+                <b3-text-input id="value" onblur="element(this).editProperties(this);" on-change="markForChange()"
+                               placeholder="value" expandable="a" formatter="parseJson(input)" value="prop.value">
+                </b3-text-input>
+              </td>
+              <td><a href="#" propertyremovable class="button alert right">-</a></td>
+            </tr>
           </tbody>
         </table>
 
-        <b3-property id="property-panel-property" ng-repeat="prop in properties"
-        name="prop.name"
-        type="prop.type"
-        key="prop.key"
-        value="prop.value"
-        b3-on-change="editProperties()"
-        b3-on-input="markForChange()"></b3-property>
+        <b3-property id="property-panel-property" ng-if="block.type != 'root'" ng-repeat="prop in properties"
+                     name="prop.name" type="prop.type" key="prop.key" value="prop.value" b3-on-change="editProperties()"
+                     b3-on-input="markForChange()">
+        </b3-property>
       </div>
 
       <div class="row">
@@ -57,13 +67,10 @@
           <span class="left">Output</span>
         </label>
 
-        <b3-property id="property-panel-output" ng-repeat="output in outputs"
-        name="output.name"
-        type="output.type"
-        key="output.key"
-        is-output="non-empty string"
-        b3-on-change="editProperties()"
-        b3-on-input="markForChange()"></b3-property>
+        <b3-property id="property-panel-output" ng-repeat="output in outputs" name="output.name" type="output.type"
+                     key="output.key" is-output="a" b3-on-change="editProperties()"
+                     b3-on-input="markForChange()">
+        </b3-property>
       </div>
     </form>
   </div>

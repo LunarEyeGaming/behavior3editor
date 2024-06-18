@@ -12,12 +12,12 @@
         <form id="editnode-form">
           <div class="row">
             <label>Name</label>
-            <input id="name" type="text" placeholder="name" value="{{node.prototype.name}}" />
+            <input id="name" type="text" placeholder="name" value="{{node.prototype.name}}" class="monospace">
           </div>
 
           <div class="row">
             <label>Title</label>
-            <input id="title" type="text" placeholder="title" value="{{node.prototype.title}}" />
+            <input id="title" type="text" placeholder="title" value="{{node.prototype.title}}">
           </div>
 
           <div class="row" id="editnode-properties">
@@ -71,12 +71,12 @@
 
           <div class="row" ng-show="node.prototype.type == 'action'">
             <label>Category</label>
-            <input id="category" type="text" value="{{node.prototype.category}}" placeholder="category"/>
+            <input id="category" type="text" value="{{node.prototype.category}}" placeholder="category" class="monospace">
           </div>
 
           <div class="row" ng-show="node.prototype.type == 'action'">
             <label>Script</label>
-            <input id="script" type="text" value="{{node.prototype.script}}" placeholder="script"/>
+            <input id="script" type="text" value="{{node.prototype.script}}" placeholder="script" class="monospace">
           </div>
         </form>
       </div>

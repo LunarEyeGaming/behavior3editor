@@ -1,16 +1,69 @@
 angular.module("app.textInput", [])
 
 /**
- * A more general-purpose directive for a text input.
- * The formatter function is called immediately on input change with the current input provided as an argument and
+ * A service for numerous formatter functions to be used with the `b3TextInput` directive.
+ */
+.factory("b3Format", function() {
+  var b3Format = {};
+
+  /**
+   * The returned value is an object matching the schema provided in the `b3TextInput` directive's documentation.
+   * `isValid` is true if either `value` is an empty string or parsing the value is successful. `result` is the
+   * result of parsing the value if parsing is successful and `value` is an empty string. Otherwise, it is
+   * `undefined`. If parsing fails, `alert` will be defined to be an object with `level` "error" and a `message`
+   * containing why the parsing failed.
+   * 
+   * @param {string} value the value to validate
+   * @returns an object. See method documentation body for more information.
+   */
+  b3Format.parseJson = function(value) {
+    var result = {};
+
+    // If the value is defined as a non-empty string...
+    if (value) {
+      // Try to parse the value.
+      try {
+        var parsed = JSON.parse(value);
+
+        result.isValid = true;
+        result.result = parsed;
+      } catch (err) {
+        // On error, state that the input is invalid and include the reason why parsing failed as an alert.
+        result.isValid = false;
+        result.alert = {
+          level: "error",
+          message: "Invalid JSON value: " + err.message
+        };
+      }
+    } else {
+      // Mark as valid and make the result undefined.
+      result.isValid = true;
+      result.result = undefined;
+    }
+
+    return result;
+  }
+
+  return b3Format;
+})
+
+/**
+ * A more general-purpose directive for a text input. Includes the ability to transform and validate the initial input
+ * data using the `formatter` callback and an option for a "Show More" button (which opens a modal containing the
+ * current contents in a bigger text box), which is set using the `expandable` attribute. The initial value to use is
+ * given by a scope binding in the `value` attribute. The `placeholder` attribute determines the placeholder to use for
+ * the text box.
+ * 
+ * The `formatter` function is called immediately on input change with the current input provided as an argument and
  * should return an object containing the following:
  * * `isValid: boolean` - whether or not the current input is valid and should be accepted.
  * * `result: any` - the new value to return. Should be defined if and only if `isValid` is true.
  * * `alert: {level: string, message: string}` - an object containing a `level` ("warning" or "error") and a `message`
  *   (the message to display). This field is optional and can be defined regardless of whether or not `isValid` is true.
  * This is accomplished through the $scope.updateAlert() function, which updates the alert to display based on the 
- * result of the formatter function.
- * The formatter function is similarly called when the `requestValue()` method is called. The `requestValue()` method
+ * result of the `formatter` function.
+ * 
+ * The `formatter` function is similarly called when the `requestValue()` method is called. The `requestValue()` method
  * returns a value similar in schema to the expected result of the formatter function even if said function is 
  * undefined. See corresponding documentation for more details.
  */
@@ -18,11 +71,9 @@ angular.module("app.textInput", [])
   return {
     restrict: "E",
     scope: {
-      initialValue: "=",  // Initial value in the input (must be a stringified JSON value). TODO: set to "=value"
-      // TODO: remove b3 prefix
-      onChange: "&b3OnChange",  // What to do on changing the input value. This occurs immediately after the input value
-      // changes
-      formatter: "&b3Formatter",  // Called immediately on input change.
+      initialValue: "=value",  // Initial value in the input.
+      onChange: "&",  // What to do on changing the input value. This occurs immediately after the input value changes
+      formatter: "&",  // Called immediately on input change.
       placeholder: "@",  // The placeholder to use for the input field.
       expandable: "@"  // Whether or not the input should have a "Show More" button
     },
@@ -76,10 +127,7 @@ angular.module("app.textInput", [])
 
         $scope.valueIsValid = true;  // Must be, by default, valid.
 
-        // TODO: $watch function call is obsolete. Move body out of $watch call.
-        $scope.$watch("initialValue", function() {
-          $scope.value = $scope.initialValue || "";
-        });
+        $scope.value = $scope.initialValue || "";
 
         /**
          * Shows a modal to display the text in a larger text box.
