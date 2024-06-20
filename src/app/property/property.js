@@ -293,14 +293,13 @@ angular.module('app.property', ["app.textInput"])
  * scope, and the directive autofills the inputs depending on these fields. As an intermediary step, a slight conversion
  * is made. If `key` is used, then `usesKey` is true and `value` is set to the contents of `key`. Otherwise, `usesKey`
  * is false and `value` is set to the new value.
- * The `b3-property`'s initial fields are set through the `type`, `value`, `usesKey`, and `name` attributes 
- * respectively. All of these attributes take in expressions to evaluate in the outside scope, and the directive 
- * autofills the inputs depending on these fields. If `usesKey` is false, the `value` must have the right format for the
- * `type`, or an error will be sent to the editor GUI and autofill will not take place. If `usesKey` is true, then the
- * `value` attribute instead represents a board variable to look up, so the prompt will always be a single text field in
- * that case regardless of type. `usesKey` and the current value can be modified by the user through the checkbox
- * labeled "Key" and the input element(s) respectively. The following are the types and descriptions of the
- * corresponding `value` formats as well as the form of the input element(s):
+ * 
+ * If `usesKey` is false, the `value` must have the right format for the `type`, or an error will be sent to the editor
+ * GUI and autofill will not take place. If `usesKey` is true, then the `value` attribute instead represents a board
+ * variable to look up, so the prompt will always be a single text field in that case regardless of type. `usesKey` and
+ * the current value can be modified by the user through the checkbox labeled "Key" and the input element(s)
+ * respectively. The following are the types and descriptions of the corresponding `value` formats as well as the form
+ * of the input element(s):
  * * `string`: Any string. The input prompt is a single text field with a checkbox indicating whether or not a string
  *   should be defined.
  * * `vec2`: An array of length 2. The input prompt is two text fields labeled "X" and "Y" respectively.

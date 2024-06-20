@@ -129,10 +129,21 @@ this.b3editor = this.b3editor || {};
     }
   }
 
+  /**
+   * Removes all of the node definitions from the editor.
+   */
   p.resetNodes = function() {
+    // Clear nodes
     this.nodes = {};
     this.categories = {};
+
+    // Add back the root node.
     this.registerNode(b3editor.Root);
+    this.trigger("nodesreset");
+
+    
+    // Reset undo stack.
+    this.globalNodeUndoHistory = new b3editor.NodeUndoStack({defaultMaxLength: this.maxStoredCommands});
   }
 
   p.loadSettings = function() {
@@ -667,31 +678,142 @@ this.b3editor = this.b3editor || {};
     });
   }
   p.loadProject = function(project) {
-    // If a project is already loaded...
-    if (this.project) {
-      try {
-        // Save the project.
-        fs.writeFileSync(this.project.fileName, this.project.save());
-      } catch (err) {
-        // Report error.
-        this.logger.error("Error occurred while saving project: " + err);
+    var this_ = this;
+
+    function loadProjectHelper() {
+      this_.resetNodes();
+      this_.trees = [];
+      this_.addTree();
+
+      // If a project is already loaded...
+      if (this_.project) {
+        try {
+          // Save the project.
+          fs.writeFileSync(this_.project.fileName, this_.project.save());
+        } catch (err) {
+          // Report error.
+          this_.logger.error("Error occurred while saving project: " + err);
+        }
+      }
+
+      // Actually load the project.
+      this_.settings.set("last_project", project.fileName);
+      this_.saveSettings();
+
+      this_.logger.info("Loaded project from " + project.fileName);
+      this_.project = project;
+
+      this_.importAllNodes(project.findNodes());
+      this_.pruneExportHierarchy();
+
+      this_.logger.info("Successfully loaded project");
+    }
+
+    // Warn about unsaved nodes if necessary.
+    function unsavedNodesWarning() {
+      // If there are any unsaved nodes...
+      if (!this_.globalNodeUndoHistory.isSaved()) {
+        // Asynchronous function. The function returned from onExit will have returned by the time the message box has 
+        // opened.
+        dialog.showMessageBox(remote.getCurrentWindow(), {
+          message: "Are you sure you want to load the project? If so, all unsaved nodes will be lost.",
+          type: "warning",
+          buttons: ["Yes", "No"]
+        }, function(result) {
+          switch (result) {
+            case 0:  // "Yes"
+              // Attempt to show warning, then load project.
+              unsavedTreesWarning();
+              break;
+            // "No" will do nothing.
+          }
+        });
+      } else {
+        unsavedTreesWarning();
       }
     }
 
-    // Actually load the project.
-    this.settings.set("last_project", project.fileName);
-    this.saveSettings();
+    // Warn about unsaved trees if necessary.
+    function unsavedTreesWarning() {
+      // Returns a no-args function that saves all trees in `trees` starting from `i`, one by one, and then closes the 
+      // window.
+      function saveTreesGen(trees, i) {
+        return function() {
+          // If the number of remaining trees to save is 0 (base case)...
+          if (i === trees.length)
+            loadProjectHelper();
+          else  // Otherwise...
+            this_.saveTree(true, trees[i], saveTreesGen(trees, i + 1));
+        }
+      }
+      // Curried to make it so that this function can be given the arguments to be actually called later. This function 
+      // shows a warning assuming that there is at least one unsaved tree.
+      function unsavedTreesWarningHelperGen(unsavedTrees, i) {
+        return function() {
+          // If the number of trees remaining is 1 (base case)...
+          if (unsavedTrees.length - i === 1) {
+            // Show the warning for one unsaved tree.
+            dialog.showMessageBox(remote.getCurrentWindow(), {
+              message: "Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
+              type: "warning",
+              buttons: ["Yes", "No", "Cancel"]
+            }, function(result) {
+              switch (result) {
+                case 0:  // Yes
+                  // Save the tree, then close the window.
+                  this_.saveTree(true, unsavedTrees[i], loadProjectHelper);
+                  break;
+                case 1:  // No
+                  loadProjectHelper();
+                  break;
+                // "Cancel" does nothing.
+              }
+            });
+          }  // Otherwise...
+          else {
+            // Show the warning for more than one unsaved tree.
+            dialog.showMessageBox(remote.getCurrentWindow(), {
+              message: "Multiple trees are unsaved. Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
+              type: "warning",
+              noLink: true,  // Prevent displaying "Yes to All" and "No to All" as command links.
+              buttons: ["Yes", "No", "Yes to All", "No to All", "Cancel"]
+            }, function(result) {
+              switch (result) {
+                case 0:  // Yes
+                  // Save the tree and proceed to the next one.
+                  this_.saveTree(true, unsavedTrees[i], unsavedTreesWarningHelperGen(unsavedTrees, i + 1));
+                  break;
+                case 1:  // No
+                  // Do not save the tree, but proceed to the next one.
+                  unsavedTreesWarningHelperGen(unsavedTrees, i + 1)();
+                  break;
+                case 2:  // Yes to All
+                  // Save all of the remaining trees.
+                  saveTreesGen(unsavedTrees, i)();
+                  break;
+                case 3:  // No to All
+                  // Load the project
+                  loadProjectHelper();
+                  break;
+                // Cancel does nothing
+              }
+            })
+          }
+        }
+      }
 
-    this.logger.info("Loaded project from " + project.fileName);
-    this.project = project;
+      var unsavedTrees = this_.findUnsavedTrees();
 
-    this.resetNodes();
-    this.importAllNodes(project.findNodes());
-    this.pruneExportHierarchy();
+      // If at least one unsaved tree exists...
+      if (unsavedTrees.length > 0) {
+        // Begin warning chain.
+        unsavedTreesWarningHelperGen(unsavedTrees, 0)();
+      } else {
+        loadProjectHelper();
+      }
+    }
 
-    this.reset();
-
-    this.logger.info("Successfully loaded project")
+    unsavedNodesWarning();
   }
   // Returns the export data of nodes fitting a specific category "category" and directory of origin "origin".
   // category: the category of nodes to export
@@ -1244,6 +1366,12 @@ this.b3editor = this.b3editor || {};
 
     this.logger.error('Trying to select an invalid tree.');
   }
+  /**
+   * Removes a tree with ID `id` and selects some other tree if the tree to remove is the currently selected one. If the
+   * tree is unsaved, then a warning is shown to the user beforehand.
+   * 
+   * @param {string} id the ID of the tree to remove
+   */
   p.removeTree = function(id) {
     var index = -1;
     var tree = null;
@@ -1295,6 +1423,7 @@ this.b3editor = this.b3editor || {};
       });
     }
   }
+
   /**
    * Moves a tree with id `id` to index `idx`.
    * 
@@ -1656,37 +1785,8 @@ this.b3editor = this.b3editor || {};
   p.expandAll = function() {
     this.trigger("expandall");
   }
-  p.reset = function(all) {
-    // REMOVE BLOCKS
-    for (var i=0; i<this.blocks.length; i++) {
-      var block = this.blocks[i];
-      this.canvas.layerBlocks.removeChild(block.displayObject);
-    }
-    this.blocks = [];
-
-    // REMOVE CONNECTIONS
-    for (var i=0; i<this.connections.length; i++) {
-      var conn = this.connections[i];
-      this.canvas.layerConnections.removeChild(conn.displayObject);
-    }
-    this.connections = [];
-
-    this.canvas.camera.x = 0;
-    this.canvas.camera.y = 0;
-    this.canvas.camera.scaleX = 1;
-    this.canvas.camera.scaleY = 1;
-
-    if (!all) {
-      this.makeAndAddBlock('Root', 0, 0);
-      this.tree.id = this.blocks[0].id;
-      this.tree.blocks = this.blocks;
-    }
-
-    // Center camera.
-    this.center();
-
-    // Update canvas stage.
-    this.canvas.stage.update();
+  p.reset = function() {
+    // Remove all trees
   }
   p.snap = function(blocks) {
     if (!blocks) {

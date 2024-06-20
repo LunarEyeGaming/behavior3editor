@@ -157,9 +157,23 @@ angular.module('app.node', ['app.modal'])
   }
   // --------------------------------------------------------------------------
 
-  // UPDATE NODES--------------------------------------------------------------
-  this.updateNodes = function() {
-    var guiNodes = {};
+  // UPDATE NODES VIEW --------------------------------------------------------
+  this.updateNodesView = function() {
+    // Updates $scope.nodes (the nodes view) to match this.nodes.
+    // timeout needed due to apply function
+    // apply is used to update the view automatically when the scope is changed
+    $timeout(function() {
+      $scope.$apply(function() {
+        $scope.nodes = this_.nodes;
+        $scope.updateFilter();
+      });
+    }, 0, false);
+  }
+  // --------------------------------------------------------------------------
+
+  // RESET NODES --------------------------------------------------------------
+  this.resetNodes = function() {
+    this.nodes = {};
     var editorNodes = $window.app.editor.nodes;
 
     // For each node in the editor's nodes...
@@ -171,8 +185,8 @@ angular.module('app.node', ['app.modal'])
       var node = editorNodes[nodeName];
 
       // If the origin directory has no corresponding entry, create it. Otherwise, do nothing.
-      if (guiNodes[node.prototype.originDirectory] === undefined) {
-        guiNodes[node.prototype.originDirectory] = {
+      if (this.nodes[node.prototype.originDirectory] === undefined) {
+        this.nodes[node.prototype.originDirectory] = {
           'composite'        : [],
           'decorator'        : [],
           'action'           : [],
@@ -181,7 +195,7 @@ angular.module('app.node', ['app.modal'])
         };
       }
 
-      var guiNodesInDir = guiNodes[node.prototype.originDirectory];
+      var guiNodesInDir = this.nodes[node.prototype.originDirectory];
 
       // If the type of node is valid and cannot overwrite "actionCategories" (which is reserved)...
       if (node.prototype.type !== "actionCategories" && guiNodesInDir[node.prototype.type])
@@ -200,15 +214,6 @@ angular.module('app.node', ['app.modal'])
         categoryNodes[node.prototype.category].push(node);
       }
     }
-
-    // timeout needed due to apply function
-    // apply is used to update the view automatically when the scope is changed
-    $timeout(function() {
-      $scope.$apply(function() {
-        $scope.nodes = guiNodes;
-        $scope.updateFilter();
-      });
-    }, 0, false);
   }
   // --------------------------------------------------------------------------
 
@@ -219,11 +224,9 @@ angular.module('app.node', ['app.modal'])
    * @param {b3editor.Action | b3editor.Composite | b3editor.Decorator | b3editor.Module} node the node to add
    */
   this.addNode = function(node) {
-    var guiNodes = $scope.nodes;
-
     // If the origin directory has no corresponding entry, create it. Otherwise, do nothing.
-    if (guiNodes[node.prototype.originDirectory] === undefined) {
-      guiNodes[node.prototype.originDirectory] = {
+    if (this.nodes[node.prototype.originDirectory] === undefined) {
+      this.nodes[node.prototype.originDirectory] = {
         'composite'        : [],
         'decorator'        : [],
         'action'           : [],
@@ -232,7 +235,7 @@ angular.module('app.node', ['app.modal'])
       };
     }
 
-    var guiNodesInDir = guiNodes[node.prototype.originDirectory];
+    var guiNodesInDir = this.nodes[node.prototype.originDirectory];
 
     // If the type of node is valid and cannot overwrite "actionCategories" (which is reserved)...
     if (node.prototype.type !== "actionCategories" && guiNodesInDir[node.prototype.type])
@@ -250,15 +253,6 @@ angular.module('app.node', ['app.modal'])
       // Add node to action category list.
       categoryNodes[node.prototype.category].push(node);
     }
-
-    // timeout needed due to apply function
-    // apply is used to update the view automatically when the scope is changed
-    $timeout(function() {
-      $scope.$apply(function() {
-        $scope.nodes = guiNodes;
-        $scope.updateFilter();
-      });
-    }, 0, false);
   }
   // --------------------------------------------------------------------------
 
@@ -274,8 +268,7 @@ angular.module('app.node', ['app.modal'])
     originDirectory = originDirectory !== undefined ? originDirectory : node.prototype.originDirectory;
     category = category !== undefined ? category : node.prototype.category;
 
-    var guiNodes = $scope.nodes;
-    var guiNodesInDir = guiNodes[originDirectory];
+    var guiNodesInDir = this.nodes[originDirectory];
 
     // If the type of node is valid and cannot overwrite "actionCategories" (which is reserved)...
     if (node.prototype.type !== "actionCategories" && guiNodesInDir[node.prototype.type]) {
@@ -300,15 +293,6 @@ angular.module('app.node', ['app.modal'])
         // Remove it.
         categoryNodes[category].splice(nodeIdx, 1);
     }
-
-    // timeout needed due to apply function
-    // apply is used to update the view automatically when the scope is changed
-    $timeout(function() {
-      $scope.$apply(function() {
-        $scope.nodes = guiNodes;
-        $scope.updateFilter();
-      });
-    }, 0, false);
   }
   // --------------------------------------------------------------------------
 
@@ -399,17 +383,29 @@ angular.module('app.node', ['app.modal'])
   // --------------------------------------------------------------------------
 
   // REGISTER EVENTS ----------------------------------------------------------
-  $window.app.editor.on('nodeadded', function(e) {this.addNode(e._target)}, this);
-  $window.app.editor.on('noderemoved', function(e) {this.removeNode(e._target)}, this);
+  $window.app.editor.on('nodeadded', function(e) {
+    this.addNode(e._target);
+    this.updateNodesView();
+  }, this);
+  $window.app.editor.on('noderemoved', function(e) {
+    this.removeNode(e._target);
+    this.updateNodesView();
+  }, this);
   $window.app.editor.on('nodechanged', function(e) {
-    this.editNode(e._target, e.oldOriginDirectory, e.oldCategory)
+    this.editNode(e._target, e.oldOriginDirectory, e.oldCategory);
+    this.updateNodesView();
+  }, this);
+  $window.app.editor.on('nodesreset', function() {
+    this.resetNodes();
+    this.updateNodesView();
   }, this);
   $rootScope.$on('onButtonNewNode', function() {$scope.showAddNodeModal()});
   $rootScope.$on('onButtonExportNodes', this.onButtonExportNodes);
   // --------------------------------------------------------------------------
 
   // INITIALIZE ELEMENTS ------------------------------------------------------
-  this.updateNodes();
+  this.resetNodes();
+  this.updateNodesView();
   // --------------------------------------------------------------------------
 })
 

@@ -99,6 +99,8 @@ this.b3editor = this.b3editor || {};
     this.editor.selectionBox.displayObject.visible = false;
     this.isSelecting = false;
     this.ctrl = false;
+
+    this.canvas.stage.update();
   }
 
   b3editor.SelectionSystem = SelectionSystem;

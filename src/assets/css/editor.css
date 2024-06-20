@@ -907,6 +907,11 @@ div.collapsible-list-items.hidden {
   margin: 0px;
   width: 20px;
 }
+.property-panel .row .button.text-expand {
+  padding: 3px 5px;
+  margin: 0px;
+  width: auto;
+}
 .property-panel label .button {
   margin-right: 1px !important;
 }
@@ -986,6 +991,11 @@ table.property .balloon-container {
 }
 table.property #value .button {
   padding: 0px;
+}
+table.property #value .button.text-expand {
+  padding: 3px 5px;
+  margin: 0px;
+  width: auto;
 }
 table.property .data-aggregate input {
   width: calc(100% - 10px);

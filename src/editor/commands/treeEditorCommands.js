@@ -128,9 +128,7 @@ b3editor.RemoveBlocks = b3editor.defineCommand((_, p) => {
  *   * endPos: the ending position of the block (as 2D coordinates, where x is the x coordinate and y is the y 
  *     coordinate)
  */
-b3editor.MoveBlocks = b3editor.defineCommand((Class, p) => {
-  Class.modifiesSaveData = false;
-
+b3editor.MoveBlocks = b3editor.defineCommand((_, p) => {
   p.initialize = function(args) {
     this.editor = args.editor;
 

@@ -10,8 +10,10 @@ this.b3editor = this.b3editor || {};
     this.editor = params['editor'];
     this.canvas = params['canvas'];
 
-    this.isDragging = false;
-    this.startDragPositions = null;
+    this.hasDraggedEnough = false;  // Whether or not the user has dragged enough for the blocks to start moving.
+    this.isDragging = false;  // Whether or not the user is currently dragging.
+    this.startDragPositions = null;  // Starting positions of blocks
+    this.startDragCenter = null;  // Starting position of cursor
 
     this.canvas.stage.on('stagemousedown', this.onMouseDown, this);
     this.canvas.stage.on('stagemousemove', this.onMouseMove, this);
@@ -44,6 +46,7 @@ this.b3editor = this.b3editor || {};
     // start dragging
     this.isDragging = true;
     this.startDragPositions = [];
+    this.startDragCenter = {x, y};
 
     for (var i=0; i<this.editor.selectedBlocks.length; i++) {
       var block = this.editor.selectedBlocks[i];
@@ -59,37 +62,52 @@ this.b3editor = this.b3editor || {};
     }
   }
 
+  // Called when the user moves the mouse. This is regardless of whether or not they are holding down a mouse button.
   p.onMouseMove = function(event) {
     if (!this.isDragging) return;
 
     var point = this.canvas.getLocalMousePosition();
-    var x = point.x
-    var y = point.y
+    var x = point.x;
+    var y = point.y;
 
-    // // move entity
-    for (var i=0; i<this.editor.selectedBlocks.length; i++) {
-      var block = this.editor.selectedBlocks[i];
+    // If the user has not dragged enough...
+    if (!this.hasDraggedEnough) {
+      // Check if the distance on either axis exceeds the snap threshold and set this.hasDraggedEnough to the result.
+      var dragDistance = {x: Math.abs(x - this.startDragCenter.x), y: Math.abs(y - this.startDragCenter.y)};
+      this.hasDraggedEnough = dragDistance.x > this.editor.settings.get("snap_x")
+        || dragDistance.y > this.editor.settings.get("snap_y");
+    } else {
+      // For each selected block...
+      for (var i=0; i<this.editor.selectedBlocks.length; i++) {
+        // Move the selected block.
+        var block = this.editor.selectedBlocks[i];
 
-      var dx = x - block.dragOffsetX;
-      var dy = y - block.dragOffsetY;
+        var dx = x - block.dragOffsetX;
+        var dy = y - block.dragOffsetY;
 
-      block.displayObject.x = dx - dx%this.editor.settings.get('snap_x');
-      block.displayObject.y = dy - dy%this.editor.settings.get('snap_y');
+        block.displayObject.x = dx - dx%this.editor.settings.get('snap_x');
+        block.displayObject.y = dy - dy%this.editor.settings.get('snap_y');
 
-      // redraw connections linked to the entity
-      block.redrawConnections();
+        // Redraw connections linked to the selected block
+        block.redrawConnections();
+      }
+
+      // Make changes go into effect.
+      this.canvas.stage.update();
     }
-
-    this.canvas.stage.update();
   }
 
   p.onMouseUp = function(event) {
     if (event.nativeEvent.which !== 1) return;
     if (!this.isDragging) return;
 
-    var movements = [];
-    var blocksWereMoved = false;
     this.isDragging = false;
+
+    if (!this.hasDraggedEnough) return;  // Do nothing if blocks have not been dragged enough.
+
+    this.hasDraggedEnough = false;
+
+    var movements = [];
 
     // For each selected block and corresponding starting position...
     for (var i=0; i<this.editor.selectedBlocks.length; i++) {
@@ -100,8 +118,6 @@ this.b3editor = this.b3editor || {};
 
       // If the starting position does not match the ending position...
       if (startPos.x != block.displayObject.x || startPos.y != block.displayObject.y) {
-        blocksWereMoved = true;  // Say that at least one block has been moved.
-
         // Add the movement to the list.
         movements.push({
           block,
@@ -111,11 +127,8 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    // If at least one block has been moved...
-    if (blocksWereMoved) {
-      // Add the MoveBlocks command.
-      this.editor.pushCommandTree('MoveBlocks', {movements});
-    }
+    // Add the MoveBlocks command.
+    this.editor.pushCommandTree('MoveBlocks', {movements});
   }
     
   b3editor.DragSystem = DragSystem;
