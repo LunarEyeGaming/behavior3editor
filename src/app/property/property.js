@@ -143,6 +143,11 @@ angular.module('app.property', ["app.textInput"])
       // Abort.
       return;
 
+    // If $scope.block does not exist in the currently selected tree (which may happen in some rare cases)...
+    if ($window.app.editor.blocks.indexOf($scope.block) === -1)
+      // Abort.
+      return;
+
     var node = $scope.block.node;
 
     var domTitle = document.querySelector('#property-panel #title');
@@ -744,40 +749,6 @@ angular.module('app.property', ["app.textInput"])
               b3editor.escapeHtml(JSON.stringify(value))
           });
         }
-
-        // /**
-        //  * Gets the value from the text input controller `controller` and parses it in JSON. If parsing succeeds, the
-        //  * parsed value is returned. Otherwise, `undefined` is returned, and a pop-up error is displayed in the editor.
-        //  * If `propExtra` is defined, it is displayed in the error message. If `value` is an empty string, the function
-        //  * simply returns `undefined` instead.
-        //  * 
-        //  * @precondition the value returned by `controller` is valid JSON
-        //  * @param {TextInputController} controller the controller containing the value of the property being parsed
-        //  * @param {string?} propExtra (optional) extra information to display about where the error occurred.
-        //  * @returns the parsed value, or `undefined` if parsing fails
-        //  */
-        // this._parseProperty = function(controller, propExtra) {
-        //   var result = undefined;
-
-        //   // If propExtra is defined, prepend it with a dot. Otherwise, use an empty string.
-        //   var propLocator = propExtra !== undefined ? ("." + propExtra) : '';
-
-        //   var response = controller.requestValue();
-
-        //   // If the value is valid and defined as a non-empty string...
-        //   if (response.validValue && response.value) {
-        //     result = JSON.parse(response.value);
-        //   }  // Otherwise, if the value is invalid...
-        //   else if (!response.validValue) {
-        //     // Notify the editor about the error.
-        //     $window.app.editor.trigger('notification', undefined, {
-        //       level: "error",
-        //       message: "Error with property '" + $scope.name + propLocator + "'. <br>" + response.errorMessage
-        //     });
-        //   }
-
-        //   return result;
-        // }
 
         /**
          * Attempts to get a value from a text input controller `controller`, returning the contained value if valid and

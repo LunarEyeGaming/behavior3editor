@@ -668,7 +668,7 @@ this.b3editor = this.b3editor || {};
 
     // Show warning if the tree has invalid blocks.
     this.conditionalWarning({
-      predicate: () => this.hasInvalidBlocks(),
+      predicate: () => editor.hasInvalidBlocks(),
       message: "The tree '" + tree.blocks[0].title + "' contains node type conflicts. Are you sure you want to save?",
       choices: [
         {name: "Yes", triggersCallback: true},
@@ -709,111 +709,16 @@ this.b3editor = this.b3editor || {};
       this_.logger.info("Successfully loaded project");
     }
 
-    // Warn about unsaved nodes if necessary.
-    function unsavedNodesWarning() {
-      // If there are any unsaved nodes...
-      if (!this_.globalNodeUndoHistory.isSaved()) {
-        // Asynchronous function. The function returned from onExit will have returned by the time the message box has 
-        // opened.
-        dialog.showMessageBox(remote.getCurrentWindow(), {
-          message: "Are you sure you want to load the project? If so, all unsaved nodes will be lost.",
-          type: "warning",
-          buttons: ["Yes", "No"]
-        }, function(result) {
-          switch (result) {
-            case 0:  // "Yes"
-              // Attempt to show warning, then load project.
-              unsavedTreesWarning();
-              break;
-            // "No" will do nothing.
-          }
-        });
-      } else {
-        unsavedTreesWarning();
-      }
-    }
-
-    // Warn about unsaved trees if necessary.
-    function unsavedTreesWarning() {
-      // Returns a no-args function that saves all trees in `trees` starting from `i`, one by one, and then closes the 
-      // window.
-      function saveTreesGen(trees, i) {
-        return function() {
-          // If the number of remaining trees to save is 0 (base case)...
-          if (i === trees.length)
-            loadProjectHelper();
-          else  // Otherwise...
-            this_.saveTree(true, trees[i], saveTreesGen(trees, i + 1));
-        }
-      }
-      // Curried to make it so that this function can be given the arguments to be actually called later. This function 
-      // shows a warning assuming that there is at least one unsaved tree.
-      function unsavedTreesWarningHelperGen(unsavedTrees, i) {
-        return function() {
-          // If the number of trees remaining is 1 (base case)...
-          if (unsavedTrees.length - i === 1) {
-            // Show the warning for one unsaved tree.
-            dialog.showMessageBox(remote.getCurrentWindow(), {
-              message: "Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
-              type: "warning",
-              buttons: ["Yes", "No", "Cancel"]
-            }, function(result) {
-              switch (result) {
-                case 0:  // Yes
-                  // Save the tree, then close the window.
-                  this_.saveTree(true, unsavedTrees[i], loadProjectHelper);
-                  break;
-                case 1:  // No
-                  loadProjectHelper();
-                  break;
-                // "Cancel" does nothing.
-              }
-            });
-          }  // Otherwise...
-          else {
-            // Show the warning for more than one unsaved tree.
-            dialog.showMessageBox(remote.getCurrentWindow(), {
-              message: "Multiple trees are unsaved. Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
-              type: "warning",
-              noLink: true,  // Prevent displaying "Yes to All" and "No to All" as command links.
-              buttons: ["Yes", "No", "Yes to All", "No to All", "Cancel"]
-            }, function(result) {
-              switch (result) {
-                case 0:  // Yes
-                  // Save the tree and proceed to the next one.
-                  this_.saveTree(true, unsavedTrees[i], unsavedTreesWarningHelperGen(unsavedTrees, i + 1));
-                  break;
-                case 1:  // No
-                  // Do not save the tree, but proceed to the next one.
-                  unsavedTreesWarningHelperGen(unsavedTrees, i + 1)();
-                  break;
-                case 2:  // Yes to All
-                  // Save all of the remaining trees.
-                  saveTreesGen(unsavedTrees, i)();
-                  break;
-                case 3:  // No to All
-                  // Load the project
-                  loadProjectHelper();
-                  break;
-                // Cancel does nothing
-              }
-            })
-          }
-        }
-      }
-
-      var unsavedTrees = this_.findUnsavedTrees();
-
-      // If at least one unsaved tree exists...
-      if (unsavedTrees.length > 0) {
-        // Begin warning chain.
-        unsavedTreesWarningHelperGen(unsavedTrees, 0)();
-      } else {
-        loadProjectHelper();
-      }
-    }
-
-    unsavedNodesWarning();
+    // Show warning if the editor has unsaved nodes.
+    this.conditionalWarning({
+      predicate: () => !this_.globalNodeUndoHistory.isSaved(),
+      message: "Are you sure you want to load the project? If so, all unsaved nodes will be lost.",
+      choices: [
+        {name: "Yes", triggersCallback: true},
+        {name: "No", triggersCallback: false}
+      ],
+      conditionalCallback: () => this_.unsavedTreesWarning(loadProjectHelper)
+    });
   }
   // Returns the export data of nodes fitting a specific category "category" and directory of origin "origin".
   // category: the category of nodes to export
@@ -1495,7 +1400,7 @@ this.b3editor = this.b3editor || {};
           switch (result) {
             case 0:  // "Yes"
               // Attempt to show warning, then close window.
-              unsavedTreesWarning(e, true);
+              this_.unsavedTreesWarning(closeWindow);
               break;
             // "No" will do nothing.
           }
@@ -1503,95 +1408,15 @@ this.b3editor = this.b3editor || {};
 
         e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
       } else {
-        unsavedTreesWarning(e);
-      }
-    }
+        // Make closing the window the postSaveCallback. Also get whether or not the editor has unsaved trees
+        // so we can let Electron know not to close the program just yet. closeWindow should not be called when
+        // there are no unsaved trees either. Instead, we will call editor.onApplicationClose.
+        var hasUnsavedTrees = this_.unsavedTreesWarning(closeWindow, false);
 
-    // Warn about unsaved trees if necessary.
-    // closeOnNoWarning is whether or not the function should forcibly close the window if no warning shows up.
-    function unsavedTreesWarning(e, closeOnNoWarning) {
-      // Returns a no-args function that saves all trees in `trees` starting from `i`, one by one, and then closes the 
-      // window.
-      function saveTreesGen(trees, i) {
-        return function() {
-          // If the number of remaining trees to save is 0 (base case)...
-          if (i === trees.length)
-            closeWindow();
-          else  // Otherwise...
-            this_.saveTree(true, trees[i], saveTreesGen(trees, i + 1));
-        }
-      }
-      // Curried to make it so that this function can be given the arguments to be actually called later. This function 
-      // shows a warning assuming that there is at least one unsaved tree.
-      function unsavedTreesWarningHelperGen(unsavedTrees, i) {
-        return function() {
-          // If the number of trees remaining is 1 (base case)...
-          if (unsavedTrees.length - i === 1) {
-            // Show the warning for one unsaved tree.
-            dialog.showMessageBox(remote.getCurrentWindow(), {
-              message: "Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
-              type: "warning",
-              buttons: ["Yes", "No", "Cancel"]
-            }, function(result) {
-              switch (result) {
-                case 0:  // Yes
-                  // Save the tree, then close the window.
-                  this_.saveTree(true, unsavedTrees[i], closeWindow);
-                  break;
-                case 1:  // No
-                  closeWindow();
-                  break;
-                // "Cancel" does nothing.
-              }
-            });
-          }  // Otherwise...
-          else {
-            // Show the warning for more than one unsaved tree.
-            dialog.showMessageBox(remote.getCurrentWindow(), {
-              message: "Multiple trees are unsaved. Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
-              type: "warning",
-              noLink: true,  // Prevent displaying "Yes to All" and "No to All" as command links.
-              buttons: ["Yes", "No", "Yes to All", "No to All", "Cancel"]
-            }, function(result) {
-              switch (result) {
-                case 0:  // Yes
-                  // Save the tree and proceed to the next one.
-                  this_.saveTree(true, unsavedTrees[i], unsavedTreesWarningHelperGen(unsavedTrees, i + 1));
-                  break;
-                case 1:  // No
-                  // Do not save the tree, but proceed to the next one.
-                  unsavedTreesWarningHelperGen(unsavedTrees, i + 1)();
-                  break;
-                case 2:  // Yes to All
-                  // Save all of the remaining trees.
-                  saveTreesGen(unsavedTrees, i)();
-                  break;
-                case 3:  // No to All
-                  // Close the window.
-                  closeWindow();
-                  break;
-                // Cancel does nothing
-              }
-            })
-          }
-        }
-      }
-
-      var unsavedTrees = this_.findUnsavedTrees();
-
-      // If at least one unsaved tree exists...
-      if (unsavedTrees.length > 0) {
-        // Begin warning chain.
-        unsavedTreesWarningHelperGen(unsavedTrees, 0)();
-
-        e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
-      }  // Otherwise, if the window should be closed...
-      else if (closeOnNoWarning) {
-        closeWindow();
-      } // Otherwise...
-      else {
-        this_.onApplicationClose();  // Handle exiting the application.
-        // Allow the window to close.
+        if (hasUnsavedTrees)
+          e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
+        else
+          this_.onApplicationClose();
       }
     }
     /**
@@ -1650,7 +1475,7 @@ this.b3editor = this.b3editor || {};
     if (fromPropertyPanel)
       this.trigger('changefocus', "right-panel");  // Set the focus to the property panel.
     else  // Otherwise...
-      this.trigger('changefocus', "tree-editor");  // Set the focus ot the tree editor.
+      this.trigger('changefocus', "tree-editor");  // Set the focus to the tree editor.
   }
   /**
    * Adds a command with name `cmd` and arguments `args` to the `NodeUndoStack`, supplying `affectedGroups` to its 
@@ -1706,14 +1531,17 @@ this.b3editor = this.b3editor || {};
    * @param {boolean} args.choices[].triggersCallback whether or not clicking the button will trigger 
    * `conditionalCallback`
    * @param {() => void} args.conditionalCallback the function to call, either if `args.predicate` is false or the user
-   * chooses to allow it to be called.
+   * chooses to allow it to be called by selecting an option where `triggersCallback` is true.
    * @param {((number) => void)?} args.dialogCallback (optional) the function to call when the dialog box is shown.
    * @param {(() => void)?} args.conditionalDialogCallback (optional) the function to call if the user chooses it to 
    * allow it to be called. `args.conditionalCallback` is used instead if this parameter is not defined.
+   * @returns whether or not `args.predicate` returned true.
    */
   p.conditionalWarning = function(args) {
+    var predicateMet = args.predicate();
+  
     // If the predicate returns true...
-    if (args.predicate()) {
+    if (predicateMet) {
       // Show a warning and decide later whether to invoke the callback based on the user's input.
       dialog.showMessageBox(remote.getCurrentWindow(), {
         message: args.message,
@@ -1736,6 +1564,118 @@ this.b3editor = this.b3editor || {};
       // Invoke the callback immediately.
       args.conditionalCallback();
     }
+
+    return predicateMet;
+  }
+
+  /**
+   * Asks the user through dialog boxes whether or not they want to save each unsaved tree. For exactly one unsaved 
+   * tree, the options include "Yes" (to save the tree), "No" (not to save the tree), or "Cancel" (cancel whatever 
+   * operation causes the tree to be lost). For more than one tree, a series of dialog boxes are shown that include the
+   * options "Yes to All" (save all trees) and "No to All" (save none of the trees) in addition to "Yes", "No", and 
+   * "Cancel".
+   * 
+   * All dialog boxes are handled asynchronously. For this reason, an argument `postSaveCallback` is included to be
+   * called when the user has navigated through the series of dialog boxes without clicking "Cancel" at any point.
+   * `postSaveCallback` will also be called if no dialog boxes are shown. For further handling, the method also returns
+   * whether or not at least one unsaved tree has been found.
+   * 
+   * @param {() => void} postSaveCallback the function to call after the dialog is shown, or right before it returns if
+   *   no dialog is shown and `callbackOnSavedTrees` is true
+   * @param {bool?} callbackOnSavedTrees whether or not `postSaveCallback` should be called if there are no unsaved 
+   *   trees. Defaults to true.
+   * @returns whether or not there is at least one unsaved tree
+   */
+  p.unsavedTreesWarning = function(postSaveCallback, callbackOnSavedTrees) {
+    var this_ = this;
+
+    // Use old callbackOnSavedTrees if defined. Use true otherwise.
+    callbackOnSavedTrees = callbackOnSavedTrees != undefined ? callbackOnSavedTrees : true;
+
+    // Returns a no-args function that saves all trees in `trees` starting from `i`, one by one, and then invokes the
+    // post-save callback.
+    function saveTreesGen(trees, i) {
+      return function() {
+        // If the number of remaining trees to save is 0 (base case)...
+        if (i === trees.length)
+          postSaveCallback();
+        else  // Otherwise...
+          this_.saveTree(true, trees[i], saveTreesGen(trees, i + 1));
+      }
+    }
+    // Curried to make it so that this function can be given the arguments to be actually called later. This function 
+    // shows a warning assuming that there is at least one unsaved tree.
+    function unsavedTreesWarningHelperGen(unsavedTrees, i) {
+      return function() {
+        // If the number of trees remaining is 1 (base case)...
+        if (unsavedTrees.length - i === 1) {
+          // Show the warning for one unsaved tree.
+          dialog.showMessageBox(remote.getCurrentWindow(), {
+            message: "Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
+            type: "warning",
+            buttons: ["Yes", "No", "Cancel"]
+          }, function(result) {
+            switch (result) {
+              case 0:  // Yes
+                // Save the tree, then invoke the post-save callback.
+                this_.saveTree(true, unsavedTrees[i], postSaveCallback);
+                break;
+              case 1:  // No
+                postSaveCallback();
+                break;
+              // "Cancel" does nothing.
+            }
+          });
+        }  // Otherwise...
+        else {
+          // Show the warning for more than one unsaved tree.
+          dialog.showMessageBox(remote.getCurrentWindow(), {
+            message: "Multiple trees are unsaved. Save changes to tree '" + unsavedTrees[i].blocks[0].title + "'?",
+            type: "warning",
+            noLink: true,  // Prevent displaying "Yes to All" and "No to All" as command links.
+            buttons: ["Yes", "No", "Yes to All", "No to All", "Cancel"]
+          }, function(result) {
+            switch (result) {
+              case 0:  // Yes
+                // Save the tree and proceed to the next one.
+                this_.saveTree(true, unsavedTrees[i], unsavedTreesWarningHelperGen(unsavedTrees, i + 1));
+                break;
+              case 1:  // No
+                // Do not save the tree, but proceed to the next one.
+                unsavedTreesWarningHelperGen(unsavedTrees, i + 1)();
+                break;
+              case 2:  // Yes to All
+                // Save all of the remaining trees.
+                saveTreesGen(unsavedTrees, i)();
+                break;
+              case 3:  // No to All
+                // Invoke post-save callback.
+                postSaveCallback();
+                break;
+              // Cancel does nothing
+            }
+          })
+        }
+      }
+    }
+
+    var unsavedTrees = this.findUnsavedTrees();
+    var hasUnsavedTrees;
+
+    // If at least one unsaved tree exists...
+    if (unsavedTrees.length > 0) {
+      // Begin warning chain.
+      unsavedTreesWarningHelperGen(unsavedTrees, 0)();
+      hasUnsavedTrees = true;
+    }  // Otherwise...
+    else {
+      // If postSaveCallback should be called when there are no unsaved trees...
+      if (callbackOnSavedTrees)
+        postSaveCallback();
+      hasUnsavedTrees = false;
+    }
+
+    return hasUnsavedTrees;
   }
   // ==========================================================================
 
