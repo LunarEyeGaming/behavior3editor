@@ -181,10 +181,7 @@ angular.module('app.property', ["app.textInput"])
             newNode.properties[key] = response.value;
           } else {
             // Report error and make the value undefined. This prevents the key from disappearing when an error occurs.
-            $window.app.editor.trigger("notification", undefined, {
-              level: "error",
-              message: "Cannot set property '" + key + "'. <br>" + response.invalidMessage
-            });
+            $window.app.editor.notifyError("Cannot set property '{0}'. <br>{1}", key, response.invalidMessage);
             newNode.properties[key] = undefined;
           }
         }
@@ -741,13 +738,11 @@ angular.module('app.property', ["app.textInput"])
          * `value`.
          * 
          * @param {string} msg the message to send
+         * @param {*} value the value to display
          */
         this._sendPropertySetError = function(msg, value) {
-          $window.app.editor.trigger("notification", undefined, {
-            level: "error",
-            message: "Failed to set value for property '" + $scope.name + "'. <br>" + msg + ": " +
-              b3editor.escapeHtml(JSON.stringify(value))
-          });
+          $window.app.editor.notifyError("Failed to set value for property '{0}'. <br>{1}: {2}", $scope.name, msg, 
+            JSON.stringify(value));
         }
 
         /**
@@ -770,10 +765,8 @@ angular.module('app.property', ["app.textInput"])
             result = response.value;
           } else {
             // Notify the editor about the error.
-            $window.app.editor.trigger('notification', undefined, {
-              level: "error",
-              message: "Could not change property '" + $scope.name + propLocator + "'. <br>" + response.invalidMessage
-            });
+            $window.app.editor.notifyError("Could not change property '{0}'. <br>{1}", $scope.name + propLocator, 
+              response.invalidMessage);
           }
 
           return result;

@@ -1,0 +1,28 @@
+<div id="exportnodes-modal" class="modal wide">
+  <div class='modal-overlay' ng-click='close()'></div>
+  <div class="modal-dialog">
+    <div class="modal-dialog-content">
+      <a class="button modal-close" ng-click="close()" data-dismiss="modal" aria-hidden="true" href="#">&times;</a>
+
+      <div class="modal-header">
+        <h1 class="modal-title">Past Notifications</h1>
+      </div>
+
+      <div class="modal-body">
+        <ul id="notification-list">
+          <!-- <li ng-repeat="notification in pastNotifications track by $index" class="notification {{notification.level}}">
+            {{notification.message}}
+          </li> -->
+        </ul>
+        <div class="empty" ng-show="pastNotifications.length == 0">
+          There are no past notifications to show.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <a href="#" ng-click="close()" class="button secondary" data-dismiss="modal">Close</a>
+      <a href="#" ng-click="clearNotifications(); close()" class="button" data-dismiss="modal">Clear & Close</a>
+    </div>
+  </div>
+</div>

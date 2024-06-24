@@ -65,4 +65,24 @@ this.b3editor = this.b3editor || {};
     });
   }
   // ----------------------------- End of aforementioned substantial portion of software. ------------------------------
+  /**
+   * Same as `string.format()` but also HTML-escapes the remaining arguments before passing them into the `format` 
+   * method.
+   * 
+   * @param {string} fmt the string to format
+   * @param {*} ...args the format arguments
+   */
+  b3editor.formatHtml = function() {
+    var formatString = arguments[0];
+    // Build a list of arguments to use for the format method.
+    var formatArgs = [];
+
+    for (var i = 1; i < arguments.length; i++) {
+      // Add escaped argument.
+      formatArgs.push(b3editor.escapeHtml(arguments[i]));
+    }
+
+    // Forward the list formatArgs into the format method (formatString is `this`).
+    return formatString.format.apply(formatString, formatArgs);
+  }
 }());

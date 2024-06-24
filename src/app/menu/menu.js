@@ -106,10 +106,7 @@ angular.module('app.menu', ['app.modal'])
             }
             $window.app.editor.importNodes(data, originDirectory, true);
   
-            editor.trigger('notification', name, {
-              level: 'success',
-              message: "Imported nodes from file '" + path.basename(filename) + "'"
-            });
+            editor.notifySuccess("Imported nodes from file '{0}'", path.basename(filename));
           });
         });
       }
@@ -128,7 +125,6 @@ angular.module('app.menu', ['app.modal'])
     ModalService.showModal({
       templateUrl: "app/project/modal-newproject.html",
       controller: 'NewProjectModalController',
-      // inputs: {'node': node}
     }).then(function(modal) {
       modal.close.then(function(result) {});
     });
@@ -225,6 +221,10 @@ angular.module('app.menu', ['app.modal'])
   $scope.onButtonExpandAll = function(e) {
     if (e) e.preventDefault();
     $window.app.editor.expandAll();
+  }
+  $scope.onButtonShowNotifications = function(e) {
+    if (e) e.preventDefault();
+    $rootScope.$broadcast('onButtonShowNotifications');
   }
   $scope.onButtonSelectAll = function(e) {
     if (e) e.preventDefault();

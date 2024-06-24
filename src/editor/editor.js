@@ -17,13 +17,13 @@ this.b3editor = this.b3editor || {};
     this.logger.onWarning = function(message) {
       editor.trigger('notification', "Warning", {
         level: 'warn',
-        message: message
+        message: b3editor.escapeHtml(message)
       });
     }
     this.logger.onError = function(message) {
       editor.trigger('notification', "Error", {
         level: 'error',
-        message: message
+        message: b3editor.escapeHtml(message)
       });
     }
 
@@ -402,13 +402,16 @@ this.b3editor = this.b3editor || {};
 
     this.logger.info("Import tree "+data.name);
 
-    // Refresh the list of tree paths found before importing the block.
-    this.projectTrees = this.project.findTrees();
+    // If a root is defined...
+    if (data.root != undefined) {
+      // Refresh the list of tree paths found before importing the block.
+      this.projectTrees = this.project.findTrees();
 
-    var dataRoot = this.importBlock(data.root);
-    if (!dataRoot) {
-      this.logger.error("Failed to import tree "+data.name);
-      return false;
+      var dataRoot = this.importBlock(data.root);
+      if (!dataRoot) {
+        this.logger.error("Failed to import tree "+data.name);
+        return;
+      }
     }
 
     var root = this.getRoot();
@@ -416,13 +419,15 @@ this.b3editor = this.b3editor || {};
       title: data.name,
       description: data.description || "",
       properties: data.parameters || {}
-    })
-    this.makeAndAddConnection(root, dataRoot);
+    });
+
+    // If a root is defined (again)...
+    if (data.root != undefined)
+      this.makeAndAddConnection(root, dataRoot);
 
     this.importModule(data);
 
     this.organize(true);
-    return true;
   }
   /**
    * Imports a module node definition based on the provided `data`.
@@ -505,9 +510,8 @@ this.b3editor = this.b3editor || {};
 
     var editor = this;
     var data = fs.readFileSync(filename);
-    if (editor.importFromJSON(data)) {
-      //editor.writeTreeFile();
-    }
+
+    editor.importFromJSON(data)
   }
   p.exportBlock = function(block, scripts) {
     var data = {};
@@ -569,24 +573,26 @@ this.b3editor = this.b3editor || {};
         data.parameters[key] = root.properties[key];
     }
 
-    var rootBlock = root.getOutNodeIds()[0]
+    var replacer = function(k, v, spaces, depth) {
+      if (k == "parameters" || k == "output") {
+        // each parameter on one line
+        return CustomJSON.stringify(v, function(k2, v2, spaces, depth) {
+          return CustomJSON.stringify(v2, null, 0);
+        }, spaces, depth + 1)
+      } else {
+        return CustomJSON.stringify(v, replacer, spaces, depth + 1);
+      }
+    }
+
+    var rootBlock = root.getOutNodeIds()[0];
+
     if (rootBlock) {
       data.root = this.exportBlock(this.getBlockById(rootBlock), data.scripts);
-
-      var replacer = function(k, v, spaces, depth) {
-        if (k == "parameters" || k == "output") {
-          // each parameter on one line
-          return CustomJSON.stringify(v, function(k2, v2, spaces, depth) {
-            return CustomJSON.stringify(v2, null, 0);
-          }, spaces, depth + 1)
-        } else {
-          return CustomJSON.stringify(v, replacer, spaces, depth + 1);
-        }
-      }
-      return CustomJSON.stringify(data, replacer, 2);
     } else {
-      return "{}";
+      data.root = null;
     }
+
+    return CustomJSON.stringify(data, replacer, 2);
   }
 
   /**
@@ -1311,7 +1317,7 @@ this.b3editor = this.b3editor || {};
       }
 
       // Activate conditional warning.
-      this.conditionalWarning({
+      var isUnsaved = this.conditionalWarning({
         predicate: () => !tree.undoHistory.isSaved(),
         conditionalCallback: removeTreeHelper,
         message: "Save changes to '" + tree.blocks[0].title + "' before closing?",
@@ -1326,6 +1332,11 @@ this.b3editor = this.b3editor || {};
             editor.saveTree(true, tree, removeTreeHelper);
         }
       });
+
+      // If the tree is unsaved...
+      if (isUnsaved)
+        // Show the tree that is unsaved.
+        this.selectTree(tree.id);
     }
   }
 
@@ -1607,6 +1618,8 @@ this.b3editor = this.b3editor || {};
     // shows a warning assuming that there is at least one unsaved tree.
     function unsavedTreesWarningHelperGen(unsavedTrees, i) {
       return function() {
+        // Show the unsaved tree.
+        this_.selectTree(unsavedTrees[i].id);
         // If the number of trees remaining is 1 (base case)...
         if (unsavedTrees.length - i === 1) {
           // Show the warning for one unsaved tree.
@@ -1677,6 +1690,70 @@ this.b3editor = this.b3editor || {};
 
     return hasUnsavedTrees;
   }
+  // ==========================================================================
+
+  // NOTIFICATION UTILITY =====================================================
+  /**
+   * Helper method. Generates a function to use for sending notifications at various levels.
+   * 
+   * @param {string} level the level of the notification
+   * @returns a function that, when called, shows a notification with level `level` and a message constructed from 
+   * formatting the first argument using the remaining arguments.
+   */
+  p.__notifyGen = function(level) {
+    return function() {
+      var formatString = arguments[0];
+
+      // arguments doesn't have a slice method, so building the list manually is necessary.
+      var formatArgs = [];
+      for (var i = 1; i < arguments.length; i++)
+        formatArgs.push(arguments[i]);
+
+      // Construct the formatted message.
+      var message = formatString.format.apply(formatString, formatArgs);
+
+      // Send notification. NOTE: `this` is assumed to be the current editor here.
+      this.trigger("notification", undefined, {level, message});
+    }
+  }
+
+  /**
+   * Sends a notification with level `info` containing message `msg`, with the remaining arguments being used as format
+   * arguments.
+   * 
+   * @param {string} msg the message to send
+   * @param {*} ...args the format arguments to put into `msg`
+   */
+  p.notifyInfo = p.__notifyGen("info");
+
+  /**
+   * Sends a notification with level `success` containing message `msg`, with the remaining arguments being used as
+   * format arguments.
+   * 
+   * @param {string} msg the message to send
+   * @param {*} ...args the format arguments to put into `msg`
+   */
+  p.notifySuccess = p.__notifyGen("success");
+
+  /**
+   * Sends a notification with level `warning` containing message `msg`, with the remaining arguments being used as
+   * format arguments.
+   * 
+   * @param {string} msg the message to send
+   * @param {*} ...args the format arguments to put into `msg`
+   */
+  p.notifyWarning = p.__notifyGen("warning");
+
+  /**
+   * Sends a notification with level `error` containing message `msg`, with the remaining arguments being used as format
+   * arguments.
+   * 
+   * @param {string} msg the message to send
+   * @param {*} ...args the format arguments to put into `msg`
+   */
+  p.notifyError = p.__notifyGen("error");
+
+
   // ==========================================================================
 
   // RENDERING UTILITY ========================================================

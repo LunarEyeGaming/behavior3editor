@@ -14,10 +14,7 @@ angular.module('app.project', ['app.fileinput'])
   ';
 
   this.showError = function(msg) {
-    $window.app.editor.trigger('notification', "Error", {
-      level: 'error',
-      message: msg
-    });
+    $window.app.editor.notifyError(msg);
   }
 
   var this_ = this;

@@ -12,8 +12,11 @@ angular.module('app.notification', [])
  * queue when `showNotification()` is called and the notification is about to be added to the queue, it is instead
  * recorded as an "excess notification," thereby incrementing the `excessNotifications` counter. When the queue has been
  * cleared, another notification is shown to display these excess notifications if there are any.
+ * 
+ * All shown notifications are stored in the `pastNotifications` list, whose corresponding modal can be displayed by
+ * invoking the `onButtonShowNotifications` method.
  */
-.controller('NotificationController', function($scope, $window, $compile, $document) {
+.controller('NotificationController', function($scope, $window, $compile, $rootScope, ModalService) {
   var this_ = this;
   // li is necessary to make the notifications stack on top of each other.
   this.template = '\
@@ -29,10 +32,14 @@ angular.module('app.notification', [])
   this.notificationQueue = [];  // The list of notifications that are waiting to be shown.
   this.excessNotifications = 0;  // The number of notifications that were queued when the queue size exceeded maxQueueSize
 
+  this.pastNotifications = [];  // The list of all notifications shown.
+
   this.display = undefined;  // The Angular element representing the notification display.
 
   /**
-   * Creates and returns an element representing a notification with level `level` and message `message`.
+   * Creates and returns an element representing a notification with level `level` and message `message`. The programmer
+   * must ensure that `message` is a trusted HTML string, through means such as escaping the segments that come from the
+   * user (see `b3editor.escapeHtml`).
    * 
    * @param {string} level the level of the notification to show. CSS-recognized levels are `info`, `success`, `warn`, 
    *   and `error`.
@@ -54,8 +61,6 @@ angular.module('app.notification', [])
     // If the display is not defined yet...
     if (!this.display)
       this.display = angular.element(document.querySelector("#notification-display"));  // Define it.
-    
-    var this_ = this;
     
     var willDisappear = false;  // Closure variable for fadeOut.
 
@@ -142,15 +147,65 @@ angular.module('app.notification', [])
         // Display the number of notifications missed in another notification.
         this.showNotification(this.createNotification(
           "info",
-          this.excessNotifications + " more notifications have been sent.<br>See log for more details (if applicable)."
+          // &#8594; = right arrow
+          this.excessNotifications + " more notifications have been sent.<br>Select View &#8594; Show Notifications in the menu bar for more details."
         ));
         this.excessNotifications = 0; // Reset the counter.
       }
   }
 
+  /**
+   * Called when the `notification` event is emitted. The programmer must ensure that the `message` is a trusted HTML 
+   * string through means such as HTML-escaping any segments (see `b3editor.escapeHtml`) that come from arbitrary input.
+   * 
+   * @param {{level: string, message: string}} e an event containing the `level` of the notification and its `message`.
+   */
   this.onNotification = function(e) {
-    this_.showNotification(this_.createNotification(e.level, e.message));
+    this.pastNotifications.push({level: e.level, message: e.message});
+    this.showNotification(this.createNotification(e.level, e.message));
   }
-  $window.app.editor.on('notification', this.onNotification, this);
 
+  this.onButtonShowNotifications = function() {
+    ModalService.showModal({
+      templateUrl: "app/common/notification/modal-notifications.html",
+      controller: 'NotificationModalController',
+      inputs: {pastNotifications: this.pastNotifications}
+    }).then(function(modal) {
+      modal.close.then(function(result) {});
+    });
+  }
+
+  $window.app.editor.on('notification', (e) => this_.onNotification(e), this);
+  $rootScope.$on('onButtonShowNotifications', () => this_.onButtonShowNotifications());
+})
+
+.controller('NotificationModalController', function($scope, $element, $compile, close, pastNotifications) {
+  var this_ = this;
+
+  this.template = '\
+  <li class="notification {0}">\
+    {1}\
+  </li>\
+  ';
+
+  $scope.pastNotifications = pastNotifications;
+  $scope.close = function(result) { close(result); };
+
+  // Using a watch function instead of ng-repeat and ng-bind-html allows for displaying notifications with HTML.
+  $scope.$watch("pastNotifications", function(notifications) {
+    // Get notification list (jqLite-wrapped).
+    var notificationList = angular.element($element[0].querySelector("#notification-list"));
+
+    // Manually inject the notifications into the document.
+    notifications.forEach(notification => {
+      var notifElement = $compile(this_.template.format(notification.level, notification.message))($scope);
+
+      notificationList.append(notifElement);
+    });
+  });
+
+  $scope.clearNotifications = function() {
+    // This clears the past notifications from the reference itself.
+    $scope.pastNotifications.splice(0, $scope.pastNotifications.length);
+  }
 });

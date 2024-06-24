@@ -314,10 +314,7 @@ angular.module('app.node', ['app.modal'])
   // ON BUTTON "EXPORT NODES" -------------------------------------------------
   this.onButtonExportNodes = function() {
     if ($window.app.editor.project == null) {
-      $window.app.editor.trigger('notification', name, {
-        level: 'error',
-        message: 'Cannot export nodes. No project loaded.'
-      });
+      $window.app.editor.notifyError("Cannot export nodes. No project loaded.");
     } else {
       $scope.showExportNodesModal();
     }
@@ -540,10 +537,7 @@ angular.module('app.node', ['app.modal'])
         // If the property does not have a non-empty string as a name...
         if (!outputData.name) {
           // Send an error and abort.
-          $window.app.editor.trigger('notification', name, {
-            level: 'error',
-            message: "Output at index " + i + " does not have a name."
-          });
+          $window.app.editor.notifyError("Output at index {0} does not have a name.", i);
           return;
         }
 
@@ -559,10 +553,7 @@ angular.module('app.node', ['app.modal'])
     // If the name is empty or undefined...
     if (!newNode.name) {
       // Send an error and abort.
-      $window.app.editor.trigger('notification', name, {
-        level: 'error',
-        message: "Please enter a name for your node."
-      });
+      $window.app.editor.notifyError("Please enter a name for your node.");
       return;
     }
 
@@ -574,10 +565,7 @@ angular.module('app.node', ['app.modal'])
       // If the property does not have a non-empty string as a name...
       if (!propertyData.name) {
         // Send an error and abort.
-        $window.app.editor.trigger('notification', name, {
-          level: 'error',
-          message: "Property at index " + i + " does not have a name."
-        });
+        $window.app.editor.notifyError("Property at index {0} does not have a name", i);
         return;
       }
 
@@ -718,10 +706,7 @@ angular.module('app.node', ['app.modal'])
         // If the property does not have a non-empty string as a name...
         if (!outputData.name) {
           // Send an error and abort.
-          $window.app.editor.trigger('notification', name, {
-            level: 'error',
-            message: "Output at index " + i + " does not have a name."
-          });
+          $window.app.editor.notifyError("Output at index {0} does not have a name.", i);
           return;
         }
 
@@ -737,10 +722,7 @@ angular.module('app.node', ['app.modal'])
     // If the name is empty or undefined...
     if (!newNode.name) {
       // Send an error and abort.
-      $window.app.editor.trigger('notification', name, {
-        level: 'error',
-        message: "Please enter a name for your node."
-      });
+      $window.app.editor.notifyError("Please enter a name for your node.");
       return;
     }
 
@@ -752,10 +734,7 @@ angular.module('app.node', ['app.modal'])
       // If the property does not have a non-empty string as a name...
       if (!propertyData.name) {
         // Send an error and abort.
-        $window.app.editor.trigger('notification', name, {
-          level: 'error',
-          message: "Property at index " + i + " does not have a name."
-        });
+        $window.app.editor.notifyError("Property at index {0} does not have a name", i);
         return;
       }
 
