@@ -52,7 +52,8 @@ angular.module("app.textInput", [])
  * data using the `formatter` callback and an option for a "Show More" button (which opens a modal containing the
  * current contents in a bigger text box), which is set using the `expandable` attribute. The initial value to use is
  * given by a scope binding in the `value` attribute. The `placeholder` attribute determines the placeholder to use for
- * the text box.
+ * the text box. `read-only` determines whether or not the input is read-only, which means that the input cannot be 
+ * edited.
  * 
  * The `formatter` function is called immediately on input change with the current input provided as an argument and
  * should return an object containing the following:
@@ -75,7 +76,8 @@ angular.module("app.textInput", [])
       onChange: "&",  // What to do on changing the input value. This occurs immediately after the input value changes
       formatter: "&",  // Called immediately on input change.
       placeholder: "@",  // The placeholder to use for the input field.
-      expandable: "@"  // Whether or not the input should have a "Show More" button
+      expandable: "@",  // Whether or not the input should have a "Show More" button
+      readOnly: "@"  // Whether or not the input is read-only
     },
     controller: ["$scope", "$window", "ModalService", 
       function TextInputController($scope, $window, ModalService) {
@@ -139,7 +141,8 @@ angular.module("app.textInput", [])
             inputs: {
               value: $scope.value,
               returnContentsCallback: (value) => this_.setValue(value),
-              formatter: (input) => $scope.formatter({input})
+              formatter: (input) => $scope.formatter({input}),
+              readOnly: $scope.readOnly
             }
           });
         }
@@ -176,8 +179,9 @@ angular.module("app.textInput", [])
   }
 })
 
-.controller("ExpandedTextController", function($scope, close, value, returnContentsCallback, formatter) {
+.controller("ExpandedTextController", function($scope, close, value, returnContentsCallback, formatter, readOnly) {
   $scope.value = value;
+  $scope.readOnly = readOnly;
 
   $scope.close = function(result) {
     close(result);

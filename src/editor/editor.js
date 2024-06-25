@@ -222,8 +222,7 @@ this.b3editor = this.b3editor || {};
   /**
    * Imports a block from a JSON node. If the block has no associated node definition in the editor, this method logs a
    * warning message, and the block is marked as unregistered. This method will also try to resolve the node definition
-   * associated with the block if the block is a module. For this functionality to work properly, the programmer must
-   * have set `this.projectTrees` to the most recent result of `this.project.findTrees()` prior to calling this method.
+   * associated with the block if the block is a module.
    * 
    * @param {object} node the node to import
    * @param {string} parent the ID of the block to set as the import block's parent
@@ -238,7 +237,7 @@ this.b3editor = this.b3editor || {};
       var moduleData = this.findModule(node.name);
       if (moduleData) {
         // Import module
-        this.importModule(moduleData);
+        this.importModule(moduleData.contents, moduleData.path);
       }
     }
 
@@ -390,13 +389,19 @@ this.b3editor = this.b3editor || {};
       }
     }
   }
-  p.importFromJSON = function(json) {
+  /**
+   * Loads a tree into the editor from JSON, logging an error if parsing fails.
+   * 
+   * @param {string} json a string representation of the JSON to parse
+   * @param {string} filePath the path from which the JSON was read
+   */
+  p.importFromJSON = function(json, filePath) {
     // Handle parse error.
     try {
       var data = JSON.parse(json);
     } catch (err) {
       // Log error and abort.
-      this.logger.error("Error while parsing file: " + err);
+      this.logger.error("Error while parsing file '" + filePath + "': " + err);
       return;
     }
 
@@ -404,14 +409,7 @@ this.b3editor = this.b3editor || {};
 
     // If a root is defined...
     if (data.root != undefined) {
-      // Refresh the list of tree paths found before importing the block.
-      this.projectTrees = this.project.findTrees();
-
       var dataRoot = this.importBlock(data.root);
-      if (!dataRoot) {
-        this.logger.error("Failed to import tree "+data.name);
-        return;
-      }
     }
 
     var root = this.getRoot();
@@ -425,16 +423,19 @@ this.b3editor = this.b3editor || {};
     if (data.root != undefined)
       this.makeAndAddConnection(root, dataRoot);
 
-    this.importModule(data);
+    this.importModule(data, filePath);
 
     this.organize(true);
   }
   /**
-   * Imports a module node definition based on the provided `data`.
+   * Imports a module node definition based on the provided `data` and the location from which the module originated
+   * `modulePath`. If the module is already in the node definition list, the properties and path to the original tree
+   * are overridden.
    * 
    * @param {object} data the data of the module to import
+   * @param {string} modulePath where the data came from
    */
-  p.importModule = function(data) {
+  p.importModule = function(data, modulePath) {
     var treeModuleParameters = function(treeParameters) {
       var params = {}
       for (var key in treeParameters) {
@@ -449,12 +450,14 @@ this.b3editor = this.b3editor || {};
     var moduleNode = this.nodes[data.name];
     if (moduleNode != undefined && moduleNode.prototype.type == 'module') {
       moduleNode.prototype.properties = treeModuleParameters(data.parameters);
+      moduleNode.prototype.pathToTree = modulePath;
     } else {
       var newNode = {
         name: data.name,
         type: 'module',
         title: '',
-        properties: treeModuleParameters(data.parameters)
+        properties: treeModuleParameters(data.parameters),
+        pathToTree: modulePath
       }
       this.makeAndAddNode(newNode);
 
@@ -462,10 +465,19 @@ this.b3editor = this.b3editor || {};
       this.updateAllBlocks(data.name);
     }
   }
-  // Finds a module with name `name` and returns the JSON data for it, or null if no such module exists. The programmer
-  // must set the variable this.projectTrees to the result of project.findTrees() before beginning a series of 
-  // findModule() calls.
+  /**
+   * Finds a module with name `name` and returns the JSON data for it as well as its path, or `null` if no such module
+   * exists. If no project is loaded, the method returns `null` without doing anything else.
+   * 
+   * @param {string} name the name of the module to find
+   * @returns an object containing the `contents` of the module with name `name` and its `path`, or `null` if no such
+   *   module exists
+   */
   p.findModule = function(name) {
+    // If this.projectTrees is not defined, abort, returning null.
+    if (!this.projectTrees)
+      return null;
+
     // For each tree path found within the directory containing the project file...
     for (var i = 0; i < this.projectTrees.length; i++) {
       var treePath = this.projectTrees[i];
@@ -490,7 +502,7 @@ this.b3editor = this.b3editor || {};
 
       // If the name of the tree matches `name`...
       if (treeData.name === name) {
-        return treeData;  // Return the tree.
+        return {contents: treeData, path: treePath};  // Return the tree.
       }
     }
 
@@ -511,7 +523,7 @@ this.b3editor = this.b3editor || {};
     var editor = this;
     var data = fs.readFileSync(filename);
 
-    editor.importFromJSON(data)
+    editor.importFromJSON(data, filename);
   }
   p.exportBlock = function(block, scripts) {
     var data = {};
@@ -559,6 +571,12 @@ this.b3editor = this.b3editor || {};
 
     return data;
   }
+
+  /**
+   * Returns a simplified representation of the current tree.
+   * 
+   * @returns a simplified representation of the current tree
+   */
   p.exportToJSON = function() {
     var root = this.getRoot();
     var data = {};
@@ -573,6 +591,24 @@ this.b3editor = this.b3editor || {};
         data.parameters[key] = root.properties[key];
     }
 
+    var rootBlock = root.getOutNodeIds()[0];
+
+    if (rootBlock) {
+      data.root = this.exportBlock(this.getBlockById(rootBlock), data.scripts);
+    } else {
+      data.root = null;
+    }
+
+    return data;
+  }
+
+  /**
+   * Returns a pretty-printed string containing the JSON data `treeData`.
+   * 
+   * @param {object} treeData the tree data to stringify
+   * @returns a pretty-printed representation of `treeData`
+   */
+  p.stringifyTree = function(treeData) {
     var replacer = function(k, v, spaces, depth) {
       if (k == "parameters" || k == "output") {
         // each parameter on one line
@@ -584,20 +620,13 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    var rootBlock = root.getOutNodeIds()[0];
-
-    if (rootBlock) {
-      data.root = this.exportBlock(this.getBlockById(rootBlock), data.scripts);
-    } else {
-      data.root = null;
-    }
-
-    return CustomJSON.stringify(data, replacer, 2);
+    return CustomJSON.stringify(treeData, replacer, 2);
   }
 
   /**
-   * Writes a tree to disk, logs that the tree was saved, shows a notification for it in the GUI, and emits the 
-   * "treesaved" event for that tree. Has no effect if the tree does not have a defined path.
+   * Writes a tree to disk, logs that the tree was saved, shows a notification for it in the GUI, emits the "treesaved" 
+   * event for that tree, and imports the tree as a module in the node definition list. Has no effect if the tree does
+   * not have a defined path.
    * 
    * @param {b3editor.Tree} tree (optional) the tree to write to disk. Defaults to the currently selected tree.
    */
@@ -609,14 +638,22 @@ this.b3editor = this.b3editor || {};
     var editor = this;
 
     if (path != "") {
-      fs.writeFile(path, json, function(err){
-        if (err) throw err;
+      fs.writeFile(path, this.stringifyTree(json), function(err){
+        // If an error occurred...
+        if (err) {
+          // Report it and abort.
+          editor.logger.error("Error while saving tree '" + path + "': " + err);
+          return;
+        }
 
         // Mark undo history as saved.
         tree.undoHistory.save();
 
         // Broadcast treesaved event (for filename directive).
         editor.trigger("treesaved", tree);
+
+        // Update corresponding node definition
+        editor.importModule(json, path);
 
         editor.logger.info("Saved tree "+name)
         editor.trigger('notification', name, {
@@ -709,6 +746,9 @@ this.b3editor = this.b3editor || {};
       this_.logger.info("Loaded project from " + project.fileName);
       this_.project = project;
 
+      // Find all of the trees.
+      this_.projectTrees = this_.project.findTrees();
+
       this_.importAllNodes(project.findNodes());
       this_.pruneExportHierarchy();
 
@@ -726,10 +766,13 @@ this.b3editor = this.b3editor || {};
       conditionalCallback: () => this_.unsavedTreesWarning(loadProjectHelper)
     });
   }
-  // Returns the export data of nodes fitting a specific category "category" and directory of origin "origin".
-  // category: the category of nodes to export
-  // origin: the directory of origin to filter by
-  // return a list of nodes to export (keyed by name), or null if no nodes have been exported.
+  /**
+   * Returns the export data of nodes fitting a specific category `category` and directory of origin `origin`.
+   * 
+   * @param {string} category the category of nodes to export
+   * @param {string} origin the directory of origin to filter by (a relative path)
+   * @returns a list of nodes to export (keyed by name), or `null` if no nodes have been exported.
+   */
   p.getNodeCategoryExportData = function(category, origin) {
     var data = {};
     var dataIsEmpty = true;
@@ -756,6 +799,9 @@ this.b3editor = this.b3editor || {};
               data[name].script = node.prototype.script;
             if (node.prototype.output)
               data[name].output = JSON.parse(JSON.stringify(node.prototype.output));
+          } else if (node.prototype.type == "module") {
+            // pathToTree is absolute here, so we make it relative to the save location.
+            data[name].pathToTree = path.relative(path.resolve(this.project.fileName, origin), node.prototype.pathToTree);
           }
         }
       }
@@ -916,8 +962,14 @@ this.b3editor = this.b3editor || {};
 
     return dirs;
   }
-  // json is the JSON contents of the .nodes file; originDirectory is the directory from which it originated.
-  // isCommand is whether or not to treat the act of importing the nodes as a command.
+  /**
+   * Adds some nodes from the given JSON contents `json`, with information about the directory from which it was loaded 
+   * `originDirectory` and `isCommand` to indicate whether or not this action should be considered an undoable command.
+   * 
+   * @param {string} json the JSON contents of the .nodes file to import
+   * @param {string} originDirectory the directory from which the file originated (absolute)
+   * @param {boolean} isCommand whether or not this act of importing the nodes is to be considered a command
+   */
   p.importNodes = function(json, originDirectory, isCommand) {
     // Handle parse error
     try {
@@ -962,17 +1014,27 @@ this.b3editor = this.b3editor || {};
     }
   }
   // Helper function. Shortcut for importing nodes during the loading of the project.
-  // nodesPathList is the list of nodes paths to import.
+  // nodesPathList is the list of nodes paths to import (absolute).
   // originDirectory is the directory from which the list of nodes originated (absolute).
   p.importNodesInit = function(nodesPathList, originDirectory) {
     nodesPathList.forEach(file => {
       this.logger.info("Import nodes from " + path.relative(this.project.fileName, file));
       var json = fs.readFileSync(file);
-      this.importNodes(json, path.relative(this.project.fileName, originDirectory));
+      this.importNodes(json, originDirectory);
     });
   }
-  // Creates and returns a node definition from a provided raw `node` definition (given by a modal) and an 
-  // `originDirectory`.
+  /**
+   * Creates and returns a node class from a provided node definition `node` and the directory from which it originated
+   * (if applicable) `originDirectory`. If the node is already registered or results in a type conflict, an error is
+   * logged and the method returns `undefined`. If the node has type `module` and a defined `pathToTree` attribute that
+   * is relative, then `originDirectory` must be defined for it to be converted into an absolute path, or an error will
+   * occur.
+   * 
+   * @param {object} node the node definition to convert into a class
+   * @param {string?} originDirectory (optional) the directory from which the node originated (either absolute or 
+   *   relative to the project path)
+   * @returns a node class, or `undefined` if the node is already registered or results in a type conflict
+   */
   p.makeNode = function(node, originDirectory) {
     if (this.nodes[node.name]) {
       this.logger.error('Node named "'+node.name+'" already registered.');
@@ -1005,7 +1067,16 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    tempClass.prototype.originDirectory = originDirectory;
+    // If a project is loaded and the origin directory is defined as a non-empty string...
+    if (this.project && originDirectory) {
+      // If the path is absolute...
+      if (path.isAbsolute(originDirectory))
+        // Display it relative to the project directory.
+        tempClass.prototype.originDirectory = path.relative(this.project.fileName, originDirectory);
+      else
+        tempClass.prototype.originDirectory = originDirectory;
+    } else
+      tempClass.prototype.originDirectory = '';
 
     if (node.type == "action") {
       tempClass.prototype.category = node.category || '';
@@ -1025,15 +1096,51 @@ this.b3editor = this.b3editor || {};
           }
         }
       }
+    } else if (node.type == "module") {
+      // If the module has a defined path to the tree (which may not be the case for older files)...
+      if (node.pathToTree) {
+        // If the path is absolute...
+        if (path.isAbsolute(node.pathToTree))
+          tempClass.prototype.pathToTree = node.pathToTree;
+        else {
+          // If the origin directory is not defined...
+          if (originDirectory == undefined)
+            // Throw an error and abort.
+            throw new TypeError("originDirectory is not defined.");
+
+          // Make the origin directory be absolute if necessary
+          var absoluteDir;
+          if (path.isAbsolute(originDirectory))
+            absoluteDir = originDirectory;
+          else
+            absoluteDir = path.resolve(this.project.fileName, originDirectory);
+
+          tempClass.prototype.pathToTree = path.resolve(absoluteDir, node.pathToTree);
+        }
+      } else {
+        // Try to find the module.
+        var moduleData = this.findModule(tempClass.prototype.name);
+        // If found...
+        if (moduleData) {
+          tempClass.prototype.pathToTree = moduleData.path;
+        } else {
+          // Report the error.
+          this.logger.warn("Could not find tree corresponding to node '" + tempClass.prototype.name + "'.");
+        }
+      }
     }
 
     return tempClass;
   }
-  // Creates and adds a node to the editor. Returns the node that was added.
-  // node is the node to add; originDirectory is the directory from which it originated (relative); isCommand is whether
-  // or not this function call counts as a command (i.e., can be undone).
+  /**
+   * Creates and adds a node to the editor. Returns the node that was added.
+   * 
+   * @param {object} node the node to add
+   * @param {string} originDirectory the directory from which the node originated
+   * @returns the node class that was added
+   */
   p.makeAndAddNode = function(node, originDirectory) {
-    var nodeClass = this.makeNode(node, originDirectory || '');
+    var nodeClass = this.makeNode(node, originDirectory);
 
     // If a node class was returned...
     if (nodeClass)

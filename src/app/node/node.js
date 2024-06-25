@@ -420,7 +420,7 @@ angular.module('app.node', ['app.modal'])
 
   // DYNAMIC TABLE ------------------------------------------------------------
 
-  $scope.types = ['composite', 'decorator', 'action', 'module'];
+  $scope.types = ['composite', 'decorator', 'action'];
   $scope.valueTypes = [
     {id: 'json', name: 'json'},
     {id: "entity", name: "entity"},
@@ -500,12 +500,7 @@ angular.module('app.node', ['app.modal'])
     else if ($scope.selectedDirMode == "new") {
       var domSaveLocation = document.querySelector('#addnode-modal #save-location-new #b3-file-input-value');
       
-      // If the save location is not an empty string (and thus does not trigger using the current working directory in 
-      // path.relative)...
-      if (domSaveLocation.value != '')
-        originDirectory = path.relative($window.app.editor.project.fileName, domSaveLocation.value);
-      else
-        originDirectory = domSaveLocation.value;  // Technically an empty string.
+      originDirectory = domSaveLocation.value;
     }
     // Otherwise, as the selected mode is "existing"...
     else {
@@ -627,6 +622,7 @@ angular.module('app.node', ['app.modal'])
   $scope.selectedDirMode = $scope.defaultDirMode;
   $scope.directories = $window.app.editor.getOriginDirectories();
 
+  $scope.type = $scope.node.prototype.type;
   $scope.properties = $scope.node.prototype.properties;
   $scope.output = $scope.node.prototype.output;
 
@@ -759,6 +755,20 @@ angular.module('app.node', ['app.modal'])
     }];
 
     editor.pushCommandNode(affectedGroups, 'RemoveNode', {node});
+  }
+
+  // TODO: check if the path to the tree exists.
+  $scope.openTree = function() {
+    // Try to open the file.
+    try {
+      $window.app.editor.openTreeFile($scope.node.prototype.pathToTree);
+    } catch (err) {
+      // If opening failed because the tree does not exist...
+      if (err.code == "ENOENT")
+        editor.notifyError("Could not open tree '{0}': File does not exist.", $scope.node.prototype.pathToTree);
+      else
+        editor.logger.error("Failed to open tree '{0}': {1}", $scope.node.prototype.pathToTree, err);
+    }
   }
 })
 

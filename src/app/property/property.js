@@ -294,7 +294,7 @@ angular.module('app.property', ["app.textInput"])
  * both are defined, then `key` is used instead. All of these attributes take in expressions to evaluate in the outside
  * scope, and the directive autofills the inputs depending on these fields. As an intermediary step, a slight conversion
  * is made. If `key` is used, then `usesKey` is true and `value` is set to the contents of `key`. Otherwise, `usesKey`
- * is false and `value` is set to the new value.
+ * is false and `value` is set to the new value. In addition, the `type` defaults to `json` if not defined.
  * 
  * If `usesKey` is false, the `value` must have the right format for the `type`, or an error will be sent to the editor
  * GUI and autofill will not take place. If `usesKey` is true, then the `value` attribute instead represents a board
@@ -330,6 +330,9 @@ angular.module('app.property', ["app.textInput"])
  * The `isOutput` attribute determines whether or not the property element is an output. By default, the attribute
  * evaluates to false because it is undefined. If `isOutput` evaluates to true, then the autofiller expects a `key` to
  * be provided.
+ * 
+ * The `readOnly` attribute determines whether or not the property element is read-only--i.e., cannot be edited at all.
+ * If both `editable` and `readOnly` are set, then the `editable` flag will have no effect.
  */
 .directive('b3Property', function() {
   // TODO: Refactor for consistency.
@@ -343,7 +346,8 @@ angular.module('app.property', ["app.textInput"])
       onChange: "&b3OnChange",  // Analogous to oninput event
       onInput: "&b3OnInput",  // Analogous to onchange event
       editable: "@",  // Whether or not the name and type can be edited.
-      isOutput: "@"  // Whether or not the property element is an output
+      isOutput: "@",  // Whether or not the property element is an output
+      readOnly: "@"  // Whether or not the property can be edited.
     },
     controller: ["$scope", "$element", "$window", "$compile", "b3Format", 
       function PropertyController($scope, $element, $window, $compile, b3Format) {
@@ -386,62 +390,78 @@ angular.module('app.property', ["app.textInput"])
          * 
          * If any parsing fails, a notification will be displayed in the editor, and the returned `value` will be
          * `undefined`.
+         * 
+         * If the property is read-only, then the contents returned will use the initial values.
          */
         this.getContents = function() {
           var contents = {};
-          contents.name = $scope.name;
-          contents.type = $scope.type;
 
-          // If a key is being used...
-          if ($scope.usesKey) {
-            contents.key = $element[0].querySelector("#key").value;
-          }  // Otherwise...
-          else {
-            // Do something according to the type.
-            switch ($scope.type) {
-              case "string":
-                // If a string is defined...
-                if ($scope.stringIsDefined)
-                  contents.value = this._requestTextInputValue(this._getController("#value-string", "b3TextInput"));
+          // If the property cannot have its name or type be edited, or it is read-only...
+          if (!$scope.editable || $scope.readOnly) {
+            contents.name = $scope.initialName;
+            contents.type = $scope.initialType || "json";
+          } else {
+            contents.name = $scope.name;
+            contents.type = $scope.type;
+          }
 
-                break;
-              case "position":
-                // FALL THROUGH
-              case "vec2":
-                contents.value = this._getVec2($scope.type);
-                break;
-              case "number":
-                contents.value = this._requestTextInputValue(this._getController("#value-number", "b3TextInput"));
-                break;
-              case "entity":
-                contents.value = this._requestTextInputValue(this._getController("#value-entity", "b3TextInput"));
-                break;
-              case "list":
-                // If a list is defined...
-                if ($scope.listIsDefined)
-                  contents.value = this._getList("#value-list");
+          // If the property is read-only...
+          if ($scope.readOnly) {
+            // Set key and value to their initial states.
+            contents.key = $scope.initialKey;
+            contents.value = $scope.initialValue;
+          } else {
+            // If a key is being used...
+            if ($scope.usesKey) {
+              contents.key = $element[0].querySelector("#key").value;
+            }  // Otherwise...
+            else {
+              // Do something according to the type.
+              switch ($scope.type) {
+                case "string":
+                  // If a string is defined...
+                  if ($scope.stringIsDefined)
+                    contents.value = this._requestTextInputValue(this._getController("#value-string", "b3TextInput"));
 
-                break;
-              case "json":
-                contents.value = this._getJSON();
-                break;
-              case "table":
-                // If a table is defined...
-                if ($scope.tableIsDefined) {
-                  // If the entries are numbered...
-                  if ($scope.tableIsNumbered) {
-                    contents.value = this._getList("#value-table-list");
-                  }  // Otherwise...
-                  else {
-                    contents.value = this._getDict("#value-table-dict");
+                  break;
+                case "position":
+                  // FALL THROUGH
+                case "vec2":
+                  contents.value = this._getVec2($scope.type);
+                  break;
+                case "number":
+                  contents.value = this._requestTextInputValue(this._getController("#value-number", "b3TextInput"));
+                  break;
+                case "entity":
+                  contents.value = this._requestTextInputValue(this._getController("#value-entity", "b3TextInput"));
+                  break;
+                case "list":
+                  // If a list is defined...
+                  if ($scope.listIsDefined)
+                    contents.value = this._getList("#value-list");
+
+                  break;
+                case "json":
+                  contents.value = this._getJSON();
+                  break;
+                case "table":
+                  // If a table is defined...
+                  if ($scope.tableIsDefined) {
+                    // If the entries are numbered...
+                    if ($scope.tableIsNumbered) {
+                      contents.value = this._getList("#value-table-list");
+                    }  // Otherwise...
+                    else {
+                      contents.value = this._getDict("#value-table-dict");
+                    }
                   }
-                }
-                
-                break;
-              case "bool":
-                // Boolean coersion.
-                contents.value = !!$element[0].querySelector("#value-bool").checked;
-                break;
+                  
+                  break;
+                case "bool":
+                  // Boolean coersion.
+                  contents.value = !!$element[0].querySelector("#value-bool").checked;
+                  break;
+              }
             }
           }
 

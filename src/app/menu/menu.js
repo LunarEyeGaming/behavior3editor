@@ -98,13 +98,7 @@ angular.module('app.menu', ['app.modal'])
           fs.readFile(filename, function(err, data) {
             if (err) throw err;
 
-            // If a project is loaded...
-            if (editor.project) {
-              var originDirectory = path.relative(editor.project.fileName, path.dirname(filename));
-            } else {
-              var originDirectory = '';
-            }
-            $window.app.editor.importNodes(data, originDirectory, true);
+            $window.app.editor.importNodes(data, path.dirname(filename), true);
   
             editor.notifySuccess("Imported nodes from file '{0}'", path.basename(filename));
           });

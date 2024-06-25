@@ -10,10 +10,13 @@
 
       <div class="modal-body">
         <textarea class="monospace expanded-text" cols="80" rows="20" ng-model="value" ng-change="updateAlert()"
-                  ng-class="{expandable: expandable, 'border-warning': inputAlert.level == 'warning', 'border-error': inputAlert.level == 'error'}">
+                  ng-class="{expandable: expandable, 'border-warning': inputAlert.level == 'warning', 
+                             'border-error': inputAlert.level == 'error'}"
+                  ng-readonly="readOnly">
         </textarea>
         <br>
-        <span ng-class="{expandable: expandable, 'balloon-warning': inputAlert.level == 'warning', 'balloon-error': inputAlert.level == 'error'}">
+        <span ng-class="{expandable: expandable, 'balloon-warning': inputAlert.level == 'warning', 
+                         'balloon-error': inputAlert.level == 'error'}">
           {{inputAlert.message}}
         </span>
       </div>

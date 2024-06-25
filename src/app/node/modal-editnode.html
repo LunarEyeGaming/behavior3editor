@@ -2,7 +2,9 @@
   <div class='modal-overlay' ng-click='close("Cancel")'></div>
   <div class="modal-dialog">
     <div class="modal-dialog-content">
-      <a class="button modal-close" ng-click="close('Cancel')" data-dismiss="modal" aria-hidden="true" href="#">&times;</a>
+      <a class="button modal-close" ng-click="close('Cancel')" data-dismiss="modal" aria-hidden="true" href="#">
+        &times;
+      </a>
 
       <div class="modal-header">
         <h1 class="modal-title">Edit Custom Node</h1>
@@ -12,7 +14,8 @@
         <form id="editnode-form">
           <div class="row">
             <label>Name</label>
-            <input id="name" type="text" placeholder="name" value="{{node.prototype.name}}" class="monospace">
+            <input id="name" type="text" placeholder="name" value="{{node.prototype.name}}" class="monospace"
+                   ng-readonly="type == 'module'">
           </div>
 
           <div class="row">
@@ -23,7 +26,7 @@
           <div class="row" id="editnode-properties">
             <label class="clearfix">
               <span class="left">Properties</span>
-              <a href="#" ng-click="addProperty()" class="button success right">+</a>
+              <a href="#" ng-click="addProperty()" class="button success right" ng-hide="type == 'module'">+</a>
             </label>
 
             <table id="editnode-properties-table">
@@ -31,18 +34,19 @@
                   <tr ng-repeat="(name, contents) in properties">
                     <td>
                       <b3-property name="name" type="contents.type" key="contents.key" value="contents.value"
-                                   editable="true"></b3-property>
+                                   editable="true" read-only="{{type == 'module' ? 'a' : ''}}">
+                      </b3-property>
                     </td>
-                    <td><a href="#" propertyremovable class="button alert right">-</a></td>
+                    <td><a href="#" propertyremovable class="button alert right" ng-hide="type == 'module'">-</a></td>
                   </tr>
               </tbody>
             </table>
           </div>
 
-          <div class="row" id="editnode-output" ng-show="node.prototype.type == 'action'">
+          <div class="row" id="editnode-output" ng-show="type == 'action'">
             <label class="clearfix">
               <span class="left">Output</span>
-              <a href="#" ng-click="addOutput()" class="button success right">+</a>
+              <a href="#" ng-click="addOutput()" class="button success right" ng-hide="type == 'module'">+</a>
             </label>
 
             <table id="editnode-output-table">
@@ -52,7 +56,7 @@
                       <b3-property name="name" type="contents.type" key="contents.key" value="contents.value"
                                    editable="true" is-output="true"></b3-property>
                     </td>
-                    <td><a href="#" propertyremovable class="button alert right">-</a></td>
+                    <td><a href="#" propertyremovable class="button alert right" ng-hide="type == 'module'">-</a></td>
                   </tr>
               </tbody>
             </table>
@@ -61,22 +65,40 @@
           <div class="row" ng-show="projectLoaded">
             <label>Save Location</label>
             <select id="save-location-mode" ng-model="selectedDirMode">
-              <option ng-repeat="(mode, text) in dirModeDisplayText" value="{{mode}}" ng-selected="mode == defaultDirMode">{{text}}</option>
+              <option ng-repeat="(mode, text) in dirModeDisplayText" value="{{mode}}"
+                      ng-selected="mode == defaultDirMode">
+                {{text}}
+              </option>
             </select>
             <select id="save-location-preexisting" ng-show="selectedDirMode == 'existing'">
-              <option ng-repeat="dir in directories" value="{{dir}}" ng-selected="dir == node.prototype.originDirectory">{{dir}}</option>
+              <option ng-repeat="dir in directories" value="{{dir}}"
+                      ng-selected="dir == node.prototype.originDirectory">{{dir}}</option>
             </select>
-            <b3-file-input type="folder" id="save-location-new" ng-show="selectedDirMode == 'new'" class="abbreviated-dir"></b3-file-input>
+            <b3-file-input type="folder" id="save-location-new" ng-show="selectedDirMode == 'new'"
+                           class="abbreviated-dir"></b3-file-input>
           </div>
 
-          <div class="row" ng-show="node.prototype.type == 'action'">
+          <div class="row" ng-show="type == 'action'">
             <label>Category</label>
-            <input id="category" type="text" value="{{node.prototype.category}}" placeholder="category" class="monospace">
+            <input id="category" type="text" value="{{node.prototype.category}}" placeholder="category"
+                   class="monospace">
           </div>
 
-          <div class="row" ng-show="node.prototype.type == 'action'">
+          <div class="row" ng-show="type == 'action'">
             <label>Script</label>
             <input id="script" type="text" value="{{node.prototype.script}}" placeholder="script" class="monospace">
+          </div>
+
+          <div ng-show="type == 'module'">
+            <label>Tree Location</label>
+            <div ng-show="node.prototype.pathToTree">
+              {{node.prototype.pathToTree}}
+              <br>
+              <a href="#" class="button open-tree" ng-click="openTree(); close('No')">Open Tree & Close</a>
+            </div>
+            <div ng-hide="node.prototype.pathToTree" class="light-text">
+              No path found. Please open the corresponding tree in the editor.
+            </div>
           </div>
         </form>
       </div>

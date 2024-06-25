@@ -159,6 +159,11 @@ form .row input, form .row textarea, form .row select {
   color: #111;
   padding: 3px;
 }
+form .row input:read-only, textarea:read-only, select:disabled {
+  background-color: #eeeeee;
+  border: #aaaaaa solid 1px;
+  padding: 4px;
+}
 
 /* ================================*/
 /* TREE TABS                       */
@@ -482,6 +487,9 @@ div.collapsible-list-items.hidden {
   height: calc(100% - 65px);
   overflow: auto;
 }
+.modal-body .light-text {
+  color: #ACACAC;
+}
 .modal-footer {
   background-color: #ffffff;
   border: 1px solid #181818;
@@ -499,7 +507,7 @@ div.collapsible-list-items.hidden {
   margin: 0px;
   width: 20px;
 }
-.modal .row .button#b3-file-input-button {
+.modal .row .button#b3-file-input-button, .modal .row .button.open-tree {
   padding: 0.375rem 1.75rem 0.4375rem;
   width: auto;
 }
