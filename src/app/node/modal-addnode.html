@@ -12,14 +12,14 @@
         <form>
           <div class="row">
             <label>Type</label>
-            <select id="type" ng-change="changeType()" ng-model="nodeTypeThrowaway">
+            <select id="type" ng-change="changeType()" ng-model="nodeType">
               <option ng-repeat="type in types" value="{{type}}" ng-selected="type == inputNodeType">{{type}}</option>
             </select>
           </div>
 
           <div class="row">
             <label>Name</label>
-            <input id="name" type="text" placeholder="name" class="monospace">
+            <input id="name" type="text" placeholder="name" class="monospace" onchange="element(this).linkTree()">
           </div>
 
           <div class="row">
@@ -30,10 +30,23 @@
           <div class="row" id="addnode-properties">
             <label class="clearfix">
               <span class="left">Properties</span>
-              <a href="#" ng-click="addProperty()" class="button success right">+</a>
+              <a href="#" id="addnode-addproperty" ng-click="addProperty()" class="button success right">+</a>
             </label>
 
-            <table id="addnode-properties-table">
+            <!-- Using two separate tables because the properties list for a module is a read-only view of the tree's 
+             parameters. We want this view not to show up if the type changes to something other than "module". -->
+            <table id="addnode-properties-table-readonly-view" ng-show="nodeType == 'module'">
+              <tbody>
+                <tr ng-repeat="(name, contents) in properties">
+                  <td>
+                    <b3-property name="name" type="contents.type" key="contents.key" value="contents.value"
+                                 editable="true" read-only="a">
+                    </b3-property>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <table id="addnode-properties-table" ng-hide="nodeType == 'module'">
               <tbody>
               </tbody>
             </table>
@@ -59,7 +72,9 @@
             <select id="save-location-preexisting" ng-show="selectedDirMode == 'existing'">
               <option ng-repeat="dir in directories" value="{{dir}}" ng-selected="dir == originDirectory">{{dir}}</option>
             </select>
-            <b3-file-input type="folder" id="save-location-new" ng-show="selectedDirMode == 'new'" class="abbreviated-dir"></b3-file-input>
+            <b3-file-input type="folder" id="save-location-new" ng-show="selectedDirMode == 'new'"
+                           class="abbreviated-dir" dialog-title="Select Save Location">
+            </b3-file-input>
           </div>
 
           <div class="row" id="addnode-category" style="display: none;">
@@ -70,6 +85,23 @@
           <div class="row" id="addnode-script" style="display: none;">
             <label>Script</label>
             <input id="script" type="text" placeholder="script" class="monospace">
+          </div>
+
+          <div id="addnode-tree-location" style="display: none;">
+            <label>Tree Location</label>
+            <div ng-show="pathToTree">
+              {{pathToTree}}
+              <br>
+              <a href="#" class="button open-tree" ng-click="addNode(); openTree()">Open Tree & Close</a>
+            </div>
+            <div ng-hide="pathToTree">
+              No path found. Please select a tree location.
+              <br>
+              <b3-file-input id="tree-location" class="abbreviated-dir" dialog-title="Select Tree Location"
+                             on-change="linkTree(path)" filters="Behavior/behavior;All files/*">
+              </b3-file-input>
+              <span class="balloon-error">{{errorMessage}}</span>
+            </div>
           </div>
         </form>
       </div>

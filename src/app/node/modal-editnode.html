@@ -75,7 +75,7 @@
                       ng-selected="dir == node.prototype.originDirectory">{{dir}}</option>
             </select>
             <b3-file-input type="folder" id="save-location-new" ng-show="selectedDirMode == 'new'"
-                           class="abbreviated-dir"></b3-file-input>
+                           class="abbreviated-dir" dialog-title="Select Save Location"></b3-file-input>
           </div>
 
           <div class="row" ng-show="type == 'action'">
@@ -91,13 +91,18 @@
 
           <div ng-show="type == 'module'">
             <label>Tree Location</label>
-            <div ng-show="node.prototype.pathToTree">
-              {{node.prototype.pathToTree}}
+            <div ng-show="pathToTree">
+              {{pathToTree}}
               <br>
               <a href="#" class="button open-tree" ng-click="openTree(); close('No')">Open Tree & Close</a>
             </div>
-            <div ng-hide="node.prototype.pathToTree" class="light-text">
-              No path found. Please open the corresponding tree in the editor.
+            <div ng-hide="pathToTree">
+              No path found. Please select a tree location.
+              <br>
+              <b3-file-input id="tree-location" class="abbreviated-dir" dialog-title="Select Tree Location"
+                             on-change="linkTree(path)" filters="Behavior/behavior;All files/*">
+              </b3-file-input>
+              <span class="balloon-error">{{errorMessage}}</span>
             </div>
           </div>
         </form>
@@ -110,7 +115,7 @@
       </span>
 
       <a href="#" ng-click="close('No')" class="button secondary" data-dismiss="modal">Cancel</a>
-      <a href="#" ng-click="saveNode(); close('Yes')" class="button" data-dismiss="modal">Save</a>
+      <a href="#" ng-click="saveNode()" class="button" data-dismiss="modal">Save</a>
     </div>
   </div>
 </div>

@@ -17,6 +17,9 @@ angular.module('app.fileinput', [])
  * The button has ID "b3-file-input-button"
  * The display has ID "b3-file-input-display"
  * Consists of a button with the prompt "Browse" followed by the name of the item selected.
+ * 
+ * The `on-change` attribute is a callback that is called when the user selects a file path. The directive provides the
+ * path that was selected to the callback.
  */
 .directive('b3FileInput', function() {
   return {
@@ -25,7 +28,8 @@ angular.module('app.fileinput', [])
       type: "@",
       title: "@dialogTitle",
       mode: "@",
-      filters: "@"
+      filters: "@",
+      onChange: "&"
     },
     controller: ['$scope', function FileInputController($scope, $window) {
       // If the type is invalid or undefined, it is set to "file".
@@ -83,20 +87,24 @@ angular.module('app.fileinput', [])
         if ($scope.mode == "open")
           dialog.showOpenDialog(remote.getCurrentWindow(), dialogArgs, function(filenames) {
             // If the user selected a file...
-            if (filenames && filenames.length > 0)
+            if (filenames && filenames.length > 0) {
               $scope.$apply(function() {
                 // Set the value.
                 $scope.value = filenames[0];
-              })
+              });
+              $scope.onChange({path: filenames[0]});
+            }
           });
         else if ($scope.mode == "save")
           dialog.showSaveDialog(remote.getCurrentWindow(), dialogArgs, function(filename) {
             // If the user selected a file...
-            if (filename)
+            if (filename) {
               $scope.$apply(function() {
                 // Set the value.
                 $scope.value = filename;
-              })
+              });
+              $scope.onChange({path: filename});
+            }
           });
         // Nothing happens if the mode is invalid (which should not happen due to the checks above).
       }

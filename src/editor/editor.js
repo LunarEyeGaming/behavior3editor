@@ -525,6 +525,7 @@ this.b3editor = this.b3editor || {};
 
     editor.importFromJSON(data, filename);
   }
+
   p.exportBlock = function(block, scripts) {
     var data = {};
 
@@ -1256,10 +1257,13 @@ this.b3editor = this.b3editor || {};
 
     if (newNode.properties)
       node.prototype.properties = JSON.parse(JSON.stringify(newNode.properties));
+
     if (node.prototype.type == "action") {
       node.prototype.output = JSON.parse(JSON.stringify(newNode.output));
       node.prototype.script = newNode.script;
       node.prototype.category = newNode.category;
+    } else if (node.prototype.type == "module") {
+      node.prototype.pathToTree = newNode.pathToTree;
     }
 
     // Update the export hierarchy

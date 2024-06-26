@@ -407,6 +407,7 @@ angular.module('app.node', ['app.modal'])
 })
 
 
+// TODO: The add node and edit node modals are in need of massive cleanup.
 //
 // ADD NODE MODAL CONTROLLER
 //
@@ -415,12 +416,13 @@ angular.module('app.node', ['app.modal'])
 
   $scope.originDirectory = originDirectory;
   $scope.inputNodeType = type;
+  $scope.nodeType = $scope.inputNodeType;
   $scope.category = category;
   $scope.projectLoaded = $window.app.editor.project != null;
 
   // DYNAMIC TABLE ------------------------------------------------------------
 
-  $scope.types = ['composite', 'decorator', 'action'];
+  $scope.types = ['composite', 'decorator', 'action', 'module'];
   $scope.valueTypes = [
     {id: 'json', name: 'json'},
     {id: "entity", name: "entity"},
@@ -449,6 +451,64 @@ angular.module('app.node', ['app.modal'])
     </tr>\
   ';
 
+  this.treeModuleParameters = function(treeParameters) {
+    var params = {}
+    for (var key in treeParameters) {
+      params[key] = {
+        type: 'json',
+        value: treeParameters[key]
+      }
+    }
+    return params
+  }
+
+  /**
+   * Tries to read and parse the file at path `path` and checks if the name matches the provided name `name`. If not,
+   * then sets `$scope.errorMessage` to contain the reason why it failed and returns `undefined`. Otherwise, returns the
+   * JSON contents of the tree.
+   * @param {string} path the path to the tree to read
+   * @param {string} name the expected name of the tree
+   * @returns the JSON contents of the tree, or `undefined` if unable to get the tree or the name of the tree does not 
+   *   match `name`.
+   */
+  this.readTree = function(path, name) {
+    // Try to read the tree.
+    try {
+      var contents = fs.readFileSync(path);
+    } catch (err) {
+      // Triggering a digest cycle is necessary here
+      $scope.$apply(function() {
+        $scope.errorMessage = "Cannot read file: " + err;
+      });
+
+      return;
+    }
+
+    // Try to parse the contents.
+    try {
+      var parsed = JSON.parse(contents);
+    } catch (err) {
+      // Triggering a digest cycle is necessary here
+      $scope.$apply(function() {
+        $scope.errorMessage = "Cannot parse file: " + err;
+      });
+
+      return;
+    }
+
+    // If the name of the tree does not match the current name...
+    if (parsed.name != name) {
+      // Triggering a digest cycle is necessary here
+      $scope.$apply(function() {
+        $scope.errorMessage = "Invalid tree: Tree name is '" + parsed.name + "' when it should be '" + name + "'.";
+      });
+
+      return;
+    }
+
+    return parsed;
+  }
+
   var this_ = this;
 
   $scope.addProperty = function() {
@@ -468,6 +528,8 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.changeType = function() {
+    var domTreeLocation = angular.element(document.querySelector('#addnode-tree-location'));
+    var domAddProperty = angular.element(document.querySelector('#addnode-addproperty'));
     var outputTable = angular.element(document.querySelector('#addnode-output'));
     var categoryRow = angular.element(document.querySelector('#addnode-script'));
     var scriptRow = angular.element(document.querySelector('#addnode-category'));
@@ -482,13 +544,26 @@ angular.module('app.node', ['app.modal'])
       categoryRow.css('display', 'none');
       scriptRow.css('display', 'none');
     }
+
+    if (domType.value == 'module') {
+      domTreeLocation.css('display', 'block');
+      domAddProperty.css('display', 'none');
+    } else {
+      domTreeLocation.css('display', 'none');
+      domAddProperty.css('display', 'block');
+    }
   }
 
   $scope.addNode = function() {
     var domType = document.querySelector('#addnode-modal #type');
     var domName = document.querySelector('#addnode-modal #name');
     var domTitle = document.querySelector('#addnode-modal #title');
-    var domProperties = document.querySelectorAll('#addnode-properties b3-property');
+
+    var domProperties;
+    if (domType.value == "module")
+      domProperties = document.querySelectorAll('#addnode-properties #addnode-properties-table-readonly-view b3-property');
+    else
+      domProperties = document.querySelectorAll('#addnode-properties #addnode-properties-table b3-property');
 
     var originDirectory;
 
@@ -543,6 +618,8 @@ angular.module('app.node', ['app.modal'])
           value: outputData.value
         };
       }
+    } else if (newNode.type == 'module') {
+      newNode.pathToTree = $scope.pathToTree;
     }
 
     // If the name is empty or undefined...
@@ -584,6 +661,95 @@ angular.module('app.node', ['app.modal'])
     $window.app.editor.pushCommandNode(affectedGroups, 'AddNode', {node: nodeClass});
     $scope.close("Yes");
   }
+  
+  /**
+   * If a `path` is given, attempts to link the tree at that location to the current node definition. Otherwise,
+   * attempts to search for the tree with the name provided on the DOM. If the file cannot be read or parsed when a 
+   * `path` is given, an error message is displayed, and nothing else happens. The same thing happen when a path is not
+   * given, minus the error message. Has no effect if the type is not "module".
+   * 
+   * @param {string?} path (optional) the path to the tree to link
+   */
+  $scope.linkTree = function(path) {
+    var domType = document.querySelector('#addnode-modal #type');
+    var domName = document.querySelector('#addnode-modal #name');
+
+    // Do nothing if the type is not "module".
+    if (domType.value != "module")
+      return;
+    
+    // If a path is given...
+    if (path) {
+      // Try to get the tree.
+      var parsed = this_.readTree(path, domName.value);
+
+      // If no value was returned...
+      if (!parsed)
+        return;
+
+      // Triggering a digest cycle is necessary here.
+      $scope.$apply(function() {
+        $scope.pathToTree = path;
+        $scope.properties = this_.treeModuleParameters(parsed.parameters);
+      });
+    }  // Otherwise, if a non-empty name is given...
+    else if (domName.value) {
+      // Try to find the tree again.
+      var moduleData = $window.app.editor.findModule(domName.value);
+
+      // If the tree is not found...
+      if (!moduleData) {
+        var domPath = document.querySelector("#addnode-modal #tree-location #b3-file-input-value");
+
+        // If a path is provided...
+        if (domPath.value) {
+          // Try to read the tree again. It might pass the checks this time.
+          var contents = this_.readTree(domPath.value, domName.value);
+
+          // If the tree passed the checks...
+          if (contents)
+            // Set moduleData according to the new results.
+            moduleData = {contents: this_.readTree(domPath.value, domName.value), path: domPath.value};
+        }
+      }
+
+      // If a tree link was successful...
+      if (moduleData) {
+        $scope.$apply(function() {
+          $scope.pathToTree = moduleData.path;
+          $scope.properties = this_.treeModuleParameters(moduleData.contents.parameters);
+        })
+      } else {
+        // Unlink the tree.
+        $scope.$apply(function() {
+          $scope.pathToTree = undefined;
+          $scope.properties = {};
+        });
+      }
+    } else {
+      // Unlink the tree.
+      $scope.$apply(function() {
+        $scope.pathToTree = undefined;
+        $scope.properties = {};
+      });
+    }
+  }
+
+  /**
+   * Attempts to open the tree. If unsuccessful, an error is displayed in the editor and/or logged.
+   */
+  $scope.openTree = function() {
+    // Try to open the file.
+    try {
+      $window.app.editor.openTreeFile($scope.pathToTree);
+    } catch (err) {
+      // If opening failed because the tree does not exist...
+      if (err.code == "ENOENT")
+        editor.notifyError("Could not open tree '{0}': File does not exist.", $scope.pathToTree);
+      else
+        editor.logger.error("Failed to open tree '{0}': {1}", $scope.pathToTree, err);
+    }
+  }
 
   $timeout(function() {
     $scope.$apply(function() {
@@ -622,6 +788,7 @@ angular.module('app.node', ['app.modal'])
   $scope.selectedDirMode = $scope.defaultDirMode;
   $scope.directories = $window.app.editor.getOriginDirectories();
 
+  $scope.pathToTree = $scope.node.prototype.pathToTree;
   $scope.type = $scope.node.prototype.type;
   $scope.properties = $scope.node.prototype.properties;
   $scope.output = $scope.node.prototype.output;
@@ -632,6 +799,17 @@ angular.module('app.node', ['app.modal'])
       <td><a href="#" propertyremovable class="button alert right">-</a></td>\
     </tr>\
   ';
+
+  this.treeModuleParameters = function(treeParameters) {
+    var params = {}
+    for (var key in treeParameters) {
+      params[key] = {
+        type: 'json',
+        value: treeParameters[key]
+      }
+    }
+    return params
+  }
 
   var this_ = this;
 
@@ -713,6 +891,9 @@ angular.module('app.node', ['app.modal'])
           value: outputData.value
         };
       }
+    } else if ($scope.node.prototype.type == "module") {
+      // $scope.pathToTree may be changed through $scope.linkTree().
+      newNode.pathToTree = $scope.pathToTree;
     }
 
     // If the name is empty or undefined...
@@ -743,6 +924,7 @@ angular.module('app.node', ['app.modal'])
     }
 
     $window.app.editor.editNode(node, newNode, originDirectory, true);
+    $scope.close("Yes");
   }
 
   $scope.removeNode = function() {
@@ -757,18 +939,68 @@ angular.module('app.node', ['app.modal'])
     editor.pushCommandNode(affectedGroups, 'RemoveNode', {node});
   }
 
-  // TODO: check if the path to the tree exists.
+  /**
+   * Attempts to open the tree. If unsuccessful, an error is displayed in the editor and/or logged.
+   */
   $scope.openTree = function() {
     // Try to open the file.
     try {
-      $window.app.editor.openTreeFile($scope.node.prototype.pathToTree);
+      $window.app.editor.openTreeFile($scope.pathToTree);
     } catch (err) {
       // If opening failed because the tree does not exist...
       if (err.code == "ENOENT")
-        editor.notifyError("Could not open tree '{0}': File does not exist.", $scope.node.prototype.pathToTree);
+        editor.notifyError("Could not open tree '{0}': File does not exist.", $scope.pathToTree);
       else
-        editor.logger.error("Failed to open tree '{0}': {1}", $scope.node.prototype.pathToTree, err);
+        editor.logger.error("Failed to open tree '{0}': {1}", $scope.pathToTree, err);
     }
+  }
+
+  /**
+   * Attempts to link the tree with path `path` to the current node definition. If the file cannot be read or parsed, an
+   * error message is displayed, and nothing else happens.
+   * 
+   * @param {string} path the path to the tree to link
+   */
+  $scope.linkTree = function(path) {
+    // Try to read the tree.
+    try {
+      var contents = fs.readFileSync(path);
+    } catch (err) {
+      // Triggering a digest cycle is necessary here
+      $scope.$apply(function() {
+        $scope.errorMessage = "Cannot read file: " + err;
+      });
+
+      return;
+    }
+
+    // Try to parse the contents.
+    try {
+      var parsed = JSON.parse(contents);
+    } catch (err) {
+      // Triggering a digest cycle is necessary here
+      $scope.$apply(function() {
+        $scope.errorMessage = "Cannot parse file: " + err;
+      });
+
+      return;
+    }
+
+    // If the name of the tree does not match the current name...
+    if (parsed.name != $scope.node.prototype.name) {
+      // Triggering a digest cycle is necessary here
+      $scope.$apply(function() {
+        $scope.errorMessage = "Invalid tree: Tree name is '" + parsed.name + "' when it should be '" + $scope.node.prototype.name + "'.";
+      });
+
+      return;
+    }
+
+    // Triggering a digest cycle is necessary here.
+    $scope.$apply(function() {
+      $scope.pathToTree = path;
+      $scope.properties = this_.treeModuleParameters(parsed.parameters);
+    });
   }
 })
 
