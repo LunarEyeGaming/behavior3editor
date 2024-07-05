@@ -97,6 +97,7 @@ this.b3editor = this.b3editor || {};
       var project = fs.readFileSync(lastProject);
       this.loadProject(b3editor.Project.load(lastProject, project));
     }
+    this.projectTrees = [];
 
     // Set exit handler.
     window.onbeforeunload = this.onExit(this);
@@ -474,35 +475,55 @@ this.b3editor = this.b3editor || {};
    *   module exists
    */
   p.findModule = function(name) {
-    // If this.projectTrees is not defined, abort, returning null.
-    if (!this.projectTrees)
+    // If this.project is not defined, abort, returning null.
+    if (!this.project)
       return null;
 
-    // For each tree path found within the directory containing the project file...
+    // If the project tree cache has expired or has not been created yet...
+    if (this.projectTrees == undefined) {
+      // Find all of the trees and store some information about them in memory.
+      this.projectTrees = [];
+
+      this.project.findTrees().forEach(treePath => {
+        // Attempt to load the file.
+        try {
+          var treeContents = fs.readFileSync(treePath);
+        } catch (err) {  // If an error occurred...
+          // Report it and abort processing this tree.
+          this.logger.warn("Error while reading file '" + treePath + "': " + err);
+          return;
+        }
+
+        // Attempt to parse the file.
+        try {
+          var treeData = JSON.parse(treeContents);
+        } catch (err) {  // If an error occurred...
+          // Report it and abort processing this tree.
+          this.logger.warn("Error while parsing file '" + treePath + "': " + err);
+          return;
+        }
+
+        // Remove root to save up on memory.
+        treeData.root = undefined;
+
+        this.projectTrees.push({contents: treeData, path: treePath});
+      });
+
+      var this_ = this;
+      // Make the cache expire after a little bit of time.
+      setTimeout(function() {
+        this_.projectTrees = null;
+      }, 20000)
+    }
+
+    // For each tree found within the directory containing the project file...
     for (var i = 0; i < this.projectTrees.length; i++) {
-      var treePath = this.projectTrees[i];
-
-      // Attempt to load the file.
-      try {
-        var treeContents = fs.readFileSync(treePath);
-      } catch (err) {  // If an error occurred...
-        // Report it and abort processing this tree.
-        this.logger.warn("Error while reading file '" + treePath + "': " + err);
-        continue;
-      }
-
-      // Attempt to parse the file.
-      try {
-        var treeData = JSON.parse(treeContents);
-      } catch (err) {  // If an error occurred...
-        // Report it and abort processing this tree.
-        this.logger.warn("Error while parsing file '" + treePath + "': " + err);
-        continue;
-      }
+      var tree = this.projectTrees[i];
+      var treeData = tree.contents;
 
       // If the name of the tree matches `name`...
       if (treeData.name === name) {
-        return {contents: treeData, path: treePath};  // Return the tree.
+        return tree;  // Return the tree.
       }
     }
 
@@ -746,9 +767,6 @@ this.b3editor = this.b3editor || {};
 
       this_.logger.info("Loaded project from " + project.fileName);
       this_.project = project;
-
-      // Find all of the trees.
-      this_.projectTrees = this_.project.findTrees();
 
       this_.importAllNodes(project.findNodes());
       this_.pruneExportHierarchy();
