@@ -518,7 +518,8 @@ angular.module('app.property', ["app.textInput"])
             $scope.usesKey = true;
             $scope.value = $scope.initialKey;
           } else {
-            $scope.usesKey = false;
+            // The value is considered a key if it is a tree parameter reference.
+            $scope.usesKey = typeof $scope.initialValue === "string" && /^<[^>]+>$/.test($scope.initialValue);
             $scope.value = $scope.initialValue;
           }
 
