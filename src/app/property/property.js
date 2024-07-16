@@ -49,6 +49,7 @@ angular.module('app.property', ["app.textInput"])
 
   // SELECTION/DESELECTION
   $scope.block = null;
+  $scope.tree = null;
   this.updatePropertiesDisplay = function() {
     // Before switching, trigger $scope.editProperties() to update the node properties.
     $scope.editProperties();
@@ -57,6 +58,7 @@ angular.module('app.property', ["app.textInput"])
     var properties = undefined;
     var outputs = undefined;
     var block = null;
+    var tree = null;
     var screen;
     // If exactly one block has been selected...
     if (selectedBlocks.length === 1) {
@@ -66,6 +68,7 @@ angular.module('app.property', ["app.textInput"])
       // Otherwise, if the block is registered...
       } else if (selectedBlocks[0].isRegistered) {
         block = selectedBlocks[0];
+        tree = $window.app.editor.tree;  // Store currently selected tree.
         screen = $scope.SCRN_SELECTED;
 
         var domName = document.querySelector('#property-panel #name');
@@ -129,6 +132,7 @@ angular.module('app.property', ["app.textInput"])
     $timeout(function() {
       $scope.$apply(function() {
         $scope.block = block;
+        $scope.tree = tree;
         $scope.properties = properties;
         $scope.outputs = outputs;
         $scope.screen = screen;
@@ -140,11 +144,6 @@ angular.module('app.property', ["app.textInput"])
   $scope.editProperties = function() {
     // If $scope.changesMade is false...
     if (!$scope.changesMade)
-      // Abort.
-      return;
-
-    // If $scope.block does not exist in the currently selected tree (which may happen in some rare cases)...
-    if ($window.app.editor.blocks.indexOf($scope.block) === -1)
       // Abort.
       return;
 
@@ -234,7 +233,7 @@ angular.module('app.property', ["app.textInput"])
     $window.app.editor.pushCommandTree('EditBlock', {
       block: $scope.block, 
       changes: newNode
-    }, true);
+    }, true, $scope.tree);
     
     // Reset changesMade variable. This keeps this function from activating inappropriately (such as when no actual 
     // changes are made or when onchange triggers this function a second time after the user changes blocks--the first
@@ -648,7 +647,7 @@ angular.module('app.property', ["app.textInput"])
         this._setNumber = function(type, value) {
           // If the value is a number...
           if (typeof value === "number") {
-            $scope.typedValues[type] = value;
+            $scope.typedValues[type] = value.toString();
           } else {
             this._sendPropertySetError("Value is not a number", value);
           }
@@ -664,7 +663,7 @@ angular.module('app.property', ["app.textInput"])
         this._setEntity = function(type, value) {
           // If the value is an integer...
           if (Number.isInteger(value)) {
-            $scope.typedValues[type] = value;
+            $scope.typedValues[type] = value.toString();
           } else {
             this._sendPropertySetError("Value is not an integer", value);
           }

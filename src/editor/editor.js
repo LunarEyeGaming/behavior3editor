@@ -1257,7 +1257,18 @@ this.b3editor = this.b3editor || {};
       this.editNodeForce(oldName, newNode, originDirectory);
     }
   }
-  // Actually makes the changes that need to be made.
+  /**
+   * Edits a node with the original name `oldName` to have the attributes defined in `newNode`. Required attributes:
+   * `name`, `title`.
+   * 
+   * Optional attributes: `properties`, `output` (required if the `type` of the original node is `action`), `pathToTree`
+   * (required if the `type` of the original node is `module`), `category`, `script`.
+   * 
+   * @param {string} oldName the original name of the node
+   * @param {b3editor.Action | b3editor.Composite | b3editor.Decorator | b3editor.Module} newNode the new node
+   *     definition to use
+   * @param {string} originDirectory the new save location to use
+   */
   p.editNodeForce = function(oldName, newNode, originDirectory) {
     var node = this.nodes[oldName];
 
@@ -1598,18 +1609,22 @@ this.b3editor = this.b3editor || {};
    * @param {string} cmd the name of the Command to add
    * @param {object} args an object representing the arguments to supply to the Command's constructor
    * @param {boolean} fromPropertyPanel whether or not this call came from the property panel
+   * @param {Tree?} tree (optional) the tree in which to add the command. Adds the command to the currently selected
+   *   tree if not defined
    */
-  p.pushCommandTree = function(cmd, args, fromPropertyPanel) {
+  p.pushCommandTree = function(cmd, args, fromPropertyPanel, tree) {
+    tree = tree != undefined ? tree : this.tree;  // Default to current tree
+
     args.editor = this;
 
     // Look up the undo history corresponding to the current tree. 
-    var undoHistory = this.tree.undoHistory;
+    var undoHistory = tree.undoHistory;
 
     // Add the command with name `cmd` to that undo history.
     undoHistory.addCommand(new b3editor[cmd](args));
 
     // Emit a treesavestatuschanged event.
-    this.trigger('treesavestatuschanged', this.tree, {isSaved: undoHistory.isSaved()});
+    this.trigger('treesavestatuschanged', tree, {isSaved: undoHistory.isSaved()});
 
     // If the call came from the property panel...
     if (fromPropertyPanel)
