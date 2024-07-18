@@ -38,6 +38,7 @@ this.b3editor = this.b3editor || {};
 
     this.undoStack = new b3editor.WeavedUndoStack({defaultMaxLength: args.defaultMaxLength});
     this.dirCategories = {};
+    this.originDirectories = [];
   }
 
   /**
@@ -49,6 +50,13 @@ this.b3editor = this.b3editor || {};
   p.addCommand = function(affectedGroups, cmd) {
     // Cache categories associated with the originDirectory attribute of each affected group.
     this._cacheCategories(affectedGroups);
+
+    // Add each origin directory to the list of origin directories (if not already included).
+    affectedGroups.forEach(group => {
+      if (!this.originDirectories.includes(group.originDirectory))
+        this.originDirectories.push(group.originDirectory);
+    });
+
     // Get undo hash strings, then feed into `WeavedUndoStack.addCommandToStack()`.
     var undoHashes = this._getUndoHashes(affectedGroups);
     this.undoStack.addCommandToStacks(undoHashes, cmd);
@@ -136,7 +144,8 @@ this.b3editor = this.b3editor || {};
    */
   p.isSaved = function() {
     // For each originDirectory in dirCategories...
-    for (var originDirectory in this.dirCategories) {
+    for (var i = 0; i < this.originDirectories.length; i++) {
+      var originDirectory = this.originDirectories[i];
       // If the directory is not saved...
       if (!this.dirIsSaved(originDirectory))
         // Stop and return false.

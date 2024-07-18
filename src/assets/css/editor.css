@@ -51,6 +51,7 @@ button, .button {
   text-align: center;
   -webkit-appearance: none;
   -moz-appearance: none;
+  appearance: none;
   border-radius: 0;
   display: inline-block;
   padding: 2px 5px;
@@ -1066,11 +1067,17 @@ table.property #value-json input {
 .expanded-text {
   font-size: 1.2em;
 }
+.border-success {
+  border: #26c018 solid 1px;
+}
 .border-warning {
   border: #ffe11f solid 1px;
 }
 .border-error {
   border: #ff1c1c solid 1px;
+}
+.balloon-success {
+  color: #20a914;
 }
 .balloon-warning {
   color: #a99514;

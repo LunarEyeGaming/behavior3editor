@@ -26,6 +26,7 @@ this.b3editor = this.b3editor || {};
       "x": 0,
       "y": 0
     }
+    this.nameSinceLastSave = null;
   }
 
   b3editor.Tree = Tree;

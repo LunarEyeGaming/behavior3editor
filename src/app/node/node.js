@@ -649,17 +649,12 @@ angular.module('app.node', ['app.modal'])
       };
     }
 
-    // Attempt to make the node class.
-    var nodeClass = $window.app.editor.makeNode(newNode, originDirectory);
+    // Make and add the new node.
+    var nodeClass = $window.app.editor.makeAndAddNode(newNode, originDirectory);
 
-    // If no node class was returned (i.e., the operation failed)...
-    if (!nodeClass)
-      return;  // Abort
-
-    var affectedGroups = [{originDirectory, category: newNode.category, type: newNode.type}];
-    // Push the command to the editor.
-    $window.app.editor.pushCommandNode(affectedGroups, 'AddNode', {node: nodeClass});
-    $scope.close("Yes");
+    // If a node class was returned (i.e., the operation succeeded)...
+    if (nodeClass)
+      $scope.close("Yes");
   }
   
   /**
@@ -743,11 +738,7 @@ angular.module('app.node', ['app.modal'])
     try {
       $window.app.editor.openTreeFile($scope.pathToTree);
     } catch (err) {
-      // If opening failed because the tree does not exist...
-      if (err.code == "ENOENT")
-        editor.notifyError("Could not open tree '{0}': File does not exist.", $scope.pathToTree);
-      else
-        editor.logger.error("Failed to open tree '{0}': {1}", $scope.pathToTree, err);
+      $window.app.editor.logger.error("Failed to open tree '" + $scope.pathToTree + "': " + err);
     }
   }
 

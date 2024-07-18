@@ -74,8 +74,11 @@ angular.module("app.filename", ["app.modal"])
    * @param {object} e an object containing the `_target` tree whose save status was changed.
    */
   this.onSaveStatusChange = function(e) {
-    // Assumes that this handler triggers only when the current tree had its save status changed.
-    this.updateScopeFields({isSaved: e._target.undoHistory.isSaved()});
+    // If the tree saved has an ID that matches the currently displayed tree...
+    if (e._target.id == this.currentTreeId) {
+      // Update save status.
+      this.updateScopeFields({isSaved: e._target.undoHistory.isSaved()});
+    }
   }
 
   $window.app.editor.on("treesaved", this.onTreeSaved, this);

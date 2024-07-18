@@ -418,6 +418,16 @@ var suite = [
     );
 
     assert(!undoHistory.isSaved(), "marked as saved");
+  }),
+  makeTest("isSaved() for non-actions", () => {
+    var undoHistory = new b3editor.NodeUndoStack();
+
+    undoHistory.addCommand(
+      [{originDirectory: "dir1", type: "decorator"}],
+      makeTestCommand(() => {}, () => {})
+    );
+
+    assert(!undoHistory.isSaved(), "marked as saved");
   })
 ]
 

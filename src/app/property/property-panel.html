@@ -28,8 +28,12 @@
 
       <div class="row">
         <label>Title</label>
+        <b3-text-input id="root-title" onblur="element(this).editProperties(this);" on-change="markForChange()"
+                       placeholder="title" value="title" ng-if="block.type == 'root'" formatter="inspectTitle(input)">
+        </b3-text-input>
         <input id="title" type="text" onchange="element(this).editProperties(this)"
-               onkeyup="element(this).markForChange(this)" placeholder="title">
+               onkeyup="element(this).markForChange(this)" placeholder="title" ng-value="title"
+               ng-if="block.type != 'root'">
       </div>
 
       <div class="row">

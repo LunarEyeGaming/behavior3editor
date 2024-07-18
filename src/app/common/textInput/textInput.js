@@ -3,15 +3,15 @@ angular.module("app.textInput", [])
 /**
  * A service for numerous formatter functions to be used with the `b3TextInput` directive.
  */
-.factory("b3Format", function() {
+.factory("b3Format", function($window) {
   var b3Format = {};
 
   /**
    * The returned value is an object matching the schema provided in the `b3TextInput` directive's documentation.
    * `isValid` is true if either `value` is an empty string or parsing the value is successful. `result` is the
-   * result of parsing the value if parsing is successful and `value` is an empty string. Otherwise, it is
-   * `undefined`. If parsing fails, `alert` will be defined to be an object with `level` "error" and a `message`
-   * containing why the parsing failed.
+   * result of parsing the value if parsing is successful or `value` is an empty string. Otherwise, it is `undefined`.
+   * If parsing fails, `alert` will be defined to be an object with `level` "error" and a `message` containing why the 
+   * parsing failed.
    * 
    * @param {string} value the value to validate
    * @returns an object. See method documentation body for more information.
@@ -44,6 +44,61 @@ angular.module("app.textInput", [])
     return result;
   }
 
+  /**
+   * The returned value is an object matching the schema provided in the `b3TextInput` directive's documentation.
+   * `isValid` is true if `value` is a non-empty string that does not match the name of a node or opened tree in the 
+   * editor (except for the current tree). `result` is the given `value` if `isValid` is `true` and `undefined`
+   * otherwise. An alert is given to display the status of the value.
+   * 
+   * @param {Tree} currentTree the current tree being edited
+   * @param {string} value the value to validate
+   * @returns an object. See method documentation body for more information.
+   */
+  b3Format.inspectTreeTitle = function(currentTree, value) {
+    var result;
+
+    // If the value is empty...
+    if (value.length == 0) {
+      result = {
+        isValid: false,
+        result: undefined,
+        alert: {level: "error", message: "Title cannot be empty."}
+      };
+    }
+    // Otherwise, if a node with name `value` already exists and it is not the name of the currently edited tree since
+    // it was last saved...
+    else if ($window.app.editor.nodes[value] && value != currentTree.nameSinceLastSave) {
+      result = {
+        isValid: false,
+        result: undefined,
+        alert: {level: "error", message: "Node name already used."}
+      };
+    }
+    else {
+      // Returns whether or not there is a tree with the same name as `value` and an ID not matching that of the
+      // current tree.
+      var matchesOtherTree = $window.app.editor.trees.some(otherTree => 
+        otherTree.blocks[0].title == value && currentTree.id != otherTree.id
+      );
+
+      if (matchesOtherTree) {
+        result = {
+          isValid: false,
+          result: undefined,
+          alert: {level: "error", message: "Tree name already used."}
+        };
+      } else {
+        result = {
+          isValid: true,
+          result: value,
+          alert: {level: "success", message: "Tree name not taken."}
+        };
+      }
+    }
+
+    return result;
+  }
+
   return b3Format;
 })
 
@@ -59,8 +114,9 @@ angular.module("app.textInput", [])
  * should return an object containing the following:
  * * `isValid: boolean` - whether or not the current input is valid and should be accepted.
  * * `result: any` - the new value to return. Should be defined if and only if `isValid` is true.
- * * `alert: {level: string, message: string}` - an object containing a `level` ("warning" or "error") and a `message`
- *   (the message to display). This field is optional and can be defined regardless of whether or not `isValid` is true.
+ * * `alert: {level: string, message: string}` - an object containing a `level` ("success", "warning" or "error") and a
+ *   `message` (the message to display). This field is optional and can be defined regardless of whether or not 
+ *   `isValid` is true.
  * This is accomplished through the $scope.updateAlert() function, which updates the alert to display based on the 
  * result of the `formatter` function.
  * 
@@ -129,7 +185,9 @@ angular.module("app.textInput", [])
 
         $scope.valueIsValid = true;  // Must be, by default, valid.
 
-        $scope.value = $scope.initialValue || "";
+        $scope.$watch("initialValue", function() {
+          $scope.value = $scope.initialValue || "";
+        });
 
         /**
          * Shows a modal to display the text in a larger text box.

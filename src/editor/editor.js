@@ -178,10 +178,16 @@ this.b3editor = this.b3editor || {};
       this.systems.push(system);
     }
   }
-  p.getRoot = function() {
-    for (var i=0; i<this.blocks.length; i++) {
-      if (this.blocks[i].type === 'root') {
-        return this.blocks[i];
+  /**
+   * Finds and returns the root in the given tree `tree`.
+   * 
+   * @param {Tree} tree the tree from which to get the root.
+   * @returns the root of the given tree
+   */
+  p.getRoot = function(tree) {
+    for (var i=0; i<tree.blocks.length; i++) {
+      if (tree.blocks[i].type === 'root') {
+        return tree.blocks[i];
       }
     }
   }
@@ -202,9 +208,18 @@ this.b3editor = this.b3editor || {};
       }
     }
   }
-  p.getBlockById = function(id) {
-    for (var i=0; i<this.blocks.length; i++) {
-      var block = this.blocks[i];
+  /**
+   * Returns the block with ID `id` in tree `tree` (or the current tree by default).
+   * 
+   * @param {string} id the ID of the block to find
+   * @param {Tree?} tree (optional) the tree in which to search for the block. Defaults to the current tree
+   * @returns the block with ID `id` in tree `tree` (or the current tree).
+   */
+  p.getBlockById = function(id, tree) {
+    tree = tree || this.tree;
+
+    for (var i=0; i<tree.blocks.length; i++) {
+      var block = tree.blocks[i];
       if (block.id == id) {
         return block;
       }
@@ -413,12 +428,13 @@ this.b3editor = this.b3editor || {};
       var dataRoot = this.importBlock(data.root);
     }
 
-    var root = this.getRoot();
+    var root = this.getRoot(this.tree);
     this.editBlock(root, {
       title: data.name,
       description: data.description || "",
       properties: data.parameters || {}
     });
+    this.tree.nameSinceLastSave = data.name;
 
     // If a root is defined (again)...
     if (data.root != undefined)
@@ -431,12 +447,13 @@ this.b3editor = this.b3editor || {};
   /**
    * Imports a module node definition based on the provided `data` and the location from which the module originated
    * `modulePath`. If the module is already in the node definition list, the properties and path to the original tree
-   * are overridden.
+   * are overridden. If the `oldName` is provided, then this method will attempt to rename the node definition.
    * 
    * @param {object} data the data of the module to import
    * @param {string} modulePath where the data came from
+   * @param {string?} oldName (optional) the old name of the tree.
    */
-  p.importModule = function(data, modulePath) {
+  p.importModule = function(data, modulePath, oldName) {
     var treeModuleParameters = function(treeParameters) {
       var params = {}
       for (var key in treeParameters) {
@@ -448,10 +465,26 @@ this.b3editor = this.b3editor || {};
       return params
     }
 
-    var moduleNode = this.nodes[data.name];
-    if (moduleNode != undefined && moduleNode.prototype.type == 'module') {
-      moduleNode.prototype.properties = treeModuleParameters(data.parameters);
-      moduleNode.prototype.pathToTree = modulePath;
+    var oldName = oldName != undefined ? oldName : data.name;
+
+    var moduleNode = this.nodes[oldName];
+
+    // If the node already exists...
+    if (moduleNode != undefined) {
+      // If the node is a module...
+      if (moduleNode.prototype.type == "module") {
+        var newNode = {
+          name: data.name,
+          title: moduleNode.title,
+          properties: treeModuleParameters(data.parameters),
+          pathToTree: modulePath
+        };
+
+        // Edit the node directly.
+        this.editNode(oldName, newNode, moduleNode.prototype.originDirectory, true);
+      } else {
+        this.notifyError("Node named '{0}' is already registered and is not a module.", oldName);
+      }
     } else {
       var newNode = {
         name: data.name,
@@ -459,12 +492,40 @@ this.b3editor = this.b3editor || {};
         title: '',
         properties: treeModuleParameters(data.parameters),
         pathToTree: modulePath
-      }
-      this.makeAndAddNode(newNode);
+      };
 
-      // Update the status of each block.
-      this.updateAllBlocks(data.name);
+      this.makeAndAddNode(newNode, "");
     }
+  }
+  /**
+   * Attempts to JSON-parse a tree with name `filename`. If successful, removes the node definition corresponding to the
+   * tree. Otherwise, has no effect. If failure occurs for a reason besides the file not existing, the error is reported
+   * to the log.
+   * 
+   * @param {string} filename the path to the tree to unlink from the node list
+   */
+  p.removeModule = function(filename) {
+    fs.readFile(filename, (err, treeContents) => {
+      // If an error occurred...
+      if (err) {
+        // If the error is not because the file does not exist...
+        if (err.code != "ENOENT") {
+          // Report the error.
+          this.logger.error("Failed to open tree '" + filename + "': " + err);
+        }
+      } else {
+        // Attempt to parse the file.
+        try {
+          var treeData = JSON.parse(treeContents);
+        } catch (err) {
+          // Report the error and abort.
+          this.logger.error("Could not parse tree '" + filename + "': " + err);
+          return;
+        }
+
+        this.removeNode(treeData.name);
+      }
+    });
   }
   /**
    * Finds a module with name `name` and returns the JSON data for it as well as its path, or `null` if no such module
@@ -485,23 +546,11 @@ this.b3editor = this.b3editor || {};
       this.projectTrees = [];
 
       this.project.findTrees().forEach(treePath => {
-        // Attempt to load the file.
-        try {
-          var treeContents = fs.readFileSync(treePath);
-        } catch (err) {  // If an error occurred...
-          // Report it and abort processing this tree.
-          this.logger.warn("Error while reading file '" + treePath + "': " + err);
-          return;
-        }
+        var treeData = this.loadJSON(treePath);
 
-        // Attempt to parse the file.
-        try {
-          var treeData = JSON.parse(treeContents);
-        } catch (err) {  // If an error occurred...
-          // Report it and abort processing this tree.
-          this.logger.warn("Error while parsing file '" + treePath + "': " + err);
+        // Skip the current tree if parsing fails.
+        if (!treeData)
           return;
-        }
 
         // Remove root to save up on memory.
         treeData.root = undefined;
@@ -529,6 +578,35 @@ this.b3editor = this.b3editor || {};
 
     return null;  // This value is returned if no trees matching `name` are found.
   }
+  /**
+   * Attempts to parse the JSON data in file `filename` and returns the result if successful. Otherwise, returns 
+   * `undefined` and sends an error to log. This function fails if an I/O error occurs or the file's contents do not
+   * represent valid JSON.
+   * 
+   * @param {string} filename the path to the JSON file to read
+   * @returns the JSON parsed from the file, or `undefined` if an error occurred
+   */
+  p.loadJSON = function(filename) {
+    // Attempt to load the file.
+    try {
+      var jsonContents = fs.readFileSync(filename);
+    } catch (err) {  // If an error occurred...
+      // Report it and abort processing this tree.
+      this.logger.warn("Error while reading file '" + filename + "': " + err);
+      return;
+    }
+
+    // Attempt to parse the file.
+    try {
+      var jsonData = JSON.parse(jsonContents);
+    } catch (err) {  // If an error occurred...
+      // Report it and abort processing this tree.
+      this.logger.warn("Error while parsing file '" + filename + "': " + err);
+      return;
+    }
+
+    return jsonData;
+  }
   p.openTreeFile = function(filename) {
     for (var i=0; i<this.trees.length; i++) {
       var tree = this.trees[i];
@@ -547,7 +625,18 @@ this.b3editor = this.b3editor || {};
     editor.importFromJSON(data, filename);
   }
 
-  p.exportBlock = function(block, scripts) {
+  /**
+   * Returns an object containing a simplified representation of the block `block` and its children, located in tree 
+   * `tree`. Also populates the array `scripts` with the scripts used by the block and its children.
+   * 
+   * @param {string} blockId the ID of the block to export
+   * @param {Tree} tree the tree in which the block is located. 
+   * @param {string[]} scripts the list of scripts to fill
+   * @returns an external representation of the block and its children
+   */
+  p.exportBlock = function(blockId, tree, scripts) {
+    var block = this.getBlockById(blockId, tree);
+
     var data = {};
 
     data.title = block.title;
@@ -584,10 +673,10 @@ this.b3editor = this.b3editor || {};
       if (block.type == "composite") {
         data.children = [];
         for (var i=0; i<children.length; i++) {
-          data.children[i] = this.exportBlock(this.getBlockById(children[i]), scripts);
+          data.children[i] = this.exportBlock(children[i], scripts);
         }
       } else if (block.type == "decorator") {
-        data.child = this.exportBlock(this.getBlockById(children[0]), scripts);
+        data.child = this.exportBlock(children[0], scripts);
       }
     }
 
@@ -595,12 +684,13 @@ this.b3editor = this.b3editor || {};
   }
 
   /**
-   * Returns a simplified representation of the current tree.
+   * Returns a simplified representation of `tree`.
    * 
+   * @param {Tree} tree the tree to export to JSON
    * @returns a simplified representation of the current tree
    */
-  p.exportToJSON = function() {
-    var root = this.getRoot();
+  p.exportToJSON = function(tree) {
+    var root = this.getRoot(tree);
     var data = {};
 
     // Tree data
@@ -616,7 +706,7 @@ this.b3editor = this.b3editor || {};
     var rootBlock = root.getOutNodeIds()[0];
 
     if (rootBlock) {
-      data.root = this.exportBlock(this.getBlockById(rootBlock), data.scripts);
+      data.root = this.exportBlock(rootBlock, tree, data.scripts);
     } else {
       data.root = null;
     }
@@ -646,16 +736,20 @@ this.b3editor = this.b3editor || {};
   }
 
   /**
-   * Writes a tree to disk, logs that the tree was saved, shows a notification for it in the GUI, emits the "treesaved" 
-   * event for that tree, and imports the tree as a module in the node definition list. Has no effect if the tree does
-   * not have a defined path.
+   * Asynchronously writes a tree to disk, logs that the tree was saved, shows a notification for it in the GUI, emits
+   * the "treesaved" event for that tree, and synchronizes the node definition corresponding to the tree. Has no effect
+   * if the tree does not have a defined path. If writing to the tree is unsuccessful, then an error is reported to the
+   * log, and none of the actions that follow are triggered.
    * 
    * @param {b3editor.Tree} tree (optional) the tree to write to disk. Defaults to the currently selected tree.
+   * @param {(boolean) => void} postWriteCallback (optional) the function to call after successfully writing to disk.
+   *   Takes in a boolean signifying whether or not the writing was successful.
    */
-  p.writeTreeFile = function(tree) {
+  p.writeTreeFile = function(tree, postWriteCallback) {
     tree = tree || this.tree;
+    postWriteCallback = postWriteCallback || function() {};  // Default to empty function
 
-    var json = this.exportToJSON();
+    var json = this.exportToJSON(tree);
     var path = tree.path;
     var editor = this;
 
@@ -665,6 +759,8 @@ this.b3editor = this.b3editor || {};
         if (err) {
           // Report it and abort.
           editor.logger.error("Error while saving tree '" + path + "': " + err);
+          postWriteCallback(false);
+
           return;
         }
 
@@ -675,13 +771,18 @@ this.b3editor = this.b3editor || {};
         editor.trigger("treesaved", tree);
 
         // Update corresponding node definition
-        editor.importModule(json, path);
+        editor.importModule(json, path, tree.nameSinceLastSave);
+
+        // Update name of tree since last save.
+        tree.nameSinceLastSave = tree.blocks[0].title;
 
         editor.logger.info("Saved tree "+name)
         editor.trigger('notification', name, {
           level: 'success',
           message: 'Saved'
         });
+
+        postWriteCallback(true);
       });
     }
   }
@@ -693,7 +794,8 @@ this.b3editor = this.b3editor || {};
    * 
    * @param {boolean} useExistingPath whether or not the tree's existing path should be used
    * @param {b3editor.Tree} tree (optional) the tree to save. Defaults to the currently selected tree.
-   * @param {() => void} postSaveCallback (optional) the function to call after saving.
+   * @param {(boolean) => void} postSaveCallback (optional) the function to call after saving. Takes in whether or not
+   *   the writing was successful.
    */
   p.saveTree = function(useExistingPath, tree, postSaveCallback) {
     tree = tree || this.tree;
@@ -703,6 +805,41 @@ this.b3editor = this.b3editor || {};
 
     var editor = this;
 
+    // Makes a unique name based on a baseName (that is, one that does not conflict with any node names or names of
+    // opened trees) and returns it. More specifically, it finds the first number to append that does not result in a
+    // conflict (extracting it if already provided).
+    var makeUniqueName = function(baseName) {
+      // Matches anything that ends with a dash followed by one or more digits. Also captures the part before it.
+      var numberRegexp = /(.+)-(\d+)$/;
+
+      var match = numberRegexp.exec(baseName);
+
+      var trueBaseName, suffixNumber;
+
+      // If base name contains a match...
+      if (match != null) {
+        // Get true base name and suffix number.
+        trueBaseName = match[1];
+        suffixNumber = parseInt(match[2]);
+      } else {
+        // Set true base name and suffix number manually.
+        trueBaseName = baseName;
+        suffixNumber = 1;
+      }
+
+      var newName;
+
+      do {
+        // Make new name, then increment suffix number.
+        newName = trueBaseName + "-" + suffixNumber;
+        suffixNumber++;
+      }  // ...While the proposed name matches any existing tree or node names.
+      while (editor.trees.some(tree => tree.blocks[0].title == newName) || editor.nodes[newName]);
+
+      return newName;
+    }
+
+    // This is what actually tries to save the tree.
     var saveTreeHelper = function() {
       // If we should not use the existing path or the path is an empty string (i.e., not defined)...
       if (!useExistingPath || path == "") {
@@ -719,15 +856,27 @@ this.b3editor = this.b3editor || {};
           if (filename) {
             tree.path = filename;
 
-            editor.writeTreeFile(tree);
+            // If we should not use an existing path (i.e., this is a "Save As..." dialogue)...
+            if (!useExistingPath) {
+              // Rename the root to be unique. Also unset the nameSinceLastSave attribute so that it doesn't rename the
+              // old node.
+              var root = editor.getRoot(tree);
+              editor.editBlock(root, {
+                title: makeUniqueName(root.title),
+                description: root.description,
+                properties: root.properties,
+                output: root.output
+              });
+              tree.nameSinceLastSave = null;
+            }
 
-            postSaveCallback();
+            editor.removeModule(filename);
+
+            editor.writeTreeFile(tree, postSaveCallback);
           }
         });
       } else {
-        editor.writeTreeFile(tree);
-
-        postSaveCallback();
+        editor.writeTreeFile(tree, postSaveCallback);
       }
     }
 
@@ -774,15 +923,17 @@ this.b3editor = this.b3editor || {};
       this_.logger.info("Successfully loaded project");
     }
 
-    // Show warning if the editor has unsaved nodes.
-    this.conditionalWarning({
-      predicate: () => !this_.globalNodeUndoHistory.isSaved(),
-      message: "Are you sure you want to load the project? If so, all unsaved nodes will be lost.",
-      choices: [
-        {name: "Yes", triggersCallback: true},
-        {name: "No", triggersCallback: false}
-      ],
-      conditionalCallback: () => this_.unsavedTreesWarning(loadProjectHelper)
+    this.unsavedTreesWarning(() => {
+      // Show warning if the editor has unsaved nodes.
+      this_.conditionalWarning({
+        predicate: () => !this_.globalNodeUndoHistory.isSaved(),
+        message: "Are you sure you want to load the project? If so, all unsaved nodes will be lost.",
+        choices: [
+          {name: "Yes", triggersCallback: true},
+          {name: "No", triggersCallback: false}
+        ],
+        conditionalCallback: loadProjectHelper
+      })
     });
   }
   /**
@@ -1152,18 +1303,21 @@ this.b3editor = this.b3editor || {};
     return tempClass;
   }
   /**
-   * Creates and adds a node to the editor. Returns the node that was added.
+   * Creates and adds a node to the editor via an undoable command. Returns the node that was added.
    * 
    * @param {object} node the node to add
-   * @param {string} originDirectory the directory from which the node originated
+   * @param {string} originDirectory the directory from which the node originated. Use empty string for none.
    * @returns the node class that was added
    */
   p.makeAndAddNode = function(node, originDirectory) {
     var nodeClass = this.makeNode(node, originDirectory);
 
     // If a node class was returned...
-    if (nodeClass)
-      this.addNode(nodeClass);
+    if (nodeClass) {
+      var affectedGroups = [{originDirectory, category: node.category, type: node.type}];
+      // Push the command to the editor.
+      this.pushCommandNode(affectedGroups, 'AddNode', {node: nodeClass});
+    }
 
     return nodeClass;
   }
@@ -1355,8 +1509,9 @@ this.b3editor = this.b3editor || {};
     tree.blocks = [block];
 
     // If the filename is given...
-    if (filename)
+    if (filename) {
       tree.path = filename;  // Set the tree's path to it.
+    }
 
     this.trees.push(tree);
 
@@ -1538,9 +1693,10 @@ this.b3editor = this.b3editor || {};
     }
 
     // Warn about unsaved nodes if necessary.
-    function unsavedNodesWarning(e) {
+    function unsavedNodesWarning(noCloseOnSavedNodes) {
+      var hasUnsavedNodes = !this_.globalNodeUndoHistory.isSaved();
       // If there are any unsaved nodes...
-      if (!this_.globalNodeUndoHistory.isSaved()) {
+      if (hasUnsavedNodes) {
         // Asynchronous function. The function returned from onExit will have returned by the time the message box has 
         // opened.
         dialog.showMessageBox(remote.getCurrentWindow(), {
@@ -1550,39 +1706,41 @@ this.b3editor = this.b3editor || {};
         }, function(result) {
           switch (result) {
             case 0:  // "Yes"
-              // Attempt to show warning, then close window.
-              this_.unsavedTreesWarning(closeWindow);
+              // Close window.
+              closeWindow();
               break;
             // "No" will do nothing.
           }
         });
-
-        e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
-      } else {
-        // Make closing the window the postSaveCallback. Also get whether or not the editor has unsaved trees
-        // so we can let Electron know not to close the program just yet. closeWindow should not be called when
-        // there are no unsaved trees either. Instead, we will call editor.onApplicationClose.
-        var hasUnsavedTrees = this_.unsavedTreesWarning(closeWindow, false);
-
-        if (hasUnsavedTrees)
-          e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
-        else
-          this_.onApplicationClose();
+      }  // Otherwise, if noCloseOnSavedNodes is false (i.e., we should close the window)...
+      else if (!noCloseOnSavedNodes) {
+        closeWindow();
       }
+
+      return hasUnsavedNodes;
     }
     /**
-     * Overview of function behavior: Performs two checks before closing the application: Whether all nodes are saved 
-     * and whether all trees are saved. If either of them fail, then this function will block the application from 
-     * closing and show a corresponding message box for each check that failed. The first message asks the user if they
-     * want to close the application despite some nodes being unsaved. Selecting "No" will stop the application from 
-     * closing altogether. The second message (or rather, series of messages) asks the user whether or not they want to
-     * save each unsaved tree, with a third option to "Cancel", or stop the application from closing. Additional buttons
-     * for saving all of them or saving none of them may show up too if more than one tree is unsaved. Due to the
+     * Overview of function behavior: Performs two checks before closing the application: Whether all trees are saved 
+     * and whether all nodes are saved. If either of them fail, then this function will block the application from 
+     * closing and show a corresponding message box for each check that failed. The first message (or rather, series of 
+     * messages) asks the user whether or not they want to save each unsaved tree, with a third option to "Cancel", or
+     * stop the application from closing. Additional buttons for saving all of them or saving none of them may show up
+     * too if more than one tree is unsaved. The second message asks the user if they want to close the application
+     * despite some nodes being unsaved. Selecting "No" will stop the application from closing altogether. Due to the
      * used version of Electron not supporting synchronous calls to opening any form of dialog, recursion is necessary
      * to handle all of these cases.
      */
     return function(e) {
-      unsavedNodesWarning(e);
+      // Make unsavedNodesWarning the postSaveCallback. Also get whether or not the editor has unsaved trees
+      // so we can let Electron know not to close the program just yet. Do not call unsavedNodesWarning in this callback
+      // as we want to use a different call for unsavedNodesWarning.
+      var hasUnsavedTrees = this_.unsavedTreesWarning(unsavedNodesWarning, false);
+
+      // If the editor has any unsaved trees or unsaved nodes (not force-closing if there are saved nodes)...
+      if (hasUnsavedTrees || unsavedNodesWarning(true))
+        e.returnValue = false;  // Arbitrary value. Prevents the window from closing at first.
+      else
+        this_.onApplicationClose();
     }
   }
 
@@ -1637,7 +1795,7 @@ this.b3editor = this.b3editor || {};
    * `addCommand()` method, automatically supplying the `editor` argument as this current editor. 
    * 
    * @param {object[]} affectedGroups the affected groups to convert into a hash string
-   * @param {string} affectedGroups[].originDirectory the origin directory to use
+   * @param {string} affectedGroups[].originDirectory the origin directory to use, empty string for no origin directory
    * @param {string} affectedGroups[].category the category to use as a group ID
    * @param {string} affectedGroups[].type the type to use as the substitute for the category as a group ID
    * @param {string} cmd the name of the Command to add
@@ -1938,7 +2096,7 @@ this.b3editor = this.b3editor || {};
     this.setcam(hw, hh);
   }
   p.organize = function(orderByIndex) {
-    return this.organizer.organize(this.getRoot(), orderByIndex);
+    return this.organizer.organize(this.getRoot(this.tree), orderByIndex);
   }
   p.collapseAll = function() {
     this.trigger("collapseall");

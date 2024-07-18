@@ -59,6 +59,7 @@ angular.module('app.property', ["app.textInput"])
     var outputs = undefined;
     var block = null;
     var tree = null;
+    var title = null;
     var screen;
     // If exactly one block has been selected...
     if (selectedBlocks.length === 1) {
@@ -69,13 +70,18 @@ angular.module('app.property', ["app.textInput"])
       } else if (selectedBlocks[0].isRegistered) {
         block = selectedBlocks[0];
         tree = $window.app.editor.tree;  // Store currently selected tree.
+        title = block.title;
         screen = $scope.SCRN_SELECTED;
 
         var domName = document.querySelector('#property-panel #name');
         var domTitle = document.querySelector('#property-panel #title');
 
         domName.value = block.name;
-        domTitle.value = block.title || '';
+
+        // If the title input element exists...
+        if (domTitle)
+          // Forcibly update the value because AngularJS won't do it for me.
+          domTitle.value = block.title || '';
 
         properties = [];
 
@@ -132,6 +138,7 @@ angular.module('app.property', ["app.textInput"])
     $timeout(function() {
       $scope.$apply(function() {
         $scope.block = block;
+        $scope.title = title;
         $scope.tree = tree;
         $scope.properties = properties;
         $scope.outputs = outputs;
@@ -149,10 +156,7 @@ angular.module('app.property', ["app.textInput"])
 
     var node = $scope.block.node;
 
-    var domTitle = document.querySelector('#property-panel #title');
-
     var newNode = {
-      title: domTitle.value,
       properties: {}
     }
 
@@ -160,6 +164,19 @@ angular.module('app.property', ["app.textInput"])
 
     // If the block is a root...
     if (isRoot) {
+      // Get the DOM title (b3-text-input)
+      var inputTitle = angular.element(document.querySelector('#property-panel #root-title')).controller("b3TextInput");
+      var titleResponse = inputTitle.requestValue();
+
+      // If the title is valid...
+      if (titleResponse.isValid) {
+        newNode.title = titleResponse.value;
+      } else {
+        // Report error and use the old title.
+        $window.app.editor.notifyError("Invalid title: '{0}'", titleResponse.invalidMessage);
+        newNode.title = $scope.block.title;
+      }
+
       // Extract the property data from the DOM.
       var domKeys = document.querySelectorAll('#property-properties-table #key');
       var domValues = document.querySelectorAll('#property-properties-table #value');
@@ -186,6 +203,10 @@ angular.module('app.property', ["app.textInput"])
         }
       }
     } else {
+      // Get the DOM title (regular input).
+      var domTitle = document.querySelector('#property-panel #title');
+      newNode.title = domTitle.value;
+
       // Get the property data from the controllers corresponding to the properties.
       var domProperties = document.querySelectorAll("b3-property#property-panel-property");
 
@@ -250,6 +271,18 @@ angular.module('app.property', ["app.textInput"])
    */
   $scope.parseJson = function(value) {
     return b3Format.parseJson(value);
+  }
+
+  /**
+   * A function called by the formatter for the title input (see `property-panel.html`). Checks if the title does not
+   * match any existing nodes or trees (except for the name of the currently edited tree since it was last saved) and is
+   * a non-empty string. If either of these checks fail, then the title is considered invalid. Otherwise, it is
+   * considered valid.
+   * 
+   * @param {string} value the contents of the title
+   */
+  $scope.inspectTitle = function(value) {
+    return b3Format.inspectTreeTitle($scope.tree, value);
   }
 
   $window.app.editor.on('blockselected', this.updatePropertiesDisplay, this);
