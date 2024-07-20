@@ -544,6 +544,11 @@ div.collapsible-list-items.hidden {
   width: 20px;
   padding-left: 2px;
 }
+.modal .patch-mode {
+  background-color: #008CBA;
+  color: #ffffff;
+  padding: 0px 3px;
+}
 
 .abbreviated-dir {
   display: flex;
@@ -755,7 +760,7 @@ div.collapsible-list-items.hidden {
 }
 .node-list a.header {
   text-transform: uppercase;
-  padding: 3px 0px;
+  padding-bottom: 5px;
   margin-bottom: 1px;  /* Keeps the stuff below from being shoved out of the way by floating buttons. */
   font-weight: 600!important;
   color: #333333;
@@ -769,7 +774,7 @@ div.collapsible-list-items.hidden {
   font-weight: 600;
   color: #333333;
   font-size: 1.1em;
-  margin-bottom: 2px;  /* Keeps the stuff below from being shoved out of the way by floating buttons. */
+  margin-bottom: 4px;  /* Keeps the stuff below from being shoved out of the way by floating buttons. */
 }
 .node-list .edit {
   padding: 0px 5px;
@@ -782,6 +787,19 @@ div.collapsible-list-items.hidden {
   bottom: 2px;
   padding: 2px 5px;
   margin: 0px 1px;
+}
+.node-list .patch-mode {
+  padding: 2px 5px;
+  margin: 0px 1px;
+  margin-right: 5px;
+  border: 1px solid #333333;
+  background-color: #ffffff;
+  color: #333333;
+}
+.node-list .patch-mode.active {
+  background-color: #008CBA;
+  color: #ffffff;
+  border-color: #ffffff;
 }
 .node-list .save-marker {
   padding-right: 3px;
@@ -832,7 +850,7 @@ div.collapsible-list-items.hidden {
 }
 .type-list a.header {
   text-transform: uppercase;
-  padding: 3px 0px;
+  padding-bottom: 5px;
   font-weight: 600;
   color: #333333;
   font-size: 1.2em;
@@ -857,6 +875,19 @@ div.collapsible-list-items.hidden {
   bottom: 1px;
   padding: 2px 5px;
   margin: 0px 1px;
+}
+.type-list .patch-mode {
+  padding: 2px 5px;
+  margin: 0px 1px;
+  margin-right: 5px;
+  border: 1px solid #333333;
+  background-color: #ffffff;
+  color: #333333;
+}
+.type-list .patch-mode.active {
+  background-color: #008CBA;
+  color: #ffffff;
+  border-color: #ffffff;
 }
 .type-list .save-marker {
   padding-right: 3px;

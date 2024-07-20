@@ -14,15 +14,16 @@
             <a href="#" ng-click="toggleExportDir(dir)" ng-class="getDisplayStyleDir(dir)">
               {{getDisplaySymbolDir(dir)}}
             </a>
-            <span class="save-marker" ng-hide="dirIsSaved(dir)">*</span>
+            <span class="save-marker" ng-hide="dirIsSaved(dir)" title="Unsaved">*</span>
             {{dir}}
             <ul>
               <li ng-repeat="(category, included) in categories" class="export-selector-entry">
                 <a href="#" ng-click="toggleExport(dir, category)" ng-class="getDisplayStyle(dir, category)">
                   {{getDisplaySymbol(dir, category)}}
                 </a>
-                <span class="save-marker" ng-hide="groupIsSaved(dir, category)">*</span>
+                <span class="save-marker" ng-hide="groupIsSaved(dir, category)" title="Unsaved">*</span>
                 {{category === "" ? "[other]" : category}}
+                <span class="patch-mode" ng-show="getPatchMode(dir, category)" title="Export as .patch">P</span>
               </li>
             </ul>
           </li>

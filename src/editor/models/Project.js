@@ -15,6 +15,7 @@ this.b3editor = this.b3editor || {};
     this.otherNodesPaths = null;
 
     this.nodesToExport = null;
+    this.nodesToPatch = null;
 
     this.trees = [];
   }
@@ -35,6 +36,7 @@ this.b3editor = this.b3editor || {};
     }
 
     project.nodesToExport = config.nodesToExport || {};
+    project.nodesToPatch = config.nodesToPatch || {};
   
     return project;
   }
@@ -45,6 +47,7 @@ this.b3editor = this.b3editor || {};
     config.nodesPath = path.relative(this.fileName, this.nodesPath);
     config.otherNodesPaths = this.otherNodesPaths.map(file => path.relative(this.fileName, file));
     config.nodesToExport = this.nodesToExport;
+    config.nodesToPatch = this.nodesToPatch;
 
     return JSON.stringify(config, null, 2);
   }
@@ -63,7 +66,7 @@ this.b3editor = this.b3editor || {};
   }
 
   p.findNodes = function() {
-    var nodesPathNodes = this.walk(this.nodesPath, /\.nodes$/);
+    var nodesPathNodes = this.walk(this.nodesPath, /\.nodes(\.patch)?$/);
 
     // If otherNodesPaths is null, simply return nodesPathNodes.
     if (!this.otherNodesPaths) {
@@ -71,7 +74,7 @@ this.b3editor = this.b3editor || {};
     }
 
     // An association between nodes directories and their corresponding nodes paths.
-    var otherNodesPathsNodes = this.otherNodesPaths.map(file => [file, this.walk(file, /\.nodes$/)]);
+    var otherNodesPathsNodes = this.otherNodesPaths.map(file => [file, this.walk(file, /\.nodes(\.patch)?$/)]);
 
     return {
       mainPath: this.nodesPath,
@@ -80,7 +83,6 @@ this.b3editor = this.b3editor || {};
     }
   }
 
-  // TODO: consider making a method that does this but caches the result for a certain amount of time afterwards.
   p.findTrees = function() {
     return this.walk(path.dirname(this.fileName), /\.behavior$/);
   }

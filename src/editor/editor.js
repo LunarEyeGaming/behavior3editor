@@ -49,6 +49,7 @@ this.b3editor = this.b3editor || {};
     this.warnedNodes      = new Set();
     this.clipboard        = [];
     this.exportCounter    = {};
+    this.patchNodes       = {};
     // undo history for the list of nodes.
     this.globalNodeUndoHistory = new b3editor.NodeUndoStack({defaultMaxLength: this.maxStoredCommands});
 
@@ -810,9 +811,9 @@ this.b3editor = this.b3editor || {};
     // conflict (extracting it if already provided).
     var makeUniqueName = function(baseName) {
       // Matches anything that ends with a dash followed by one or more digits. Also captures the part before it.
-      var numberRegexp = /(.+)-(\d+)$/;
+      const NUMBER_REGEXP = /(.+)-(\d+)$/;
 
-      var match = numberRegexp.exec(baseName);
+      var match = NUMBER_REGEXP.exec(baseName);
 
       var trueBaseName, suffixNumber;
 
@@ -924,9 +925,9 @@ this.b3editor = this.b3editor || {};
     }
 
     this.unsavedTreesWarning(() => {
-      // Show warning if the editor has unsaved nodes.
+      // Show warning if the editor has unsaved nodes after going through the unsaved trees.
       this_.conditionalWarning({
-        predicate: () => !this_.globalNodeUndoHistory.isSaved(),
+        predicate: () => !this_.nodeListIsSaved(),
         message: "Are you sure you want to load the project? If so, all unsaved nodes will be lost.",
         choices: [
           {name: "Yes", triggersCallback: true},
@@ -941,25 +942,22 @@ this.b3editor = this.b3editor || {};
    * 
    * @param {string} category the category of nodes to export
    * @param {string} origin the directory of origin to filter by (a relative path)
-   * @returns a list of nodes to export (keyed by name), or `null` if no nodes have been exported.
+   * @returns a list of nodes to export (keyed by name)
    */
   p.getNodeCategoryExportData = function(category, origin) {
     var data = {};
-    var dataIsEmpty = true;
   
     for (var name in this.nodes) {
       var node = this.nodes[name];
       var nodeCategory = node.prototype.category || node.prototype.type
       if (nodeCategory == category && node.prototype.originDirectory == origin) {
         if (node.prototype.type != "root") {
-          dataIsEmpty = false;
           data[name] = {};
           data[name].type = node.prototype.type;
           data[name].name = node.prototype.name;
           data[name].title = node.prototype.title;
           if (node.prototype.properties) {
             data[name].properties = JSON.parse(JSON.stringify(node.prototype.properties));
-
           }
 
           if (node.prototype.type == "action") {
@@ -977,8 +975,14 @@ this.b3editor = this.b3editor || {};
       }
     }
 
-    if (dataIsEmpty)
-      return null;
+    var exportData;
+
+    // If the node is to be exported as a patch file...
+    if (this.getNodesPatchMode(origin, category)) {
+      exportData = this.nodesToPatch(data);
+    } else {
+      exportData = data;
+    }
 
     var replacer = function(k, v, spaces, depth) {
       if (k == "properties" || k == "output") {
@@ -990,7 +994,7 @@ this.b3editor = this.b3editor || {};
         return CustomJSON.stringify(v, replacer, spaces, depth + 1);
       }
     }
-    return CustomJSON.stringify(data, replacer, 2);
+    return CustomJSON.stringify(exportData, replacer, 2);
   }
   // Returns JSON data containing the nodes to export
   p.getNodeExportData = function(categoriesToExport) {
@@ -1014,8 +1018,12 @@ this.b3editor = this.b3editor || {};
     return nodes;
   }
 
-  // Exports nodes based on an object (called "categoriesToExport") containing hash sets of categories to export each 
-  // mapped to an origin directory.
+  /**
+   * Exports nodes based on an object `categoriesToExport` containing hash sets of categories to export each 
+   * mapped to an origin directory.
+   * 
+   * @param {*} categoriesToExport the export hierarchy to use
+   */
   p.exportNodes = function(categoriesToExport) {
     this.globalNodeUndoHistory.saveHierarchy(categoriesToExport);
     var nodes = this.getNodeExportData(categoriesToExport);
@@ -1023,8 +1031,30 @@ this.b3editor = this.b3editor || {};
       var nodesInDir = nodes[origin];
       for (var category in nodesInDir) {
         if (nodesInDir[category] !== null) {
-          // console.log("Category: " + category + ", Origin: " + origin);
-          fs.writeFileSync(path.join(path.resolve(this.project.fileName, origin), category + ".nodes"), nodesInDir[category]); 
+          var saveLocation = path.join(path.resolve(this.project.fileName, origin), category + ".nodes");
+          // Location of the file to delete (so that only the non-patch variant or the patch variant can exist)
+          var otherSaveLocation;
+
+          // If this file should be exported as a patch file...
+          if (this.getNodesPatchMode(origin, category)) {
+            otherSaveLocation = saveLocation;
+            saveLocation += ".patch";
+          } else {
+            otherSaveLocation = saveLocation + ".patch";
+          }
+
+          fs.writeFile(saveLocation, nodesInDir[category], (err) => {
+            // If an error was thrown...
+            if (err)
+              this.logger.error("Failed to export nodes at '" + saveLocation + "': " + err);
+          });
+
+          fs.unlink(otherSaveLocation, (err) => {
+            // If an error was thrown and it was not because the file does not exist...
+            if (err && err.code != "ENOENT") {
+              this.logger.error("Failed to remove file '" + otherSaveLocation + "': " + err);
+            }
+          });
         }
       }
     }
@@ -1111,6 +1141,40 @@ this.b3editor = this.b3editor || {};
   }
 
   /**
+   * Sets whether or not a particular nodes file should be exported as a `.patch` file.
+   * 
+   * @param {string} originDirectory the save location of the list of nodes
+   * @param {string} category the category / type of the node
+   * @param {boolean} isPatch the patch mode to set (`true` for patch-nodes, `false` otherwise)
+   */
+  p.setNodesPatchMode = function(originDirectory, category, isPatch) {
+    // If the origin directory is not registered in the set of patch-nodes...
+    if (this.patchNodes[originDirectory] === undefined) {
+      this.patchNodes[originDirectory] = {};
+    }
+
+    this.patchNodes[originDirectory][category] = isPatch;
+  }
+
+  /**
+   * Returns whether or not the node list in save location `originDirectory` and category `category` is to be exported
+   * as a patch file.
+   * 
+   * @param {string} originDirectory the save location of the list of nodes
+   * @param {string} category the category / type of the node
+   * @returns `true` if the node list in `originDirectory` of type `category` is to be exported as a patch file, `false`
+   * otherwise
+   */
+  p.getNodesPatchMode = function(originDirectory, category) {
+    var categoryPatchNodes = this.patchNodes[originDirectory];
+
+    if (categoryPatchNodes !== undefined)
+      return categoryPatchNodes[category];
+
+    // Implicitly return undefined
+  }
+
+  /**
    * Returns the list of origin directories used by each node.
    * 
    * @returns the list of origin directories used by each node.
@@ -1135,12 +1199,15 @@ this.b3editor = this.b3editor || {};
   /**
    * Adds some nodes from the given JSON contents `json`, with information about the directory from which it was loaded 
    * `originDirectory` and `isCommand` to indicate whether or not this action should be considered an undoable command.
+   * If `isPatch` is `true`, then the contents are translated into a list of nodes from the JSON patch format, and all
+   * categories listed in the nodes file will be exported as .patch files.
    * 
-   * @param {string} json the JSON contents of the .nodes file to import
+   * @param {string} json the JSON contents of the .nodes / .nodes.patch file to import
    * @param {string} originDirectory the directory from which the file originated (absolute)
    * @param {boolean} isCommand whether or not this act of importing the nodes is to be considered a command
+   * @param {boolean} isPatch (optional) whether or not the file being imported is a patch file.
    */
-  p.importNodes = function(json, originDirectory, isCommand) {
+  p.importNodes = function(json, originDirectory, isCommand, isPatch) {
     // Handle parse error
     try {
       var nodes = JSON.parse(json);
@@ -1148,6 +1215,11 @@ this.b3editor = this.b3editor || {};
       // Log error and abort.
       this.logger.error("Error while parsing file: " + err);
       return;
+    }
+
+    // If the file is a patch file...
+    if (isPatch) {
+      nodes = this.nodesFromPatch(nodes);
     }
 
     var nodesImported = [];
@@ -1170,16 +1242,31 @@ this.b3editor = this.b3editor || {};
         // Make a list of affected node groups.
         var affectedGroups = nodesImported.map(nodeClass => {
           return {
-            originDirectory,
+            originDirectory: nodeClass.prototype.originDirectory,
             category: nodeClass.prototype.category,
             type: nodeClass.prototype.type
           };
         });
         // Add the command (with an undefined ID).
-        this.pushCommandNode(affectedGroups, 'ImportNodes', {nodes: nodesImported})
+        this.pushCommandNode(affectedGroups, 'ImportNodes', {nodes: nodesImported, isPatch});
       } else {  // Otherwise...
         // Add the nodes individually.
         nodesImported.forEach(node => this.addNode(node));
+
+        if (isPatch) {
+          nodesImported.forEach(node => 
+            this.setNodesPatchMode(node.prototype.originDirectory, node.prototype.category || node.prototype.type, true)
+          );
+        } else {
+          nodesImported.forEach(node => {
+            var category = node.prototype.category || node.prototype.type;
+
+            // Set anything undefined here to false.
+            if (this.getNodesPatchMode(node.prototype.originDirectory, category) === undefined) {
+              this.setNodesPatchMode(node.prototype.originDirectory, category, false);
+            }
+          });
+        }
       }
     }
   }
@@ -1189,9 +1276,63 @@ this.b3editor = this.b3editor || {};
   p.importNodesInit = function(nodesPathList, originDirectory) {
     nodesPathList.forEach(file => {
       this.logger.info("Import nodes from " + path.relative(this.project.fileName, file));
-      var json = fs.readFileSync(file);
-      this.importNodes(json, originDirectory);
+
+      // Try to read the file.
+      try {
+        var json = fs.readFileSync(file);
+      } catch (err) {
+        // Report error and skip the current file.
+        this.logger.error("Failed to read file: " + err);
+        return;
+      }
+      
+      this.importNodes(json, originDirectory, false, file.endsWith(".patch"));
     });
+  }
+  /**
+   * Returns an object compatible with `importNodes` containing the nodes that were added by the patch list `patch`.
+   * Entries that do not add a node are ignored.
+   * 
+   * @param {*} patch the JSON patch from which to get the nodes
+   * @returns the nodes added by `patch`
+   */
+  p.nodesFromPatch = function(patch) {
+    // Matches anything that consists solely of a slash followed by one or more non-slash characters.
+    const TOP_LEVEL_REGEXP = /^\/([^\/]+)$/;
+
+    var nodes = {};
+
+    patch.forEach(op => {
+      // If the operation "add"s something...
+      if (op.op === "add") {
+        var match = TOP_LEVEL_REGEXP.exec(op.path);
+
+        // ...to the top-level object...
+        if (match != null) {
+          // Add the node to nodes (replacing ~0 with ~ and ~1 with /).
+          nodes[match[1].replace("~0", "~").replace("~1", "/")] = op.value;
+        }
+      }
+    });
+
+    return nodes;
+  }
+  /**
+   * Returns a JSON patch representation of `nodes`.
+   * 
+   * @param {*} nodes the node mapping to convert
+   */
+  p.nodesToPatch = function(nodes) {
+    var patch = [];
+
+    // For each node name and node value...
+    for (var nodeName in nodes) {
+      var node = nodes[nodeName];
+
+      patch.push({op: "add", path: "/" + nodeName, value: node});
+    }
+
+    return patch;
   }
   /**
    * Creates and returns a node class from a provided node definition `node` and the directory from which it originated
@@ -1214,7 +1355,8 @@ this.b3editor = this.b3editor || {};
     // If the node has corresponding (unregistered) blocks that differ in type...
     if (this.hasMismatchedBlocks(node.name, node.type)) {
       // Report it and abort
-      this.logger.error("Node type '" + node.type + "' conflicts with type of existing node. Hint: Did you input the correct type?");
+      this.logger.error("Node type '" + node.type + "' conflicts with type of existing node. Hint: Did you input the" +
+        " correct type?");
       return;
     }
 
@@ -1332,51 +1474,6 @@ this.b3editor = this.b3editor || {};
 
     // Update the export hierarchy
     this.addToExportHierarchy(node.prototype.originDirectory, node.prototype.category || node.prototype.type);
-  }
-  /**
-   * Returns whether or not there exists a block `block` in all loaded trees such that `block.name === nodeName` and
-   * `block.type !== nodeType`.
-   * 
-   * @param {string} nodeName the names of the blocks to check
-   * @param {string} nodeType the type of the node to check
-   * @returns true if a block is found with a matching name and mismatching type, false otherwise.
-   */
-  p.hasMismatchedBlocks = function(nodeName, nodeType) {
-    // For each loaded tree...
-    for (var i = 0; i < this.trees.length; i++) {
-      var tree = this.trees[i];
-
-      // For each block in that tree...
-      for (var j = 0; j < tree.blocks.length; j++) {
-        var block = tree.blocks[j];
-
-        // If that block's name matches the name of the node but has a different type...
-        if (block.name === nodeName && block.type !== nodeType)
-          return true; // Stop and return true.
-      }
-    }
-
-    // Return false if no such block is found.
-    return false;
-  }
-  /**
-   * Returns whether or not the current tree has invalid blocks. Invalid blocks have types that conflict with the type
-   * given in their corresponding node definitions.
-   * 
-   * @returns true if the current tree has at least one invalid block, false otherwise.
-   */
-  p.hasInvalidBlocks = function() {
-    // For each block in the current tree...
-    for (var i = 0; i < this.blocks.length; i++) {
-      var block = this.blocks[i];
-
-      // If the block is invalid...
-      if (block.isInvalid)
-        return true;
-    }
-
-    // Return false if no such block is found.
-    return false;
   }
   // Imports all nodes nodesPaths from the result of Project.findNodes().
   // nodesPaths is an object containing a mainPath, a mainNodes, and a nodesAssoc field. The nodesAssoc field contains
@@ -1694,7 +1791,7 @@ this.b3editor = this.b3editor || {};
 
     // Warn about unsaved nodes if necessary.
     function unsavedNodesWarning(noCloseOnSavedNodes) {
-      var hasUnsavedNodes = !this_.globalNodeUndoHistory.isSaved();
+      var hasUnsavedNodes = !this_.nodeListIsSaved();
       // If there are any unsaved nodes...
       if (hasUnsavedNodes) {
         // Asynchronous function. The function returned from onExit will have returned by the time the message box has 
@@ -1807,6 +1904,44 @@ this.b3editor = this.b3editor || {};
     this.globalNodeUndoHistory.addCommand(affectedGroups, new b3editor[cmd](args));
 
     this.trigger('changefocus', "left-panel");  // Set the focus to the node / tree panel.
+  }
+
+  /**
+   * Returns `true` if the node list is considered to be saved, `false` otherwise. The node list is considered to be
+   * saved if there are no unsaved export directories or the only unsaved export directory is "No Save Location" and it
+   * is empty.
+   */
+  p.nodeListIsSaved = function() {
+    var numUnsaved = this.globalNodeUndoHistory.numUnsavedDirs();
+
+    // Return true if the number of unsaved directories is 0 or it is 1 and the "No Save Location" directory list is
+    // unsaved but empty.
+    return numUnsaved == 0 || (numUnsaved == 1 && !this.globalNodeUndoHistory.dirIsSaved("") && 
+    this.noLocationNodeListIsEmpty())
+  }
+
+  /**
+   * Returns `true` if the list of nodes with no save location is empty, `false` otherwise.
+   */
+  p.noLocationNodeListIsEmpty = function() {
+    // For each node in the node list...
+    for (var nodeName in this.nodes) {
+      var node = this.nodes[nodeName];
+
+      // If the node has the empty string as the origin directory...
+      if (node.prototype.originDirectory == "")
+        return false;  // Stop and return false.
+    }
+
+    // Return true here because there are no nodes with no save location.
+    return true;
+  }
+
+  /**
+   * Returns `true` if the list of nodes with no save location is saved or empty, `false` otherwise.
+   */
+  p.noLocationNodeListIsSaved = function() {
+    return this.globalNodeUndoHistory.dirIsSaved("") || this.noLocationNodeListIsEmpty();
   }
 
   /**
@@ -2165,52 +2300,6 @@ this.b3editor = this.b3editor || {};
     this.updateBlock(block);
     this.addBlock(block, true);
   }
-  // Creates and adds a connection.
-  // `inBlock` is the starting block to use
-  // `outBlock` is the ending block to use
-  // `shouldRender` determines whether or not the connection should be rendered (in case something will be done that 
-  // requires re-rendering anyways). true by default.
-  p.makeAndAddConnection = function(inBlock, outBlock, shouldRender) {
-    shouldRender = shouldRender !== undefined ? shouldRender : true;
-
-    var connection = new b3editor.Connection(this);
-
-    if (inBlock) {
-      connection.addInBlock(inBlock);
-    }
-
-    if (outBlock) {
-      connection.addOutBlock(outBlock);
-    }
-
-    this.addConnection(connection, shouldRender);
-
-    return connection;
-  }
-  // Registers a connection (which has its inBlock and outBlock fields fully defined) into the editor.
-  // `connection` is the connection to add.
-  // `shouldRender` determines whether or not the connection should be rendered (in case something will be done that 
-  // requires re-rendering anyways). true by default.
-  p.addConnection = function(connection, shouldRender) {
-    shouldRender = shouldRender !== undefined ? shouldRender : true;
-
-    var inBlock = connection.inBlock;
-    var outBlock = connection.outBlock;
-
-    if (inBlock) {
-      inBlock.addOutConnection(connection);
-    }
-
-    if (outBlock) {
-      outBlock.addInConnection(connection);
-    }
-
-    this.connections.push(connection);
-    this.canvas.layerConnections.addChild(connection.displayObject);
-
-    if (shouldRender)
-      connection.redraw();
-  }
   p.editBlock = function(block, template) {
     var oldValues = block.getNodeAttributes();
 
@@ -2318,9 +2407,106 @@ this.b3editor = this.b3editor || {};
     return oldData;
   }
   /**
+   * Returns whether or not there exists a block `block` in all loaded trees such that `block.name === nodeName` and
+   * `block.type !== nodeType`.
+   * 
+   * @param {string} nodeName the names of the blocks to check
+   * @param {string} nodeType the type of the node to check
+   * @returns true if a block is found with a matching name and mismatching type, false otherwise.
+   */
+  p.hasMismatchedBlocks = function(nodeName, nodeType) {
+    // For each loaded tree...
+    for (var i = 0; i < this.trees.length; i++) {
+      var tree = this.trees[i];
+
+      // For each block in that tree...
+      for (var j = 0; j < tree.blocks.length; j++) {
+        var block = tree.blocks[j];
+
+        // If that block's name matches the name of the node but has a different type...
+        if (block.name === nodeName && block.type !== nodeType)
+          return true; // Stop and return true.
+      }
+    }
+
+    // Return false if no such block is found.
+    return false;
+  }
+  /**
+   * Returns whether or not the current tree has invalid blocks. Invalid blocks have types that conflict with the type
+   * given in their corresponding node definitions.
+   * 
+   * @returns true if the current tree has at least one invalid block, false otherwise.
+   */
+  p.hasInvalidBlocks = function() {
+    // For each block in the current tree...
+    for (var i = 0; i < this.blocks.length; i++) {
+      var block = this.blocks[i];
+
+      // If the block is invalid...
+      if (block.isInvalid)
+        return true;
+    }
+
+    // Return false if no such block is found.
+    return false;
+  }
+  /**
+   * Registers a connection (which has its `inBlock` and `outBlock` fields fully defined) into the editor.
+   * @param {b3editor.Connection} connection the connection to add.
+   * @param {boolean} shouldRender whether or not the connection should be rendered (in case something will be done that
+   * requires re-rendering anyways). `true` by default.
+   */
+  p.addConnection = function(connection, shouldRender) {
+    shouldRender = shouldRender !== undefined ? shouldRender : true;
+
+    var inBlock = connection.inBlock;
+    var outBlock = connection.outBlock;
+
+    if (inBlock) {
+      inBlock.addOutConnection(connection);
+    }
+
+    if (outBlock) {
+      outBlock.addInConnection(connection);
+    }
+
+    this.connections.push(connection);
+    this.canvas.layerConnections.addChild(connection.displayObject);
+
+    if (shouldRender)
+      connection.redraw();
+  }
+  /**
+   * Creates and adds a connection.
+   * 
+   * @param {b3editor.Block} inBlock the starting block to use
+   * @param {b3editor.Block} outBlock the ending block to use
+   * @param {boolean} shouldRender whether or not the connection should be rendered (in case something will be done that 
+   * requires re-rendering anyways). `true` by default.
+   * @returns the created `Connection`
+   */
+  p.makeAndAddConnection = function(inBlock, outBlock, shouldRender) {
+    shouldRender = shouldRender !== undefined ? shouldRender : true;
+
+    var connection = new b3editor.Connection(this);
+
+    if (inBlock) {
+      connection.addInBlock(inBlock);
+    }
+
+    if (outBlock) {
+      connection.addOutBlock(outBlock);
+    }
+
+    this.addConnection(connection, shouldRender);
+
+    return connection;
+  }
+  /**
    * Removes `connection` from the editor. The original `connection` remains unmodified.
    * 
-   * @param {Connection} connection the connection to remove
+   * @param {b3editor.Connection} connection the connection to remove
    */
   p.removeConnection = function(connection) {
     if (connection.inBlock) {
@@ -2539,8 +2725,9 @@ this.b3editor = this.b3editor || {};
   // Emits the save status changing event corresponding to the current focused element.
   p.broadcastSaveStatus = function() {
     switch (this.currentFocusedElement) {
-      // case "left-panel":  // The node / tree panel
-      //   return this.globalNodeUndoHistory;
+      case "left-panel":  // The node / tree panel
+        this.trigger('nodesavestatuschanged');
+        break;
       case "tree-editor":  // The canvas for editing trees
         // FALL THROUGH
       case "right-panel":  // The properties panel

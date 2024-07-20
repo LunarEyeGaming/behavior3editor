@@ -86,7 +86,7 @@ angular.module('app.menu', ['app.modal'])
     dialog.showOpenDialog(remote.getCurrentWindow(), {
       title: "Import nodes",
       filters : [
-        { name: "Nodes", extensions: ['nodes']},
+        { name: "Nodes", extensions: ['nodes', 'nodes.patch']},
         { name: "All files", extensions: ['*']}
       ],
       properties: ["multiSelections"]
@@ -98,7 +98,7 @@ angular.module('app.menu', ['app.modal'])
           fs.readFile(filename, function(err, data) {
             if (err) throw err;
 
-            $window.app.editor.importNodes(data, path.dirname(filename), true);
+            $window.app.editor.importNodes(data, path.dirname(filename), true, filename.endsWith(".patch"));
   
             editor.notifySuccess("Imported nodes from file '{0}'", path.basename(filename));
           });

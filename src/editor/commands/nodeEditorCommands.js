@@ -127,3 +127,21 @@ b3editor.RemoveNode = b3editor.defineCommand((_, p) => {
     this.run();
   }
 })
+
+b3editor.TogglePatchMode = b3editor.defineCommand((_, p) => {
+  p.initialize = function(args) {
+    this.editor = args.editor;
+
+    this.dirName = args.dirName;
+    this.category = args.category;
+  }
+
+  p.run = function() {
+    this.editor.setNodesPatchMode(this.dirName, this.category, !this.editor.getNodesPatchMode(this.dirName, this.category));
+  }
+
+  p.undo = function() {
+    // May or may not cause problems in the near future.
+    this.editor.setNodesPatchMode(this.dirName, this.category, !this.editor.getNodesPatchMode(this.dirName, this.category));
+  }
+})

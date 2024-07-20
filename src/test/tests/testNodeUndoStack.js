@@ -335,14 +335,14 @@ var suite = [
     assertSaved(undoHistory.dirIsSaved("dir4"));
     assertSaved(undoHistory.dirIsSaved("dir5"));
   }),
-  makeTest("isSaved() basic functionality", () => {
+  makeTest("numUnsavedDirs() basic functionality", () => {
     var undoHistory = new b3editor.NodeUndoStack();
 
-    assert(undoHistory.isSaved(), "marked as unsaved");
+    assertStrictEqual(undoHistory.numUnsavedDirs(), 0);
 
     var undoHistory2 = exampleNUS2().undoHistory;
 
-    assert(!undoHistory2.isSaved(), "marked as saved");
+    assertStrictEqual(undoHistory2.numUnsavedDirs(), 2);
 
     undoHistory2.saveHierarchy({
       dir1: {
@@ -364,9 +364,9 @@ var suite = [
       }
     });
 
-    assert(undoHistory2.isSaved(), "marked as unsaved");
+    assertStrictEqual(undoHistory2.numUnsavedDirs(), 0);
   }),
-  makeTest("isSaved() edge cases", () => {
+  makeTest("numUnsavedDirs() edge cases", () => {
     var {undoHistory} = exampleNUS2();
 
     undoHistory.saveHierarchy({
@@ -389,7 +389,7 @@ var suite = [
       }
     });
 
-    assert(!undoHistory.isSaved(), "marked as saved");
+    assertStrictEqual(undoHistory.numUnsavedDirs(), 1);
 
     var undoHistory2 = exampleNUS2().undoHistory;
 
@@ -407,9 +407,9 @@ var suite = [
       }
     });
 
-    assert(!undoHistory2.isSaved(), "marked as saved");
+    assertStrictEqual(undoHistory2.numUnsavedDirs(), 1);
   }),
-  makeTest("isSaved() corner case", () => {
+  makeTest("numUnsavedDirs() corner case", () => {
     var undoHistory = new b3editor.NodeUndoStack();
 
     undoHistory.addCommand(
@@ -417,9 +417,9 @@ var suite = [
       makeTestCommand(() => {}, () => {})
     );
 
-    assert(!undoHistory.isSaved(), "marked as saved");
+    assertStrictEqual(undoHistory.numUnsavedDirs(), 1);
   }),
-  makeTest("isSaved() for non-actions", () => {
+  makeTest("numUnsavedDirs() for non-actions", () => {
     var undoHistory = new b3editor.NodeUndoStack();
 
     undoHistory.addCommand(
@@ -427,7 +427,7 @@ var suite = [
       makeTestCommand(() => {}, () => {})
     );
 
-    assert(!undoHistory.isSaved(), "marked as saved");
+    assertStrictEqual(undoHistory.numUnsavedDirs(), 1);
   })
 ]
 

@@ -67,7 +67,7 @@ angular.module('app.node', ['app.modal'])
    * truthy or falsy value. If no project is loaded, returns a falsy value instead.
    * 
    * @param {string} dirName the name of the directory
-   * @returns truthy if the directory is not undefined and is in the project (when the project is defined), falsy
+   * @returns truthy if the directory is not undefined and is not in the project (when the project is defined), falsy
    *   otherwise
    */
   $scope.isNotInProject = function(dirName) {
@@ -99,9 +99,29 @@ angular.module('app.node', ['app.modal'])
   }
 
   /**
+   * Returns whether or not the node group corresponding to `dirName` and `category` is to be exported as a patch file.
+   * 
+   * @param {string} dirName the name of the target save location
+   * @param {string} category the name of the target category
+   */
+  $scope.getPatchMode = function(dirName, category) {
+    return $window.app.editor.getNodesPatchMode(dirName, category);
+  }
+
+  /**
+   * Toggles whether or not the node group corresponding to `dirName` and `category` should be exported as a patch file.
+   * 
+   * @param {string} dirName the name of the target save location
+   * @param {string} category the name of the target category
+   */
+  $scope.togglePatchMode = function(dirName, category) {
+    $window.app.editor.pushCommandNode([{originDirectory: dirName, category}], 'TogglePatchMode', {dirName, category});
+  }
+
+  /**
    * Returns a truthy or falsy value depending on whether or not a project is loaded, the directory `dirName` is not
    * `"undefined"`, and the project allows a directory to be removed (if `isRemoveButton` is true). This function 
-   * represents whether or not a corresponding button should be displayed for the directory.
+   * represents whether or not a corresponding auto-import button should be displayed for the directory.
    * 
    * @param {string} dirName the name of the directory to check
    * @param {boolean} isRemoveButton whether or not the button is a remove button
@@ -116,24 +136,30 @@ angular.module('app.node', ['app.modal'])
   }
 
   /**
-   * Returns whether or not all nodes in directory `dirName` are saved.
+   * Returns whether or not all nodes in directory `dirName` are saved. If `dirName` is the empty string, then this 
+   * function instead returns `true` if the list of nodes in `dirName` is empty.
    * 
    * @param {string} dirName the save location to check
-   * @returns true if all nodes in directory `dirName` are saved, false otherwise
+   * @returns `true` if all nodes in directory `dirName` are saved, `false` otherwise
    */
   $scope.dirIsSaved = function(dirName) {
-    return $window.app.editor.globalNodeUndoHistory.dirIsSaved(dirName);
+    return (dirName === "" && $window.app.editor.noLocationNodeListIsSaved())
+    || $window.app.editor.globalNodeUndoHistory.dirIsSaved(dirName);
   }
 
   /**
-   * Returns whether or not the nodes of type `typeName` in save location `dirName` are saved.
+   * Returns whether or not the nodes of type `typeName` in save location `dirName` are saved. If `dirName` is the empty
+   * string (i.e., no save location), then this function also returns `true` if the list of nodes corresponding to 
+   * `typeName` is empty
    * 
    * @param {string} dirName the save location in which to check
    * @param {string} typeName the name of the type to check
-   * @returns true if the nodes of type `typeName` in save location `dirName` are saved, false otherwise
+   * @returns `true` if the nodes of type `typeName` in save location `dirName` are saved, or `dirName === ""` and the 
+   * list corresponding to `typeName` is empty, `false` otherwise
    */
   $scope.typeIsSaved = function(dirName, typeName) {
-    return $window.app.editor.globalNodeUndoHistory.typeIsSaved(dirName, typeName);
+    return (dirName === "" && $scope.nodes[dirName][typeName].length === 0)
+    || $window.app.editor.globalNodeUndoHistory.typeIsSaved(dirName, typeName);
   }
 
   /**
@@ -141,10 +167,11 @@ angular.module('app.node', ['app.modal'])
    * 
    * @param {string} dirName the save location in which to check
    * @param {string} category the category to check
-   * @returns true if all nodes of category `category` in save location `dirName` are saved, false otherwise
+   * @returns `true` if all nodes of category `category` in save location `dirName` are saved, `false` otherwise
    */
   $scope.categoryIsSaved = function(dirName, category) {
-    return $window.app.editor.globalNodeUndoHistory.categoryIsSaved(dirName, category);
+    return (dirName === "" && $scope.nodes[dirName].actionCategories[category].length === 0)
+    || $window.app.editor.globalNodeUndoHistory.categoryIsSaved(dirName, category);
   }
 
   /**
@@ -394,6 +421,9 @@ angular.module('app.node', ['app.modal'])
   }, this);
   $window.app.editor.on('nodesreset', function() {
     this.resetNodes();
+    this.updateNodesView();
+  }, this);
+  $window.app.editor.on('nodesavestatuschanged', function() {
     this.updateNodesView();
   }, this);
   $rootScope.$on('onButtonNewNode', function() {$scope.showAddNodeModal()});
@@ -1133,6 +1163,16 @@ angular.module('app.node', ['app.modal'])
    */
   $scope.groupIsSaved = function(dirName, groupName) {
     return $window.app.editor.globalNodeUndoHistory.categoryIsSaved(dirName, groupName);
+  }
+
+  /**
+   * Returns whether or not the node group corresponding to `dirName` and `category` is to be exported as a patch file.
+   * 
+   * @param {string} dirName the name of the target save location
+   * @param {string} category the name of the target category
+   */
+  $scope.getPatchMode = function(dirName, category) {
+    return $window.app.editor.getNodesPatchMode(dirName, category);
   }
 })
 

@@ -138,22 +138,20 @@ this.b3editor = this.b3editor || {};
   }
   
   /**
-   * Returns whether or not the current `NodeUndoStack` is saved--i.e., has no unsaved directories.
-   * 
-   * @returns true if no directory in the current `NodeUndoStack` is unsaved, false otherwise
+   * Returns the number of unsaved directories in the current `NodeUndoStack`.
    */
-  p.isSaved = function() {
+  p.numUnsavedDirs = function() {
+    var count = 0;
+
     // For each originDirectory in dirCategories...
     for (var i = 0; i < this.originDirectories.length; i++) {
       var originDirectory = this.originDirectories[i];
       // If the directory is not saved...
       if (!this.dirIsSaved(originDirectory))
-        // Stop and return false.
-        return false;
+        count++;  // Increment counter.
     }
 
-    // Return true here as there are no unsaved directories.
-    return true;
+    return count;
   }
 
   /**

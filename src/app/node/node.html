@@ -8,7 +8,7 @@
     <div ng-repeat="(dirName, nodesInDir) in (searchInfo.searchText ? filteredNodes : nodes)" class="item">
       <b3-collapsible-list class="type-list">
         <b3-collapsible-list-header>
-          <span class="save-marker left" ng-hide="dirIsSaved(dirName)">*</span>
+          <span class="save-marker left" ng-hide="dirIsSaved(dirName)" title="Unsaved">*</span>
           <a class="directory-list-header" href="#"
           onmouseover="this.lastElementChild.style.display='inline-block';"
           onmouseout="this.lastElementChild.style.display='none';">
@@ -44,7 +44,10 @@
         <div>
           <b3-collapsible-list class="node-list" ng-if="nodesInDir.composite.length !== 0 || !searchInfo.searchText">
             <b3-collapsible-list-header>
-              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'composite')">*</span>
+              <button class="patch-mode left" ng-class="{active: getPatchMode(dirName, 'composite')}" href="#"
+                      title="Export as .patch File ({{getPatchMode(dirName, 'composite') ? 'Enabled' : 'Disabled'}})"
+                      ng-click="togglePatchMode(dirName, 'composite')">P</button>
+              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'composite')" title="Unsaved">*</span>
               <a class="header" href="#"
               onmouseover="this.lastElementChild.style.display='inline-block';"
               onmouseout="this.lastElementChild.style.display='none';">
@@ -77,7 +80,10 @@
         <div>
           <b3-collapsible-list class="node-list" ng-if="nodesInDir.decorator.length !== 0 || !searchInfo.searchText">
             <b3-collapsible-list-header>
-              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'decorator')">*</span>
+              <button class="patch-mode left" ng-class="{active: getPatchMode(dirName, 'decorator')}" href="#"
+                      title="Export as .patch File ({{getPatchMode(dirName, 'decorator') ? 'Enabled' : 'Disabled'}})"
+                      ng-click="togglePatchMode(dirName, 'decorator')">P</button>
+              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'decorator')" title="Unsaved">*</span>
               <a class="header" href="#"
               onmouseover="this.lastElementChild.style.display='inline-block';"
               onmouseout="this.lastElementChild.style.display='none';">
@@ -110,7 +116,7 @@
         <div>
           <b3-collapsible-list class="node-list" ng-if="nodesInDir.action.length !== 0 || !searchInfo.searchText">
             <b3-collapsible-list-header>
-              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'action')">*</span>
+              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'action')" title="Unsaved">*</span>
               <a class="header" href="#"
               onmouseover="this.lastElementChild.style.display='inline-block';"
               onmouseout="this.lastElementChild.style.display='none';">
@@ -124,7 +130,13 @@
             <div class="item" ng-repeat="(category,actions) in nodesInDir.actionCategories">
               <b3-collapsible-list>
                 <b3-collapsible-list-header>
-                  <span class="save-marker left" ng-hide="categoryIsSaved(dirName, category, 'action')">*</span>
+                  <button class="patch-mode left" ng-class="{active: getPatchMode(dirName, category || 'action')}"
+                          href="#" title="Export as .patch File ({{getPatchMode(dirName, category || 'action') ? 
+                          'Enabled' : 'Disabled'}})"
+                          ng-click="togglePatchMode(dirName, category || 'action')">P</button>
+                  <span class="save-marker left" ng-hide="categoryIsSaved(dirName, category, 'action')" title="Unsaved">
+                    *
+                  </span>
                   <a class="category" href="#"
                   onmouseover="this.lastElementChild.style.display='inline-block';"
                   onmouseout="this.lastElementChild.style.display='none';">
@@ -162,7 +174,10 @@
         <div>
           <b3-collapsible-list class="node-list" ng-if="nodesInDir.module.length !== 0 || !searchInfo.searchText">
             <b3-collapsible-list-header>
-              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'module')">*</span>
+              <button class="patch-mode left" ng-class="{active: getPatchMode(dirName, 'module')}" href="#"
+                      title="Export as .patch File ({{getPatchMode(dirName, 'module') ? 'Enabled' : 'Disabled'}})"
+                      ng-click="togglePatchMode(dirName, 'module')">P</button>
+              <span class="save-marker left" ng-hide="typeIsSaved(dirName, 'module')" title="Unsaved">*</span>
               <a class="header" href="#"
               onmouseover="this.lastElementChild.style.display='inline-block';"
               onmouseout="this.lastElementChild.style.display='none';">

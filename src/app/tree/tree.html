@@ -7,7 +7,7 @@
           ng-click="selectTree(tree.id);"
           ng-class="{selected:tree.id===currentTree}"
           b3-draggable-tree-tab>
-        <div ng-hide="tree.isSaved" class="save-marker left">*</div>
+        <div ng-hide="tree.isSaved" class="save-marker left" title="Unsaved">*</div>
         {{tree.name}}
         <!--$event.stopPropagation() stops the ng-click event in the parent from firing.-->
         <button href="#" title="Close Tab" class="close right" ng-disabled="!canRemoveTree();" ng-click="removeTree(tree.id); $event.stopPropagation()">&times;</button>
