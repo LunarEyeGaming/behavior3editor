@@ -674,10 +674,10 @@ this.b3editor = this.b3editor || {};
       if (block.type == "composite") {
         data.children = [];
         for (var i=0; i<children.length; i++) {
-          data.children[i] = this.exportBlock(children[i], scripts);
+          data.children[i] = this.exportBlock(children[i], tree, scripts);
         }
       } else if (block.type == "decorator") {
-        data.child = this.exportBlock(children[0], scripts);
+        data.child = this.exportBlock(children[0], tree, scripts);
       }
     }
 
