@@ -644,7 +644,7 @@ angular.module('app.node', ['app.modal'])
         // Add to new node.
         newNode.output[outputData.name] = {
           type: outputData.type,
-          key: outputData.key,
+          key: outputData.key || null,
           value: outputData.value
         };
       }
@@ -908,7 +908,7 @@ angular.module('app.node', ['app.modal'])
         // Add to new node.
         newNode.output[outputData.name] = {
           type: outputData.type,
-          key: outputData.key,
+          key: outputData.key || null,
           value: outputData.value
         };
       }

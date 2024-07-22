@@ -37,7 +37,7 @@ angular.module('app.property', ["app.textInput"])
                        placeholder="value" expandable="a" formatter="parseJson(input)">\
         </b3-text-input>\
       </td>\
-      <td><a href="#" propertyremovable class="button alert right">-</a></td>\
+      <td><a href="#" propertyremovable class="button alert right" ng-click="markForChange()">-</a></td>\
     </tr>\
   ';
 

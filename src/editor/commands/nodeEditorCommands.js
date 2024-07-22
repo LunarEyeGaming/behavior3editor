@@ -85,7 +85,8 @@ b3editor.EditNode = b3editor.defineCommand((_, p) => {
       properties: this.node.prototype.properties,
       output: this.node.prototype.output,
       category: this.node.prototype.category,
-      script: this.node.prototype.script
+      script: this.node.prototype.script,
+      pathToTree: this.node.prototype.pathToTree
     };
   }
 

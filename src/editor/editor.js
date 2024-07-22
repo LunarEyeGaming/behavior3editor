@@ -476,7 +476,7 @@ this.b3editor = this.b3editor || {};
       if (moduleNode.prototype.type == "module") {
         var newNode = {
           name: data.name,
-          title: moduleNode.title,
+          title: moduleNode.prototype.title,
           properties: treeModuleParameters(data.parameters),
           pathToTree: modulePath
         };
@@ -1485,8 +1485,19 @@ this.b3editor = this.b3editor || {};
       this.importNodesInit(nodesPathList, nodesDir);
     })
   }
-  // originDirectory is the updated directory in which to save the node.
-  // isCommand is whether or not the action should be counted as a command.
+  /**
+   * Attempts to edit a node with the original name `oldName` to have the attributes defined in `newNode`. If the node
+   * with name `oldName` does not exist, then this method has no effect. If the new name set in `newNode` matches an
+   * already existing node (not including the node with name `oldName`), then an error is sent to the log, and this
+   * method has no further effect. This method also has no effect if `newNode` is identical to the node with name 
+   * `oldName`.
+   * 
+   * @param {string} oldName the old name of the node
+   * @param {b3editor.Action | b3editor.Composite | b3editor.Decorator | b3editor.Module} newNode the new properties of 
+   * the node
+   * @param {string} originDirectory the updated directory in which to save the node.
+   * @param {boolean} isCommand whether or not the action should be counted as a command.
+   */
   p.editNode = function(oldName, newNode, originDirectory, isCommand) {
     if (!this.nodes[oldName]) return;
 
@@ -1494,6 +1505,11 @@ this.b3editor = this.b3editor || {};
       this.logger.error('Node named "'+newNode.name+'" already registered.');
       return;
     }
+
+    // If the nodes are identical and the old node has the same origin directory as provided...
+    if (this.editedEqualsNode(oldName, newNode) && this.nodes[oldName].prototype.originDirectory === originDirectory)
+      // Abort
+      return;
 
     // If the action is a command...
     if (isCommand) {
@@ -1510,7 +1526,7 @@ this.b3editor = this.b3editor || {};
   }
   /**
    * Edits a node with the original name `oldName` to have the attributes defined in `newNode`. Required attributes:
-   * `name`, `title`.
+   * `name`, `title`. Also sets the save location of the node to `originDirectory`.
    * 
    * Optional attributes: `properties`, `output` (required if the `type` of the original node is `action`), `pathToTree`
    * (required if the `type` of the original node is `module`), `category`, `script`.
@@ -1588,6 +1604,28 @@ this.b3editor = this.b3editor || {};
     this.trigger('noderemoved', node);
 
     this.updateAllBlocks(name);
+  }
+
+  /**
+   * Returns `true` if the edited node `node` is structurally equal to the node with name `name` in all attributes
+   * (with `type` not being compared), `false` otherwise.
+   * 
+   * @param {string} name the name of the original node to compare
+   * @param {object} node the edited node to compare
+   * @returns `true` if `node` is the same as the node with name `name` (not including `type`), `false` otherwise.
+   */
+  p.editedEqualsNode = function(name, node) {
+
+    // If either node is not defined...
+    if (this.nodes[name] == undefined || node == undefined)
+      return false;
+
+    var otherNode = this.nodes[name].prototype;
+
+    return (otherNode.name === node.name && otherNode.title === node.title
+      && b3editor.jsonEquals(otherNode.properties, node.properties)
+      && b3editor.jsonEquals(otherNode.output, node.output) && otherNode.category === node.category
+      && otherNode.script === node.script && otherNode.pathToTree === node.pathToTree)
   }
 
   /**
@@ -1980,7 +2018,8 @@ this.b3editor = this.b3editor || {};
    * `conditionalCallback`
    * @param {() => void} args.conditionalCallback the function to call, either if `args.predicate` is false or the user
    * chooses to allow it to be called by selecting an option where `triggersCallback` is true.
-   * @param {((number) => void)?} args.dialogCallback (optional) the function to call when the dialog box is shown.
+   * @param {((result: integer) => void)?} args.dialogCallback (optional) the function to call when the dialog box is
+   * shown.
    * @param {(() => void)?} args.conditionalDialogCallback (optional) the function to call if the user chooses it to 
    * allow it to be called. `args.conditionalCallback` is used instead if this parameter is not defined.
    * @returns whether or not `args.predicate` returned true.

@@ -85,4 +85,53 @@ this.b3editor = this.b3editor || {};
     // Forward the list formatArgs into the format method (formatString is `this`).
     return formatString.format.apply(formatString, formatArgs);
   }
+
+  /**
+   * Returns `true` if two JSON values `first` and `second` are equal, `false` otherwise.
+   * 
+   * @param {*} first the first JSON value to compare
+   * @param {*} second the second JSON value to compare
+   * @returns whether or not they are equal
+   */
+  b3editor.jsonEquals = function(first, second) {
+    // If both are objects (or arrays)...
+    if (typeof first === "object" && typeof second === "object") {
+      // If both are arrays...
+      if (Array.isArray(first) && Array.isArray(second)) {
+        // If the lengths do not match...
+        if (first.length !== second.length)
+          return false;  // Stop and return false.
+
+        // For each pair of elements...
+        for (var i = 0; i < first.length; i++) {
+          // If the ith elements in the respective arrays do not match...
+          if (!b3editor.jsonEquals(first[i], second[i]))
+            return false;  // Stop and return false
+        }
+
+        return true;
+      }  // Otherwise, if neither are arrays...
+      else if (!Array.isArray(first) && !Array.isArray(second)) {
+        // Return false if the number of entries do not match.
+        if (Object.keys(first).length != Object.keys(second).length)
+          return false;
+
+        // Return false if any of the values in first do not match any of the values in second. This also returns false
+        // if the set of keys doesn't match.
+        for (var k in first) {
+          if (!b3editor.jsonEquals(first[k], second[k]))
+            return false;
+        }
+
+        return true;
+      } else {
+        // Types do not match, so return false.
+        return false;
+      }
+    }
+
+    // Use simple comparison to determine whether or not they are equal. This code is never reached if both values are
+    // objects.
+    return first === second;
+  }
 }());
