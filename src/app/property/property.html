@@ -84,7 +84,7 @@
             
             <div ng-show="listIsDefined">
               <a href="#" ng-click="addListItem('value-list'); onInput()" class="button success right"
-                 ng-show="!readOnly">+</a>
+                 ng-show="!readOnly" title="Add List Item">+</a>
 
               <table class="data-aggregate">
                 <tbody id="value-list">
@@ -98,7 +98,7 @@
                     </td>
                     <td>
                       <a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-list"
-                         class="button alert right" ng-show="!readOnly">-</a>
+                         class="button alert right" ng-show="!readOnly" title="Remove List Item">-</a>
                     </td>
                   </tr>
                   <!-- Items are dynamically inserted here -->
@@ -122,7 +122,7 @@
                 <label>Value</label>
                 <div ng-show="subType == 'dict'">
                   <a href="#" ng-click="addDictPair('value-json-dict'); onInput()" class="button success right"
-                     ng-show="!readOnly">+</a>
+                     ng-show="!readOnly" title="Add Dictionary Entry">+</a>
     
                   <table class="data-aggregate data-json">
                     <tbody id="value-json-dict">
@@ -140,7 +140,7 @@
                         </td>
                         <td>
                           <a href="#" propertyremovable ng-click="onInput()" class="button alert right"
-                             ng-show="!readOnly">
+                             ng-show="!readOnly" title="Remove Dictionary Entry">
                             -
                           </a>
                         </td>
@@ -151,7 +151,7 @@
                 </div>
                 <div ng-show="subType == 'list'">
                   <a href="#" ng-click="addListItem('value-json-list'); onInput()" class="button success right"
-                     ng-show="!readOnly">+</a>
+                     ng-show="!readOnly" title="Add List Item">+</a>
       
                   <table class="data-aggregate">
                     <tbody id="value-json-list">
@@ -165,7 +165,7 @@
                         </td>
                         <td>
                           <a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-json-list"
-                             class="button alert right" ng-show="!readOnly">-</a>
+                             class="button alert right" ng-show="!readOnly" title="Remove List Item">-</a>
                         </td>
                       </tr>
                       <!-- Items are dynamically inserted here -->
@@ -207,7 +207,7 @@
               <div class="json-value-container">
                 <div ng-show="tableIsNumbered">
                   <a href="#" ng-click="addListItem('value-table-list'); onInput()" class="button success right"
-                     ng-show="!readOnly">+</a>
+                     ng-show="!readOnly" title="Add List Item">+</a>
   
                   <table class="data-aggregate">
                     <tbody id="value-table-list">
@@ -220,7 +220,7 @@
                           </b3-text-input>
                         </td>
                         <td><a href="#" b3-property-removable2 ng-click="onInput()" list-id="value-table-list"
-                               class="button alert right" ng-show="!readOnly">-</a></td>
+                               class="button alert right" ng-show="!readOnly" title="Remove List Item">-</a></td>
                       </tr>
                       <!-- Items are dynamically inserted here -->
                     </tbody>
@@ -228,7 +228,7 @@
                 </div>
                 <div ng-hide="tableIsNumbered">
                   <a href="#" ng-click="addDictPair('value-table-dict'); onInput()" class="button success right"
-                     ng-show="!readOnly">+</a>
+                     ng-show="!readOnly" title="Add Dictionary Entry">+</a>
   
                   <table class="data-aggregate data-json">
                     <tbody id="value-table-dict">
@@ -246,7 +246,7 @@
                         </td>
                         <td>
                           <a href="#" propertyremovable ng-click="onInput()" class="button alert right"
-                             ng-show="!readOnly">-</a>
+                             ng-show="!readOnly" title="Remove Dictionary Entry">-</a>
                         </td>
                       </tr>
                       <!-- Items are dynamically inserted here -->

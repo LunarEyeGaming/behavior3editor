@@ -19,7 +19,61 @@ angular.module("app.highlight", [])
     },
     controller: ["$scope", "$window", "$compile", "$element", 
     function($scope, $window, $compile, $element) {
-      this.highlightTemplate = '<span class="highlight">$1</span>';  // $1 is used for the capture group system.
+      this.highlightReplacement = function(match) {
+        return '<span class="highlight">' + match + '</span>';
+      }
+      /**
+       * Finds all occurrences (case-insensitive) of `matchStr` in `str` and replaces them with the result of applying
+       * `replacer` to each occurrence, returning the result. The original string is unmodified.
+       * 
+       * @precondition `matchStr !== ""`
+       * @param {string} str the string to modify
+       * @param {string} matchStr the substring to replace
+       * @param {(match: string) => string} replacer a function that returns the replacement string for a given match
+       * @returns `str` with all occurrences of `matchStr` replaced with their corresponding results from `replacer`
+       */
+      this.replaceAll = function(str, matchStr, replacer) {
+        var newStr = "";
+        // For each character index in str that can possibly be the start of a match...
+        for (var i = 0; i < str.length - (matchStr.length - 1); i++) {  
+          var match = "";
+
+          // For each character index in matchStr...
+          for (var j = 0; j < matchStr.length; j++) {
+            // Attempt to match character j in matchStr with character i + j in str.
+            var matchStrCh = matchStr[j];
+            var strCh = str[i + j];
+            // If they match...
+            if (matchStrCh.toLowerCase() === strCh.toLowerCase()) {
+              // Add character to match
+              match += strCh;
+            } else {
+              // Add the first character that was attempted in the match to the new string, set match to empty string,
+              // and cancel match attempt for current position by breaking.
+              newStr += str[i];
+              match = "";
+              break;
+            }
+          }
+
+          // If a match was found...
+          if (match) {
+            // Add the replacement version of the match to the new string.
+            newStr += replacer(match);
+            // Skip over remaining characters found in the match so that the next match attempt does not start in any 
+            // part of the matched string.
+            i += matchStr.length - 1;
+          }
+        }
+
+        // Add remaining characters that were not processed (starting at where "i" left off).
+        while (i < str.length) {
+          newStr += str[i];
+          i++;
+        }
+
+        return newStr;
+      }
       this.highlightText = $compile("<span>" + b3editor.escapeHtml($scope.str) + "</span>")($scope);  // Initial value.
 
       /**
@@ -37,8 +91,7 @@ angular.module("app.highlight", [])
           // Replace all instances (using the "g" flag to do so) of the search text in the string being used with the
           // highlight span template. Also make it case-insensitive using the "i" flag. To preserve casing, the match
           // must be captured.
-          var replaced = escapedStr.replace(new RegExp("(" + escapedSearchText + ")", "gi"), 
-              this.highlightTemplate);
+          var replaced = this.replaceAll(escapedStr, escapedSearchText, this.highlightReplacement);
         else
           var replaced = escapedStr;  // Leave the string unchanged.
     

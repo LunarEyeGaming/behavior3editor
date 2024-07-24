@@ -15,6 +15,8 @@ BEHAVIOR3 EDITOR
 
 4. Run /electron/electron.exe
 
-5. Go to file->Import nodes...
+5. Go to File->New Project...
 
-6. Find your nodes.json file and open it
+6. Choose where to save the project (via the "Project Save Path" section)
+
+7. Choose one or more places to load the node files (via the "Node Loading Directories" section)

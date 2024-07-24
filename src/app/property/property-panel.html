@@ -39,7 +39,8 @@
       <div class="row">
         <label class="clearfix">
           <span class="left">Properties</span>
-          <a href="#" ng-click="addRootProperty()" ng-show="block.type == 'root'" class="button success right">+</a>
+          <a href="#" ng-click="addRootProperty()" ng-show="block.type == 'root'" class="button success right"
+             title="Add Property">+</a>
         </label>
 
         <table id="property-properties-table" ng-if="block.type == 'root'">
@@ -55,7 +56,8 @@
                                placeholder="value" expandable="a" formatter="parseJson(input)" value="prop.value">
                 </b3-text-input>
               </td>
-              <td><a href="#" propertyremovable class="button alert right" ng-click="markForChange()">-</a></td>
+              <td><a href="#" propertyremovable class="button alert right" ng-click="markForChange()"
+                     title="Remove Property">-</a></td>
             </tr>
           </tbody>
         </table>

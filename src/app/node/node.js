@@ -477,7 +477,7 @@ angular.module('app.node', ['app.modal'])
   this.propertyTemplate = '\
     <tr>\
       <td><b3-property editable="true" is-output="{0}"><b3-property></td>\
-      <td><a href="#" propertyremovable class="button alert right">-</a></td>\
+      <td><a href="#" propertyremovable class="button alert right" title="Remove {1}">-</a></td>\
     </tr>\
   ';
 
@@ -542,7 +542,7 @@ angular.module('app.node', ['app.modal'])
   var this_ = this;
 
   $scope.addProperty = function() {
-    var template = this_.propertyTemplate.format("");
+    var template = this_.propertyTemplate.format("", "Property");
     var propertiesTable = angular.element(
       document.querySelectorAll('#addnode-properties-table>tbody')
     );
@@ -550,7 +550,7 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.addOutput = function() {
-    var template = this_.propertyTemplate.format("non-empty string");
+    var template = this_.propertyTemplate.format("a", "Output");
     var outputTable = angular.element(
       document.querySelectorAll('#addnode-output-table>tbody')
     );
@@ -817,7 +817,7 @@ angular.module('app.node', ['app.modal'])
   this.propertyTemplate = '\
     <tr>\
       <td><b3-property editable="true" is-output="{0}"><b3-property></td>\
-      <td><a href="#" propertyremovable class="button alert right">-</a></td>\
+      <td><a href="#" propertyremovable class="button alert right" title="Remove {1}">-</a></td>\
     </tr>\
   ';
 
@@ -835,7 +835,7 @@ angular.module('app.node', ['app.modal'])
   var this_ = this;
 
   $scope.addProperty = function() {
-    var template = this_.propertyTemplate.format("");
+    var template = this_.propertyTemplate.format("", "Property");
     var propertiesTable = angular.element(
       document.querySelectorAll('#editnode-properties-table>tbody')
     );
@@ -843,7 +843,7 @@ angular.module('app.node', ['app.modal'])
   }
 
   $scope.addOutput = function() {
-    var template = this_.propertyTemplate.format("non-empty string");
+    var template = this_.propertyTemplate.format("a", "Output");
     var outputTable = angular.element(
       document.querySelectorAll('#editnode-output-table>tbody')
     );

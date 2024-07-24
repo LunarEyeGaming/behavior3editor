@@ -26,7 +26,8 @@
           <div class="row" id="editnode-properties">
             <label class="clearfix">
               <span class="left">Properties</span>
-              <a href="#" ng-click="addProperty()" class="button success right" ng-hide="type == 'module'">+</a>
+              <a href="#" ng-click="addProperty()" class="button success right" ng-hide="type == 'module'"
+                 title="Add Property">+</a>
             </label>
 
             <table id="editnode-properties-table">
@@ -37,7 +38,8 @@
                                    editable="true" read-only="{{type == 'module' ? 'a' : ''}}">
                       </b3-property>
                     </td>
-                    <td><a href="#" propertyremovable class="button alert right" ng-hide="type == 'module'">-</a></td>
+                    <td><a href="#" propertyremovable class="button alert right" ng-hide="type == 'module'"
+                           title="Remove Property">-</a></td>
                   </tr>
               </tbody>
             </table>
@@ -46,7 +48,7 @@
           <div class="row" id="editnode-output" ng-show="type == 'action'">
             <label class="clearfix">
               <span class="left">Output</span>
-              <a href="#" ng-click="addOutput()" class="button success right" ng-hide="type == 'module'">+</a>
+              <a href="#" ng-click="addOutput()" class="button success right" title="Add Output">+</a>
             </label>
 
             <table id="editnode-output-table">
@@ -56,7 +58,7 @@
                       <b3-property name="name" type="contents.type" key="contents.key" value="contents.value"
                                    editable="true" is-output="true"></b3-property>
                     </td>
-                    <td><a href="#" propertyremovable class="button alert right" ng-hide="type == 'module'">-</a></td>
+                    <td><a href="#" propertyremovable class="button alert right" title="Remove Output">-</a></td>
                   </tr>
               </tbody>
             </table>
