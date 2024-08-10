@@ -967,7 +967,7 @@ this.b3editor = this.b3editor || {};
               data[name].script = node.prototype.script;
             if (node.prototype.output)
               data[name].output = JSON.parse(JSON.stringify(node.prototype.output));
-          } else if (node.prototype.type == "module") {
+          } else if (node.prototype.type == "module" && node.prototype.pathToTree != undefined) {
             // pathToTree is absolute here, so we make it relative to the save location.
             data[name].pathToTree = path.relative(path.resolve(this.project.fileName, origin), node.prototype.pathToTree);
           }
@@ -1329,7 +1329,8 @@ this.b3editor = this.b3editor || {};
     for (var nodeName in nodes) {
       var node = nodes[nodeName];
 
-      patch.push({op: "add", path: "/" + nodeName, value: node});
+      // Add the node to the patch (replacing ~ with ~0 and / with ~1).
+      patch.push({op: "add", path: "/" + nodeName.replace("~", "~0").replace("/", "~1"), value: node});
     }
 
     return patch;
