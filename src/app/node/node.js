@@ -961,19 +961,10 @@ angular.module('app.node', ['app.modal'])
   }
 
   /**
-   * Attempts to open the tree. If unsuccessful, an error is displayed in the editor and/or logged.
+   * Attempts to open the tree. If unsuccessful, an error is displayed in the editor.
    */
   $scope.openTree = function() {
-    // Try to open the file.
-    try {
-      $window.app.editor.openTreeFile($scope.pathToTree);
-    } catch (err) {
-      // If opening failed because the tree does not exist...
-      if (err.code == "ENOENT")
-        editor.notifyError("Could not open tree '{0}': File does not exist.", $scope.pathToTree);
-      else
-        editor.logger.error("Failed to open tree '{0}': {1}", $scope.pathToTree, err);
-    }
+    $window.app.editor.openTreeFile($scope.pathToTree);
   }
 
   /**

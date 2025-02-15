@@ -24,6 +24,7 @@
       <div class="row">
         <label>Name</label>
         <input id="name" type="text" placeholder="name" class="monospace" readonly>
+        <a href="#" class="button edit-node secondary" ng-hide="block.name == 'Root'" ng-click="showEditNodeModal(block.name)">Edit Node</a>
       </div>
 
       <div class="row">

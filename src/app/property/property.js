@@ -1,6 +1,6 @@
 angular.module('app.property', ["app.textInput"])
 
-.controller('PropertyPanelController', function($scope, $timeout, $compile, $window, b3Format) {
+.controller('PropertyPanelController', function($scope, $timeout, $compile, $window, b3Format, ModalService) {
   /*
   General comment:
   onchange is hooked up to trigger the $scope.editProperties() function, which causes changes in the block to be 
@@ -284,6 +284,16 @@ angular.module('app.property', ["app.textInput"])
    */
   $scope.inspectTitle = function(value) {
     return b3Format.inspectTreeTitle($scope.tree, value);
+  }
+
+  $scope.showEditNodeModal = function(node) {
+    ModalService.showModal({
+      templateUrl: "app/node/modal-editnode.html",
+      controller: 'EditNodeModalController',
+      inputs: {'node': node}
+    }).then(function(modal) {
+      modal.close.then(function(result) {});
+    });
   }
 
   $window.app.editor.on('blockselected', this.updatePropertiesDisplay, this);

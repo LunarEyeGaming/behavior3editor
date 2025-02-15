@@ -106,23 +106,22 @@ angular.module('app.focus', [])
     link: function(scope, element, _, focusListCtrl) {
       focusListCtrl.addFocusable(scope, element[0].id);
 
-      var isFocused = false;
+      scope.isFocused = false;  // Using scope so that focusListCtrl can also modify isFocused.
 
       $document.on("click", function(e) {
         // If the element that was clicked on is the current element or it is an element inside of the current 
         // element...
         if (element === e.target || element[0].contains(e.target)) {
           // If the focusable is not already focused...
-          if (!isFocused) {
+          if (!scope.isFocused) {
             // $apply is needed to make sure that the element updates accordingly.
             scope.$apply(function() {
               // Select this as the focused element.
               focusListCtrl.select(scope);
-              isFocused = true;
             });
           }
         } else {
-          isFocused = false;
+          scope.isFocused = false;
         }
       });
     },

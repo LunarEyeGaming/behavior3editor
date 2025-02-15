@@ -618,12 +618,19 @@ this.b3editor = this.b3editor || {};
     }
 
     this.logger.info("Open behavior from " + filename);
-    this.addTree(filename);
+    var tree = this.addTree(filename);
 
-    var editor = this;
-    var data = fs.readFileSync(filename);
+    // Try to open the file.
+    try {
+      var data = fs.readFileSync(filename);
+    } catch (err) {
+      // Upon failure, report an error and close the tree.
+      this.notifyError("Could not open tree '{0}': {1}", filename, err);
+      this.removeTree(tree.id);
+      return;
+    }
 
-    editor.importFromJSON(data, filename);
+    this.importFromJSON(data, filename);
   }
 
   /**

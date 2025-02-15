@@ -964,6 +964,11 @@ div.collapsible-list-items.hidden {
   margin: 0px;
   width: auto;
 }
+.property-panel .row .button.edit-node {
+  padding: 3px 5px;
+  margin: 2px;
+  width: auto;
+}
 .property-panel label .button {
   margin-right: 1px !important;
 }
